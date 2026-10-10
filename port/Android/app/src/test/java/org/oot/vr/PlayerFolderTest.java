@@ -36,9 +36,10 @@ public class PlayerFolderTest {
     }
 
     @Test
-    public void prepareMakesTheFolderAndItsModsFolder() {
+    public void prepareMakesTheFolderWithItsModsAndSaveFolders() {
         assertTrue(PlayerFolder.prepare(player));
         assertTrue(new File(player, "mods").isDirectory());
+        assertTrue(new File(player, "Save").isDirectory());
     }
 
     @Test
@@ -85,7 +86,7 @@ public class PlayerFolderTest {
     public void moveSavesWithoutOldSavesOnlyWritesTheMarker() throws IOException {
         assertTrue(PlayerFolder.prepare(player));
         PlayerFolder.moveSaves(appDir, player);
-        assertFalse(new File(player, "Save").exists());
+        assertTrue(new File(player, "Save").isDirectory());
         assertTrue(new File(appDir, PlayerFolder.SAVES_MOVED).exists());
     }
 

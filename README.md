@@ -186,6 +186,8 @@ adb push <your-dump>.z64 /sdcard/Download/
 1. In the headset, open **Library** > **Unknown Sources** > **OoT VR**.
 2. Select **Select ROM**, then select your dump in the `Download` folder.
 3. Wait some minutes for the extraction. Do not remove the headset.
+4. Optional: select **Allow** to make the player folder for mods. Read
+   [Mods](#mods).
 
 The game makes `oot.o2r` from your dump. Then you can delete the dump. The next
 starts go directly to the game.
@@ -227,7 +229,11 @@ game. The game needs the "All files access" permission for this folder.
    - In the SoH menu, go to **VR Settings** > **Mods**, then select
      **Allow Access**.
 2. On the settings screen, turn on the permission for OoT VR.
-3. Start the game again.
+3. Go back to the game.
+
+At the first start, the game then makes `oot-vr/` with `mods/` and `Save/`, and
+shows where to put mods. From VR Settings, start the game again to use the
+folder.
 
 The game copies your saves into `oot-vr/Save/` one time. The old saves stay in
 `Android/data/org.oot.vr/files/Save.backup/` as a backup.

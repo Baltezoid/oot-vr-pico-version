@@ -42,11 +42,16 @@ final class PlayerFolder {
         return new File(storageRoot, NAME);
     }
 
-    /** Makes the folder and its mods folder. True when the game can write in the folder. */
+    /**
+     * Makes the folder with its mods and Save folders, so that the player sees where mods go. True
+     * when the game can write in the folder.
+     */
     static boolean prepare(File folder) {
-        File mods = new File(folder, MODS);
-        if (!mods.isDirectory() && !mods.mkdirs()) {
-            return false;
+        for (String name : new String[] {MODS, SAVES}) {
+            File sub = new File(folder, name);
+            if (!sub.isDirectory() && !sub.mkdirs()) {
+                return false;
+            }
         }
         return folder.isDirectory() && folder.canWrite();
     }
@@ -58,7 +63,8 @@ final class PlayerFolder {
      *
      * The copy goes to Save.part first and is renamed at the end, so a stop in the middle leaves
      * no half folder. If the player folder already has saves (for example after the player
-     * removed and installed the game again), they stay and nothing is copied.
+     * removed and installed the game again), they stay and nothing is copied. An empty Save folder
+     * is the one that prepare() made: it does not count as saves.
      */
     static void moveSaves(File appDir, File folder) throws IOException {
         File marker = new File(appDir, SAVES_MOVED);
@@ -67,6 +73,9 @@ final class PlayerFolder {
         }
         File from = new File(appDir, SAVES);
         File to = new File(folder, SAVES);
+        if (from.isDirectory() && isEmptyDir(to) && !to.delete()) {
+            throw new IOException("Could not replace " + to);
+        }
         if (from.isDirectory() && !to.exists()) {
             File part = new File(folder, SAVES + ".part");
             FileOps.deleteTree(part);
@@ -83,6 +92,11 @@ final class PlayerFolder {
         if (!marker.createNewFile() && !marker.exists()) {
             throw new IOException("Could not write " + marker);
         }
+    }
+
+    private static boolean isEmptyDir(File f) {
+        String[] children = f.list();
+        return f.isDirectory() && children != null && children.length == 0;
     }
 
     /** The game used the player folder before, but cannot use it now. */

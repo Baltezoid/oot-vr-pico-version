@@ -50,8 +50,9 @@ import java.util.List;
  * The ROM copy and the extractor data exist only in the cache directory, and only for the time of
  * the work. They are deleted on every outcome. The only file that stays is the archive.
  *
- * SOH [Quest] After the archive, the panel offers mods: the "All files access" permission for the
- * player folder, and Add mods (read PlayerFolder and ModImport). MainActivity also opens the panel
+ * SOH [Quest] After the archive, the panel asks for the "All files access" permission. With it,
+ * the panel makes the player folder and shows where mods go, with Add mods (read PlayerFolder and
+ * ModImport). MainActivity also opens the panel
  * when the saves are in the player folder but the permission is gone.
  */
 public class SetupActivity extends Activity {
@@ -66,8 +67,8 @@ public class SetupActivity extends Activity {
     private static final long MAX_ROM_BYTES = 128L << 20;
 
     private enum Stage {
-        INTRO, COPYING, CHECKING, PREPARING, EXTRACTING, REJECTED, MODS, ADDING_MODS, SAVES_NOTICE,
-        DONE, FAILED;
+        INTRO, COPYING, CHECKING, PREPARING, EXTRACTING, REJECTED, PERMISSION, MODS, ADDING_MODS,
+        SAVES_NOTICE, DONE, FAILED;
 
         boolean busy() {
             return this == COPYING || this == CHECKING || this == PREPARING || this == EXTRACTING
@@ -206,12 +207,9 @@ public class SetupActivity extends Activity {
                 pickRom();
                 break;
             case MODS:
-                if (AllFilesAccess.granted()) {
-                    pickMods();
-                } else {
-                    AllFilesAccess.request(this);
-                }
+                pickMods();
                 break;
+            case PERMISSION:
             case SAVES_NOTICE:
                 AllFilesAccess.request(this);
                 break;
@@ -224,7 +222,7 @@ public class SetupActivity extends Activity {
         if (sStage == Stage.SAVES_NOTICE) {
             dismissSavesNotice(this);
         }
-        if (sStage == Stage.MODS || sStage == Stage.SAVES_NOTICE) {
+        if (sStage == Stage.PERMISSION || sStage == Stage.MODS || sStage == Stage.SAVES_NOTICE) {
             sStage = Stage.DONE;
             render();
         }
@@ -249,7 +247,12 @@ public class SetupActivity extends Activity {
             }
             stage = sStage = Stage.DONE;
         }
-        boolean twoChoices = stage == Stage.MODS || stage == Stage.SAVES_NOTICE;
+        if (stage == Stage.PERMISSION && AllFilesAccess.granted()) {
+            // The player gave the permission and came back. playerFolder() makes the folders, so the
+            // player sees them at once on a PC. A folder that is not usable leaves no mods to show.
+            stage = sStage = AllFilesAccess.playerFolder() != null ? Stage.MODS : Stage.DONE;
+        }
+        boolean twoChoices = stage == Stage.PERMISSION || stage == Stage.MODS || stage == Stage.SAVES_NOTICE;
         button.setVisibility(stage.acceptsPick() || twoChoices ? View.VISIBLE : View.GONE);
         button2.setVisibility(twoChoices ? View.VISIBLE : View.GONE);
         // A rejection can show the list of supported versions. The smaller text fits the list on the panel.
@@ -282,17 +285,16 @@ public class SetupActivity extends Activity {
                 message.setText(sRejection);
                 button.setText(SetupText.SELECT_ANOTHER);
                 break;
+            case PERMISSION:
+                message.setText(SetupText.PERMISSION);
+                button.setText(SetupText.ALLOW);
+                button2.setText(SetupText.SKIP);
+                break;
             case MODS:
-                if (AllFilesAccess.granted()) {
-                    String result = sModsResult;
-                    message.setText(result == null ? SetupText.MODS_READY : SetupText.MODS_READY + "\n\n" + result);
-                    button.setText(SetupText.ADD_MODS);
-                    button2.setText(SetupText.START_GAME);
-                } else {
-                    message.setText(SetupText.MODS_OFFER);
-                    button.setText(SetupText.ALLOW);
-                    button2.setText(SetupText.SKIP);
-                }
+                String result = sModsResult;
+                message.setText(result == null ? SetupText.MODS_READY : SetupText.MODS_READY + "\n\n" + result);
+                button.setText(SetupText.ADD_MODS);
+                button2.setText(SetupText.START_GAME);
                 break;
             case ADDING_MODS:
                 message.setText(SetupText.ADDING_MODS);
@@ -556,7 +558,7 @@ public class SetupActivity extends Activity {
             return;
         }
         deleteWork(c);
-        sStage = Stage.MODS;
+        sStage = AllFilesAccess.playerFolder() != null ? Stage.MODS : Stage.PERMISSION;
     }
 
     private static void copyExtractorAssets(AssetManager assets, String version, File work)

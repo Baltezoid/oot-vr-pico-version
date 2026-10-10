@@ -24,11 +24,12 @@ final class SetupText {
     static final String NO_PICKER = "The headset has no file picker. Make oot.o2r with Ship of "
         + "Harkinian for PC. Read the README of this project.";
 
-    static final String MODS_OFFER = "Mods (optional)\n\nMods change the textures, the models, or "
-        + "the texts of the game. Select Allow to let the game read the folder oot-vr on the "
-        + "headset. The game also keeps your saves in this folder.";
-    static final String MODS_READY = "The game reads mods from the folder oot-vr/mods on the "
-        + "headset. Copy mods into it, or select Add mods. The game loads new mods when it starts.";
+    static final String PERMISSION = "Mods (optional)\n\nMods change the textures, the models, or "
+        + "the texts of the game. Select Allow to make the folder oot-vr on the headset. You put "
+        + "mods in this folder, and the game keeps your saves in it.";
+    static final String MODS_READY = "Mods\n\nTo install a mod, connect the headset to a PC. Copy "
+        + "the .o2r and .otr files into the folder oot-vr/mods. You can also select Add mods. The "
+        + "game loads new mods when it starts.";
     static final String ADDING_MODS = "Copying the mods…";
     static final String SAVES_OUT_OF_REACH = "Your saves are in the folder oot-vr on the headset, "
         + "but the game cannot read this folder. Select Allow to use your saves.";
