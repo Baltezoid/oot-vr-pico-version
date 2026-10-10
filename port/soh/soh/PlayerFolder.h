@@ -21,6 +21,9 @@ std::vector<std::string> ModFolders();
 
 std::string SaveFolder();
 
+// shipofharkinian.json: an absolute path in the player folder, or the usual relative name.
+std::string ConfigFile();
+
 // The permission now. Path() changes only at the next start.
 bool HasAccess();
 

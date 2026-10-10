@@ -109,4 +109,17 @@ public class PlayerFolderTest {
         PlayerFolder.resetNotice(appDir);
         assertTrue(PlayerFolder.savesOutOfReach(appDir, false));
     }
+
+    @Test
+    public void copyConfigCopiesOneTimeAndKeepsThePlayerConfig() throws IOException {
+        write(new File(appDir, "shipofharkinian.json"), new byte[] {1});
+        assertTrue(PlayerFolder.prepare(player));
+        PlayerFolder.copyConfig(appDir, player);
+        assertArrayEquals(new byte[] {1}, Files.readAllBytes(new File(player, "shipofharkinian.json").toPath()));
+
+        write(new File(player, "shipofharkinian.json"), new byte[] {2});
+        PlayerFolder.copyConfig(appDir, player);
+        assertArrayEquals(new byte[] {2}, Files.readAllBytes(new File(player, "shipofharkinian.json").toPath()));
+        assertTrue(new File(appDir, "shipofharkinian.json").isFile());
+    }
 }

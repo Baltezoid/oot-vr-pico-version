@@ -279,7 +279,8 @@ std::string portArchivePath = "";
 static bool sohArchiveVersionMatch = false;
 
 OTRGlobals::OTRGlobals() {
-    context = Ship::Context::CreateUninitializedInstance("Ship of Harkinian", appShortName, "shipofharkinian.json");
+    context = Ship::Context::CreateUninitializedInstance("Ship of Harkinian", appShortName,
+                                                         PlayerFolder::ConfigFile()); // SOH [Quest]
 
     portArchivePath = Ship::Context::LocateFileAcrossAppDirs("soh.o2r");
     OTRVersion portArchiveVersion = DetectOTRVersion("soh.o2r", false);

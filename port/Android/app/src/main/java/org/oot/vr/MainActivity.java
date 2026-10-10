@@ -91,6 +91,7 @@ public class MainActivity extends SDLActivity {
         try {
             if (player != null) {
                 PlayerFolder.moveSaves(root, player);
+                PlayerFolder.copyConfig(root, player);
                 Os.setenv(PlayerFolder.ENV, player.getAbsolutePath(), true);
                 PlayerFolder.resetNotice(root);
                 Log.i(TAG, "Player folder: " + player);

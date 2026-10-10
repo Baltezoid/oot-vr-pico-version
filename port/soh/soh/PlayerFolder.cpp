@@ -64,6 +64,10 @@ std::string SaveFolder() {
     return Ship::Context::GetPathRelativeToAppDirectory("Save");
 }
 
+std::string ConfigFile() {
+    return Path().empty() ? "shipofharkinian.json" : Path() + "/shipofharkinian.json";
+}
+
 #ifdef __ANDROID__
 // Calls a method of MainActivity without arguments. Read MainActivity.java.
 static bool CallActivity(const char* method, const char* signature, bool* result) {

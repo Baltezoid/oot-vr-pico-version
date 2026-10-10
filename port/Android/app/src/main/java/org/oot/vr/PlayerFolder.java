@@ -1,10 +1,12 @@
 package org.oot.vr;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 
 /**
- * The player folder /sdcard/oot-vr: mods, saves, and optionally oot.o2r. It needs the "All files
+ * The player folder /sdcard/oot-vr: mods, saves, the config, and optionally oot.o2r. It needs the "All files
  * access" permission. Without it, the game uses the app data. No Android types: the host tests run it.
  */
 final class PlayerFolder {
@@ -12,6 +14,7 @@ final class PlayerFolder {
     static final String NAME = "oot-vr";
     static final String MODS = "mods";
     static final String SAVES = "Save";
+    static final String CONFIG = "shipofharkinian.json";
     // Markers in the app data.
     static final String SAVES_MOVED = "saves-in-player-folder";
     static final String SAVES_BACKUP = "Save.backup";
@@ -67,6 +70,17 @@ final class PlayerFolder {
         }
         if (!marker.createNewFile() && !marker.exists()) {
             throw new IOException("Could not write " + marker);
+        }
+    }
+
+    /** Copies the config into the player folder if it is not there. The old one stays. */
+    static void copyConfig(File appDir, File folder) throws IOException {
+        File from = new File(appDir, CONFIG);
+        File to = new File(folder, CONFIG);
+        if (from.isFile() && !to.exists()) {
+            try (InputStream in = new FileInputStream(from)) {
+                FileOps.copy(in, to, Long.MAX_VALUE);
+            }
         }
     }
 

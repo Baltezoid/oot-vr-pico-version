@@ -88,8 +88,8 @@ gives it. This project does not give mods.
 
 ## Player folder
 
-`oot-vr/` on the headset. It contains the mods, the saves, and optionally
-`oot.o2r`. The player opens it with a file manager on a PC.
+`oot-vr/` on the headset. It contains the mods, the saves, the config, and
+optionally `oot.o2r`. The player opens it with a file manager on a PC.
 
 ## Pre-rendered room
 
