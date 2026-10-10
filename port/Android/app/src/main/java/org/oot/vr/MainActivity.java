@@ -6,6 +6,8 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.Process;
+import android.system.ErrnoException;
+import android.system.Os;
 import android.util.Log;
 
 import org.libsdl.app.SDLActivity;
@@ -31,12 +33,12 @@ import java.io.OutputStream;
  * touchscreen. What is left here is: make sure soh.o2r is where the game looks for it, send a first
  * start to the setup, and hand over to SDL.
  *
- * No storage permission either. libultraship locates its data with
- * SDL_AndroidGetExternalStoragePath(), which is the app-private external directory - readable and
- * writable with no permission at all, and adb-reachable. The reference port needs
- * MANAGE_EXTERNAL_STORAGE only because it hardcodes /storage/emulated/0/SOH and then has to patch
- * libultraship to make that configurable. Nothing here has to. The ROM needs no permission either:
- * the system picker grants access to the one file the player selects.
+ * libultraship locates its data with SDL_AndroidGetExternalStoragePath(), which is the app-private
+ * external directory - readable and writable with no permission at all, and adb-reachable. The ROM
+ * needs no permission either: the system picker grants access to the one file the player selects.
+ * The only permission is the optional "All files access" for the player folder (read PlayerFolder).
+ * When the player gave it, this activity copies the saves there and tells the game the path in an
+ * environment variable, before SDL starts any thread.
  */
 public class MainActivity extends SDLActivity {
 
@@ -52,9 +54,11 @@ public class MainActivity extends SDLActivity {
         // Must match SDL_AndroidGetExternalStoragePath(), which is what libultraship asks for:
         //   /sdcard/Android/data/org.oot.vr/files
         File root = getExternalFilesDir(null);
+        File player = null;
         if (root == null) {
             Log.e(TAG, "External files dir unavailable");
         } else {
+            player = usePlayerFolder(root);
             copyPortArchive(new File(root, "soh.o2r"));
             // RunExtract() checks for an assets/ directory on EVERY launch, before it looks at
             // whether an archive is already present - and if it is missing it registers a modal
@@ -68,12 +72,56 @@ public class MainActivity extends SDLActivity {
         // gets no onResume: it goes straight to onDestroy, whose nativeQuit() only frees what
         // onCreate made. A later MainActivity in the same process makes them again.
         super.onCreate(savedInstanceState);
-        if (root != null && SetupGate.needsSetup(root)) {
+        if (root != null && SetupGate.needsSetup(root, player)) {
             Log.i(TAG, "No game archive: starting the setup");
-            handedOverToSetup = true;
-            startSetup();
-            finishAndRemoveTask();
+            handOverToSetup(false);
+        } else if (root != null && PlayerFolder.savesOutOfReach(root, player != null)) {
+            Log.i(TAG, "The saves are in the player folder, without permission: starting the setup");
+            handOverToSetup(true);
         }
+    }
+
+    private void handOverToSetup(boolean savesNotice) {
+        handedOverToSetup = true;
+        startSetup(savesNotice);
+        finishAndRemoveTask();
+    }
+
+    /**
+     * SOH [Quest] The player folder, ready for the game, or null. A failed copy of the saves keeps
+     * the game in the old folders, so that the player never sees an empty file select.
+     */
+    private static File usePlayerFolder(File root) {
+        File player = AllFilesAccess.playerFolder();
+        try {
+            if (player != null) {
+                PlayerFolder.moveSaves(root, player);
+                Os.setenv(PlayerFolder.ENV, player.getAbsolutePath(), true);
+                PlayerFolder.resetNotice(root);
+                Log.i(TAG, "Player folder: " + player);
+                return player;
+            }
+        } catch (IOException | ErrnoException e) {
+            Log.e(TAG, "Could not use the player folder " + player, e);
+        }
+        if (PlayerFolder.lost(root, false)) {
+            try {
+                Os.setenv(PlayerFolder.ENV_LOST, "1", true);
+            } catch (ErrnoException e) {
+                Log.w(TAG, "Could not set " + PlayerFolder.ENV_LOST, e);
+            }
+        }
+        return null;
+    }
+
+    /** SOH [Quest] Called from the game (VR Settings > Mods) on the SDL thread. */
+    public boolean hasAllFilesAccess() {
+        return AllFilesAccess.granted();
+    }
+
+    /** SOH [Quest] Called from the game (VR Settings > Mods) on the SDL thread. */
+    public void requestAllFilesAccess() {
+        runOnUiThread(() -> AllFilesAccess.request(this));
     }
 
     /**
@@ -94,9 +142,10 @@ public class MainActivity extends SDLActivity {
      * directly from an immersive activity, a panel opens as an overlay on top of that activity,
      * which is about to end. The direct start remains as a fallback for a system without that Home.
      */
-    private void startSetup() {
+    private void startSetup(boolean savesNotice) {
         Intent setup = new Intent(this, SetupActivity.class);
         setup.setAction(Intent.ACTION_MAIN);
+        setup.putExtra(SetupActivity.EXTRA_SAVES_NOTICE, savesNotice);
         setup.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         PendingIntent pending = PendingIntent.getActivity(this, 0, setup,
             PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);

@@ -3,6 +3,7 @@
 #include "soh/OTRGlobals.h"
 #include "soh/ShipInit.hpp"
 #include "SohGui.hpp"
+#include "soh/PlayerFolder.h" // SOH [Quest]
 #include <libultraship/bridge/consolevariablebridge.h>
 #include <imgui.h>
 #include <imgui_internal.h>
@@ -674,6 +675,37 @@ static void VrQuickSetup(WidgetInfo& info) {
     VrHudCard(width);
 }
 
+#ifdef __ANDROID__
+// SOH [Quest] The player folder /sdcard/oot-vr and its permission. Read soh/PlayerFolder.h. The
+// game reads the folder only from the start, so a permission given now applies at the next start.
+static void VrModsFolder(WidgetInfo& info) {
+    static int sFramesToCheck = 0;
+    static bool sGranted = false;
+    if (--sFramesToCheck <= 0) {
+        sGranted = PlayerFolder::HasAccess(); // A call into Java: once a second is enough.
+        sFramesToCheck = 72;
+    }
+    if (!PlayerFolder::Path().empty()) {
+        ImGui::TextWrapped("The game reads mods from the folder oot-vr/mods on the headset. Copy new mods into "
+                           "it, then start the game again. The game keeps the saves in the folder oot-vr/Save.");
+        return;
+    }
+    if (sGranted) {
+        ImGui::TextWrapped("Access is allowed. Start the game again to use the folder oot-vr.");
+        return;
+    }
+    ImGui::TextWrapped("Mods change the textures, the models, or the texts of the game. Allow access to the "
+                       "folder oot-vr on the headset, then copy mods into oot-vr/mods. The game also keeps the "
+                       "saves in this folder.");
+    ImGui::Dummy(ImVec2(0.0f, ImGui::GetStyle().ItemSpacing.y));
+    static const VrChoice sChoices[] = { { "Allow Access", "Opens the settings of the headset" } };
+    if (VrChoiceRow("VrModsAccess", sChoices, 1, -1, ImGui::GetContentRegionAvail().x) == 0) {
+        PlayerFolder::RequestAccess();
+        sFramesToCheck = 0;
+    }
+}
+#endif
+
 static void VrRightStickCardWidget(WidgetInfo& info) {
     VrRightStickCard(ImGui::GetContentRegionAvail().x);
 }
@@ -1057,6 +1089,14 @@ void SohMenu::AddMenuVRSettings() {
         .CVar("gVrLetterbox")
         .Options(
             CheckboxOptions().Tooltip("Shows the black bars of the original game during Z-targeting and cutscenes."));
+
+#ifdef __ANDROID__
+    // ---------------------------------------------------------------------- Mods
+    // SOH [Quest] The player folder. Settings > Mod Menu keeps the list and the order of the mods.
+    AddSidebarEntry("VR Settings", "Mods", 1);
+    WidgetPath modsPath = { "VR Settings", "Mods", SECTION_COLUMN_1 };
+    AddWidget(modsPath, "VrModsFolder", WIDGET_CUSTOM).CustomFunction(VrModsFolder).HideInSearch(true);
+#endif
 
     // ----------------------------------------------------------------- Developer
     // Tuning and tests. Shows only with Dev Tools > Debug Mode on.

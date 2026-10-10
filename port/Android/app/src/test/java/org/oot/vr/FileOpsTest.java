@@ -111,4 +111,17 @@ public class FileOpsTest {
     public void deleteTreeOfMissingPathSucceeds() {
         assertTrue(FileOps.deleteTree(new File(tmp.getRoot(), "absent")));
     }
+
+    @Test
+    public void copyTreeCopiesNestedFiles() throws IOException {
+        File from = tmp.newFolder("from");
+        File nested = new File(from, "a/b.bin");
+        assertTrue(nested.getParentFile().mkdirs());
+        byte[] data = bytes(1000);
+        FileOps.copy(new ByteArrayInputStream(data), nested, 1 << 20);
+        File to = new File(tmp.getRoot(), "to");
+        FileOps.copyTree(from, to);
+        assertArrayEquals(data, Files.readAllBytes(new File(to, "a/b.bin").toPath()));
+        assertTrue(nested.isFile());
+    }
 }

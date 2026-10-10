@@ -2,14 +2,17 @@ package org.oot.vr;
 
 import android.app.Activity;
 import android.content.ActivityNotFoundException;
+import android.content.ClipData;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.AssetManager;
+import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Process;
+import android.provider.OpenableColumns;
 import android.system.ErrnoException;
 import android.system.Os;
 import android.util.Log;
@@ -46,20 +49,29 @@ import java.util.List;
  *
  * The ROM copy and the extractor data exist only in the cache directory, and only for the time of
  * the work. They are deleted on every outcome. The only file that stays is the archive.
+ *
+ * SOH [Quest] After the archive, the panel offers mods: the "All files access" permission for the
+ * player folder, and Add mods (read PlayerFolder and ModImport). MainActivity also opens the panel
+ * when the saves are in the player folder but the permission is gone.
  */
 public class SetupActivity extends Activity {
 
     private static final String TAG = "OoTVR";
     private static final int PICK_ROM = 1;
+    private static final int PICK_MODS = 2;
+    /** Boolean extra: show the notice that the saves are out of reach. Read MainActivity. */
+    static final String EXTRA_SAVES_NOTICE = "org.oot.vr.SAVES_NOTICE";
     private static final long POLL_MS = 250;
     /** The largest real dump is 64 MiB. Anything much bigger is the wrong file. */
     private static final long MAX_ROM_BYTES = 128L << 20;
 
     private enum Stage {
-        INTRO, COPYING, CHECKING, PREPARING, EXTRACTING, REJECTED, DONE, FAILED;
+        INTRO, COPYING, CHECKING, PREPARING, EXTRACTING, REJECTED, MODS, ADDING_MODS, SAVES_NOTICE,
+        DONE, FAILED;
 
         boolean busy() {
-            return this == COPYING || this == CHECKING || this == PREPARING || this == EXTRACTING;
+            return this == COPYING || this == CHECKING || this == PREPARING || this == EXTRACTING
+                || this == ADDING_MODS;
         }
 
         boolean acceptsPick() {
@@ -73,6 +85,8 @@ public class SetupActivity extends Activity {
     private static volatile String sFailure;
     /** Set when an extraction starts. ZAPD's global state allows one extraction per process. */
     private static volatile boolean sExtractorUsed;
+    /** The result of the last Add mods, or null. */
+    private static volatile String sModsResult;
 
     private final Handler ui = new Handler(Looper.getMainLooper());
     private final Runnable poll = this::render;
@@ -80,6 +94,7 @@ public class SetupActivity extends Activity {
     private TextView message;
     private ProgressBar bar;
     private Button button;
+    private Button button2;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -89,7 +104,21 @@ public class SetupActivity extends Activity {
             // Left over from a process that died in the middle of the work.
             deleteWork(this);
         }
+        readIntent(getIntent());
         render();
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        readIntent(intent);
+        render();
+    }
+
+    private static void readIntent(Intent intent) {
+        if (sStage == Stage.INTRO && intent != null && intent.getBooleanExtra(EXTRA_SAVES_NOTICE, false)) {
+            sStage = Stage.SAVES_NOTICE;
+        }
     }
 
     @Override
@@ -143,16 +172,62 @@ public class SetupActivity extends Activity {
         barParams.topMargin = dp(32);
         root.addView(bar, barParams);
 
-        button = new Button(this);
-        button.setTextSize(TypedValue.COMPLEX_UNIT_SP, 28);
-        button.setAllCaps(false);
-        button.setPadding(dp(32), dp(16), dp(32), dp(16));
-        button.setOnClickListener(v -> pickRom());
-        LinearLayout.LayoutParams buttonParams = new LinearLayout.LayoutParams(
+        LinearLayout buttons = new LinearLayout(this);
+        buttons.setOrientation(LinearLayout.HORIZONTAL);
+        buttons.setGravity(Gravity.CENTER);
+        button = newButton();
+        button.setOnClickListener(v -> onButton());
+        button2 = newButton();
+        button2.setOnClickListener(v -> onButton2());
+        buttons.addView(button);
+        LinearLayout.LayoutParams secondParams = new LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-        buttonParams.topMargin = dp(32);
-        root.addView(button, buttonParams);
+        secondParams.leftMargin = dp(32);
+        buttons.addView(button2, secondParams);
+        LinearLayout.LayoutParams buttonsParams = new LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        buttonsParams.topMargin = dp(32);
+        root.addView(buttons, buttonsParams);
         return root;
+    }
+
+    private Button newButton() {
+        Button b = new Button(this);
+        b.setTextSize(TypedValue.COMPLEX_UNIT_SP, 28);
+        b.setAllCaps(false);
+        b.setPadding(dp(32), dp(16), dp(32), dp(16));
+        return b;
+    }
+
+    private void onButton() {
+        switch (sStage) {
+            case INTRO:
+            case REJECTED:
+                pickRom();
+                break;
+            case MODS:
+                if (AllFilesAccess.granted()) {
+                    pickMods();
+                } else {
+                    AllFilesAccess.request(this);
+                }
+                break;
+            case SAVES_NOTICE:
+                AllFilesAccess.request(this);
+                break;
+            default:
+                break;
+        }
+    }
+
+    private void onButton2() {
+        if (sStage == Stage.SAVES_NOTICE) {
+            dismissSavesNotice(this);
+        }
+        if (sStage == Stage.MODS || sStage == Stage.SAVES_NOTICE) {
+            sStage = Stage.DONE;
+            render();
+        }
     }
 
     private int dp(int value) {
@@ -166,7 +241,17 @@ public class SetupActivity extends Activity {
         Stage stage = sStage;
         bar.setVisibility(stage.busy() ? View.VISIBLE : View.GONE);
         bar.setIndeterminate(stage != Stage.EXTRACTING);
-        button.setVisibility(stage.acceptsPick() ? View.VISIBLE : View.GONE);
+        if (stage == Stage.SAVES_NOTICE && AllFilesAccess.granted()) {
+            // The player gave the permission on the settings screen and came back. If the folder is
+            // still not usable, MainActivity would send the player here again: do not tell again.
+            if (AllFilesAccess.playerFolder() == null) {
+                dismissSavesNotice(this);
+            }
+            stage = sStage = Stage.DONE;
+        }
+        boolean twoChoices = stage == Stage.MODS || stage == Stage.SAVES_NOTICE;
+        button.setVisibility(stage.acceptsPick() || twoChoices ? View.VISIBLE : View.GONE);
+        button2.setVisibility(twoChoices ? View.VISIBLE : View.GONE);
         // A rejection can show the list of supported versions. The smaller text fits the list on the panel.
         message.setTextSize(TypedValue.COMPLEX_UNIT_SP, stage == Stage.REJECTED ? 22 : 28);
         if (stage.busy()) {
@@ -196,6 +281,26 @@ public class SetupActivity extends Activity {
             case REJECTED:
                 message.setText(sRejection);
                 button.setText(SetupText.SELECT_ANOTHER);
+                break;
+            case MODS:
+                if (AllFilesAccess.granted()) {
+                    String result = sModsResult;
+                    message.setText(result == null ? SetupText.MODS_READY : SetupText.MODS_READY + "\n\n" + result);
+                    button.setText(SetupText.ADD_MODS);
+                    button2.setText(SetupText.START_GAME);
+                } else {
+                    message.setText(SetupText.MODS_OFFER);
+                    button.setText(SetupText.ALLOW);
+                    button2.setText(SetupText.SKIP);
+                }
+                break;
+            case ADDING_MODS:
+                message.setText(SetupText.ADDING_MODS);
+                break;
+            case SAVES_NOTICE:
+                message.setText(SetupText.SAVES_OUT_OF_REACH);
+                button.setText(SetupText.ALLOW);
+                button2.setText(SetupText.START_WITHOUT_SAVES);
                 break;
             case FAILED:
                 message.setText(sFailure);
@@ -240,9 +345,37 @@ public class SetupActivity extends Activity {
         }
     }
 
+    private static void dismissSavesNotice(Context c) {
+        File appDir = c.getExternalFilesDir(null);
+        try {
+            if (appDir != null) {
+                PlayerFolder.dismissNotice(appDir);
+            }
+        } catch (IOException e) {
+            Log.w(TAG, "Could not keep the choice to start without the saves", e);
+        }
+    }
+
+    private void pickMods() {
+        Intent pick = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        pick.addCategory(Intent.CATEGORY_OPENABLE);
+        // .o2r and .otr have no MIME type. ModImport decides from the name.
+        pick.setType("*/*");
+        pick.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
+        try {
+            startActivityForResult(pick, PICK_MODS);
+        } catch (ActivityNotFoundException e) {
+            Log.e(TAG, "No system file picker", e);
+        }
+    }
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == PICK_MODS) {
+            onModsPicked(resultCode, data);
+            return;
+        }
         if (requestCode != PICK_ROM || resultCode != RESULT_OK || data == null || data.getData() == null) {
             return; // Cancelled: the panel still shows the last text and button.
         }
@@ -270,6 +403,68 @@ public class SetupActivity extends Activity {
         Uri uri = data.getData();
         new Thread(() -> work(app, uri), "RomSetup").start();
         render();
+    }
+
+    private void onModsPicked(int resultCode, Intent data) {
+        if (resultCode != RESULT_OK || data == null || sStage != Stage.MODS) {
+            return;
+        }
+        List<Uri> uris = new ArrayList<>();
+        ClipData clip = data.getClipData();
+        if (clip != null) {
+            for (int i = 0; i < clip.getItemCount(); i++) {
+                uris.add(clip.getItemAt(i).getUri());
+            }
+        } else if (data.getData() != null) {
+            uris.add(data.getData());
+        }
+        if (uris.isEmpty()) {
+            return;
+        }
+        Context app = getApplicationContext();
+        sStage = Stage.ADDING_MODS;
+        new Thread(() -> addMods(app, uris), "AddMods").start();
+        render();
+    }
+
+    /** Add mods, on the worker thread. Ends in MODS with the result in sModsResult. */
+    private static void addMods(Context c, List<Uri> uris) {
+        File player = AllFilesAccess.playerFolder();
+        if (player == null) {
+            sModsResult = null;
+            sStage = Stage.MODS;
+            return;
+        }
+        File mods = new File(player, PlayerFolder.MODS);
+        ModImport.Result total = new ModImport.Result();
+        boolean failed = false;
+        for (Uri uri : uris) {
+            try (InputStream in = c.getContentResolver().openInputStream(uri)) {
+                if (in == null) {
+                    throw new IOException("No stream for " + uri);
+                }
+                total.add(ModImport.importFile(displayName(c, uri), in, mods));
+            } catch (IOException | SecurityException e) {
+                Log.w(TAG, "Mod copy failed: " + uri, e);
+                failed = true;
+            }
+        }
+        Log.i(TAG, "Add mods: " + total.added + " added, " + total.skipped + " skipped");
+        sModsResult = SetupText.modsAdded(total.added, total.skipped, failed);
+        sStage = Stage.MODS;
+    }
+
+    private static String displayName(Context c, Uri uri) {
+        try (Cursor cursor = c.getContentResolver().query(
+                uri, new String[] {OpenableColumns.DISPLAY_NAME}, null, null, null)) {
+            if (cursor != null && cursor.moveToFirst() && !cursor.isNull(0)) {
+                return cursor.getString(0);
+            }
+        } catch (RuntimeException e) {
+            Log.w(TAG, "No name for " + uri, e);
+        }
+        String last = uri.getLastPathSegment();
+        return last == null ? "" : last;
     }
 
     private static File romFile(Context c) {
@@ -361,7 +556,7 @@ public class SetupActivity extends Activity {
             return;
         }
         deleteWork(c);
-        sStage = Stage.DONE;
+        sStage = Stage.MODS;
     }
 
     private static void copyExtractorAssets(AssetManager assets, String version, File work)

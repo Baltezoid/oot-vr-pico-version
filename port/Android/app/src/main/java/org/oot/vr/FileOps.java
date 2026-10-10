@@ -1,6 +1,7 @@
 package org.oot.vr;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -58,6 +59,26 @@ final class FileOps {
             if (!done) {
                 part.delete();
             }
+        }
+    }
+
+    /** Copies a directory with all its contents. The target must not exist. */
+    static void copyTree(File from, File to) throws IOException {
+        if (!from.isDirectory()) {
+            try (InputStream in = new FileInputStream(from)) {
+                copy(in, to, Long.MAX_VALUE);
+            }
+            return;
+        }
+        if (!to.isDirectory() && !to.mkdirs()) {
+            throw new IOException("Could not create " + to);
+        }
+        File[] children = from.listFiles();
+        if (children == null) {
+            throw new IOException("Could not read " + from);
+        }
+        for (File child : children) {
+            copyTree(child, new File(to, child.getName()));
         }
     }
 

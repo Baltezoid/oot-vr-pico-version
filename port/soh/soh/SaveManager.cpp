@@ -1,5 +1,6 @@
 #include "SaveManager.h"
 #include "OTRGlobals.h"
+#include "PlayerFolder.h" // SOH [Quest]
 #include "Enhancements/game-interactor/GameInteractor.h"
 #include "Enhancements/randomizer/SeedContext.h"
 #include "Enhancements/randomizer/entrance.h"
@@ -51,12 +52,12 @@ void SaveManager::ReadSaveFile(std::filesystem::path savePath, uintptr_t addr, v
 }
 
 std::filesystem::path SaveManager::GetFileName(int fileNum) {
-    const std::filesystem::path sSavePath(Ship::Context::GetPathRelativeToAppDirectory("Save"));
+    const std::filesystem::path sSavePath(PlayerFolder::SaveFolder() /* SOH [Quest] */);
     return sSavePath / ("file" + std::to_string(fileNum + 1) + ".sav");
 }
 
 std::filesystem::path SaveManager::GetFileTempName(int fileNum) {
-    const std::filesystem::path sSavePath(Ship::Context::GetPathRelativeToAppDirectory("Save"));
+    const std::filesystem::path sSavePath(PlayerFolder::SaveFolder() /* SOH [Quest] */);
     return sSavePath / ("file" + std::to_string(fileNum + 1) + ".temp");
 }
 
@@ -413,7 +414,7 @@ void SaveManager::SaveRandomizer(SaveContext* saveContext, int sectionID, bool f
 void SaveManager::Init() {
     // Wait on saves that snuck through the Wait in OnExitGame
     ThreadPoolWait();
-    const std::filesystem::path sSavePath(Ship::Context::GetPathRelativeToAppDirectory("Save"));
+    const std::filesystem::path sSavePath(PlayerFolder::SaveFolder() /* SOH [Quest] */);
     const std::filesystem::path sGlobalPath = sSavePath / std::string("global.sav");
     auto sOldSavePath = Ship::Context::GetPathRelativeToAppDirectory("oot_save.sav");
     auto sOldBackupSavePath = Ship::Context::GetPathRelativeToAppDirectory("oot_save.bak");
@@ -509,7 +510,7 @@ void SaveManager::StartupCheckAndInitMeta(int fileNum) {
         // block loading outdated rando save
         if (!(major == gBuildVersionMajor && minor == gBuildVersionMinor && patch == gBuildVersionPatch)) {
             std::string newFileName =
-                Ship::Context::GetPathRelativeToAppDirectory("Save") +
+                PlayerFolder::SaveFolder() /* SOH [Quest] */ +
                 ("/file" + std::to_string(fileNum + 1) + "-" + std::to_string(GetUnixTimestamp()) + ".bak");
 #if defined(__SWITCH__) || defined(__WIIU__)
             copy_file(fileName.c_str(), newFileName.c_str());
@@ -1251,7 +1252,7 @@ void SaveManager::SaveGlobal() {
     globalBlock["zTargetSetting"] = gSaveContext.zTargetSetting;
     globalBlock["language"] = gSaveContext.language;
 
-    const std::filesystem::path sSavePath(Ship::Context::GetPathRelativeToAppDirectory("Save"));
+    const std::filesystem::path sSavePath(PlayerFolder::SaveFolder() /* SOH [Quest] */);
     const std::filesystem::path sGlobalPath = sSavePath / std::string("global.sav");
 
     std::ofstream output(sGlobalPath);
@@ -1322,7 +1323,7 @@ void SaveManager::LoadFile(int fileNum) {
     } catch ([[maybe_unused]] const std::exception& e) {
         input.close();
         std::string newFileName =
-            Ship::Context::GetPathRelativeToAppDirectory("Save") +
+            PlayerFolder::SaveFolder() /* SOH [Quest] */ +
             ("/file" + std::to_string(fileNum + 1) + "-" + std::to_string(GetUnixTimestamp()) + ".bak");
 #if defined(__SWITCH__) || defined(__WIIU__)
         copy_file(fileName.c_str(), newFileName.c_str());
