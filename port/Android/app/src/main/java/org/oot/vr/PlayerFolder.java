@@ -4,35 +4,20 @@ import java.io.File;
 import java.io.IOException;
 
 /**
- * The player folder: /sdcard/oot-vr. The player puts mods and oot.o2r there by hand, and the game
- * keeps the saves there.
- *
- * The folder is outside the app data, so the game can use it only with the "All files access"
- * permission. Without the permission the game uses the old folders in the app data. The old
- * folders stay readable in both cases, so that old installs continue to work.
- *
- * Free of Android types so the host tests can run it.
+ * The player folder /sdcard/oot-vr: mods, saves, and optionally oot.o2r. It needs the "All files
+ * access" permission. Without it, the game uses the app data. No Android types: the host tests run it.
  */
 final class PlayerFolder {
 
     static final String NAME = "oot-vr";
     static final String MODS = "mods";
     static final String SAVES = "Save";
-    /**
-     * In the app data. Written when the saves move to the player folder. Without the permission,
-     * it tells the game that the saves are in a folder that the game cannot read.
-     */
+    // Markers in the app data.
     static final String SAVES_MOVED = "saves-in-player-folder";
-    /** In the app data: the old saves after the copy. The game does not read them again. */
     static final String SAVES_BACKUP = "Save.backup";
-    /** In the app data. The player selected to start without the saves. Read savesOutOfReach. */
     static final String NOTICE_DISMISSED = "saves-notice-dismissed";
-    /** The environment variable that tells the native game where the player folder is. */
+    // Read by soh/PlayerFolder.cpp.
     static final String ENV = "OOTVR_PLAYER_DIR";
-    /**
-     * Set when the game used the player folder before but cannot use it now. The native game then
-     * keeps the mods that it cannot find in the list, so that their order stays.
-     */
     static final String ENV_LOST = "OOTVR_PLAYER_DIR_LOST";
 
     private PlayerFolder() {
@@ -42,10 +27,7 @@ final class PlayerFolder {
         return new File(storageRoot, NAME);
     }
 
-    /**
-     * Makes the folder with its mods and Save folders, so that the player sees where mods go. True
-     * when the game can write in the folder.
-     */
+    /** Makes mods/ and Save/. True when the game can write in the folder. */
     static boolean prepare(File folder) {
         for (String name : new String[] {MODS, SAVES}) {
             File sub = new File(folder, name);
@@ -57,14 +39,8 @@ final class PlayerFolder {
     }
 
     /**
-     * Copies the saves from the app data into the player folder, one time. The old saves stay as a
-     * backup in Save.backup, and the game does not use them again. Without the permission, the game
-     * thus starts with no saves, and never with an old copy of them.
-     *
-     * The copy goes to Save.part first and is renamed at the end, so a stop in the middle leaves
-     * no half folder. If the player folder already has saves (for example after the player
-     * removed and installed the game again), they stay and nothing is copied. An empty Save folder
-     * is the one that prepare() made: it does not count as saves.
+     * Copies Save/ from the app data into the player folder one time, then renames the old one to
+     * Save.backup. Saves that are already in the player folder stay. An empty Save/ does not count.
      */
     static void moveSaves(File appDir, File folder) throws IOException {
         File marker = new File(appDir, SAVES_MOVED);
@@ -99,17 +75,16 @@ final class PlayerFolder {
         return f.isDirectory() && children != null && children.length == 0;
     }
 
-    /** The game used the player folder before, but cannot use it now. */
+    /** The game used the player folder before, but cannot now. */
     static boolean lost(File appDir, boolean access) {
         return !access && new File(appDir, SAVES_MOVED).exists();
     }
 
-    /** The saves are in the player folder, the game cannot read it, and the player was not told. */
+    /** lost(), and the player did not select "Start without the saves". */
     static boolean savesOutOfReach(File appDir, boolean access) {
         return lost(appDir, access) && !new File(appDir, NOTICE_DISMISSED).exists();
     }
 
-    /** The player selected to start without the saves. Do not tell again until access returns. */
     static void dismissNotice(File appDir) throws IOException {
         File f = new File(appDir, NOTICE_DISMISSED);
         if (!f.createNewFile() && !f.exists()) {
@@ -117,7 +92,6 @@ final class PlayerFolder {
         }
     }
 
-    /** Access is back: tell again the next time that it goes. */
     static void resetNotice(File appDir) {
         new File(appDir, NOTICE_DISMISSED).delete();
     }

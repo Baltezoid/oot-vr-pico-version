@@ -33,9 +33,7 @@
     <uses-feature android:name="oculus.software.handtracking" android:required="false"/>
     <uses-permission android:name="com.oculus.permission.HAND_TRACKING"/>
 
-    <!-- SOH [Quest] Optional: the player folder /sdcard/oot-vr for mods, oot.o2r, and saves. The
-         player gives it on the settings screen of Android. Without it, the game uses the
-         app-private external directory only. Read PlayerFolder.java. -->
+    <!-- SOH [Quest] Optional. For the player folder /sdcard/oot-vr. Read PlayerFolder.java. -->
     <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE"/>
     <uses-permission android:name="android.permission.VIBRATE"/>
 

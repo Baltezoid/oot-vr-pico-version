@@ -12,9 +12,7 @@ import android.util.Log;
 import java.io.File;
 
 /**
- * The "All files access" permission, which the player folder needs. Read PlayerFolder.
- *
- * Android grants it only on its own settings screen. Horizon OS shows that screen as a panel.
+ * The "All files access" permission for the player folder. Only the settings screen grants it.
  */
 final class AllFilesAccess {
 
@@ -41,7 +39,7 @@ final class AllFilesAccess {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
             return;
         }
-        // A new task: from the immersive game, the settings screen must not join the task of the game.
+        // NEW_TASK: from the immersive game, the screen must not join the game task.
         Intent app = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
             Uri.parse("package:" + c.getPackageName())).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         try {

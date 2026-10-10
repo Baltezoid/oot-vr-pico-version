@@ -50,17 +50,14 @@ import java.util.List;
  * The ROM copy and the extractor data exist only in the cache directory, and only for the time of
  * the work. They are deleted on every outcome. The only file that stays is the archive.
  *
- * SOH [Quest] After the archive, the panel asks for the "All files access" permission. With it,
- * the panel makes the player folder and shows where mods go, with Add mods (read PlayerFolder and
- * ModImport). MainActivity also opens the panel
- * when the saves are in the player folder but the permission is gone.
+ * SOH [Quest] After the archive: PERMISSION, then MODS (read PlayerFolder and ModImport).
+ * SAVES_NOTICE: the saves are in the player folder, but the permission is gone.
  */
 public class SetupActivity extends Activity {
 
     private static final String TAG = "OoTVR";
     private static final int PICK_ROM = 1;
     private static final int PICK_MODS = 2;
-    /** Boolean extra: show the notice that the saves are out of reach. Read MainActivity. */
     static final String EXTRA_SAVES_NOTICE = "org.oot.vr.SAVES_NOTICE";
     private static final long POLL_MS = 250;
     /** The largest real dump is 64 MiB. Anything much bigger is the wrong file. */
@@ -240,16 +237,14 @@ public class SetupActivity extends Activity {
         bar.setVisibility(stage.busy() ? View.VISIBLE : View.GONE);
         bar.setIndeterminate(stage != Stage.EXTRACTING);
         if (stage == Stage.SAVES_NOTICE && AllFilesAccess.granted()) {
-            // The player gave the permission on the settings screen and came back. If the folder is
-            // still not usable, MainActivity would send the player here again: do not tell again.
+            // Back from the settings screen. A folder that is still not usable must not loop.
             if (AllFilesAccess.playerFolder() == null) {
                 dismissSavesNotice(this);
             }
             stage = sStage = Stage.DONE;
         }
         if (stage == Stage.PERMISSION && AllFilesAccess.granted()) {
-            // The player gave the permission and came back. playerFolder() makes the folders, so the
-            // player sees them at once on a PC. A folder that is not usable leaves no mods to show.
+            // Back from the settings screen. playerFolder() makes the folders.
             stage = sStage = AllFilesAccess.playerFolder() != null ? Stage.MODS : Stage.DONE;
         }
         boolean twoChoices = stage == Stage.PERMISSION || stage == Stage.MODS || stage == Stage.SAVES_NOTICE;
@@ -429,7 +424,7 @@ public class SetupActivity extends Activity {
         render();
     }
 
-    /** Add mods, on the worker thread. Ends in MODS with the result in sModsResult. */
+    /** Worker thread. Ends in MODS. */
     private static void addMods(Context c, List<Uri> uris) {
         File player = AllFilesAccess.playerFolder();
         if (player == null) {

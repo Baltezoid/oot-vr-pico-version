@@ -24,15 +24,13 @@ final class SetupText {
     static final String NO_PICKER = "The headset has no file picker. Make oot.o2r with Ship of "
         + "Harkinian for PC. Read the README of this project.";
 
-    static final String PERMISSION = "Mods (optional)\n\nMods change the textures, the models, or "
-        + "the texts of the game. Select Allow to make the folder oot-vr on the headset. You put "
-        + "mods in this folder, and the game keeps your saves in it.";
-    static final String MODS_READY = "Mods\n\nTo install a mod, connect the headset to a PC. Copy "
-        + "the .o2r and .otr files into the folder oot-vr/mods. You can also select Add mods. The "
-        + "game loads new mods when it starts.";
+    static final String PERMISSION = "Mods (optional)\n\nSelect Allow to make the folder oot-vr "
+        + "on the headset. It keeps your mods and your saves.";
+    static final String MODS_READY = "Mods\n\nConnect the headset to a PC, and copy mods into "
+        + "oot-vr/mods. Or select Add mods.";
     static final String ADDING_MODS = "Copying the mods…";
-    static final String SAVES_OUT_OF_REACH = "Your saves are in the folder oot-vr on the headset, "
-        + "but the game cannot read this folder. Select Allow to use your saves.";
+    static final String SAVES_OUT_OF_REACH = "Your saves are in the folder oot-vr. Select Allow to "
+        + "use them.";
     static final String ALLOW = "Allow";
     static final String SKIP = "Skip";
     static final String ADD_MODS = "Add mods";
@@ -54,14 +52,13 @@ final class SetupText {
         return EXTRACTING + " " + clamp(done, total) + " / " + total;
     }
 
-    /** The result of Add mods: how many mods, and how many selected files were not mods. */
     static String modsAdded(int added, int skipped, boolean failed) {
         StringBuilder text = new StringBuilder("Mods added: " + added + ".");
         if (skipped > 0) {
-            text.append(" Files that are not mods: ").append(skipped).append(".");
+            text.append(" Not mods: ").append(skipped).append(".");
         }
         if (failed) {
-            text.append(" Some files could not be copied.");
+            text.append(" Some files failed.");
         }
         return text.toString();
     }

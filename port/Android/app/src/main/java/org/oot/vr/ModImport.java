@@ -8,18 +8,11 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 /**
- * Copies the files that the player selects with "Add mods" into the mods folder.
- *
- * An .o2r or .otr file is a mod: it goes into the mods folder with its name. A .zip file is a
- * download that contains mods: its .o2r and .otr files go into a folder with the name of the zip,
- * with the subfolders of the zip. The game ignores the other files. The parts "." and ".." of a
- * name are removed, so a file cannot go outside the mods folder.
- *
- * Free of Android types so the host tests can run it.
+ * Add mods: copies .o2r and .otr files into mods/. A .zip goes into mods/<zip name>/ with its
+ * subfolders. Other files are skipped. No Android types: the host tests run it.
  */
 final class ModImport {
 
-    /** How many mods a selection added, and how many selected files were not mods. */
     static final class Result {
         int added;
         int skipped;

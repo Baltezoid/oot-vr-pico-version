@@ -212,8 +212,7 @@ void UpdateModFiles(bool init = false, bool reset = false) {
     filePaths.clear();
     bool changed = false;
     std::map<std::string, std::string> tempMods;
-    // SOH [Quest] Two folders: the player folder first, then the old folder. A mod name that is in
-    // the two folders loads from the player folder only.
+    // SOH [Quest] The player folder, then the old folder. The first one wins.
     for (const std::string& modsPath : PlayerFolder::ModFolders()) {
         std::error_code existsError;
         if (modsPath.empty() || !std::filesystem::is_directory(modsPath, existsError)) {
@@ -238,7 +237,7 @@ void UpdateModFiles(bool init = false, bool reset = false) {
                 continue;
             }
             if (filePaths.contains(filename)) {
-                continue; // SOH [Quest] Already found in the player folder.
+                continue; // SOH [Quest]
             }
             bool enabled = SohUtils::Contains(filename, enabledModFiles);
             if (!enabled) {
@@ -263,8 +262,7 @@ void UpdateModFiles(bool init = false, bool reset = false) {
             if (filePaths.contains(mod)) {
                 GetArchiveManager()->AddArchive(filePaths.at(mod).generic_string());
             } else if (!PlayerFolder::Lost()) {
-                // SOH [Quest] Without access to the player folder, its mods stay in the list, so that
-                // their order is the same when access returns.
+                // SOH [Quest] Without the player folder, keep its mods and their order.
                 enabledModFiles.erase(std::find(enabledModFiles.begin(), enabledModFiles.end(), mod));
                 changed = true;
             }
@@ -400,7 +398,7 @@ void DrawMods(bool enabled) {
         }
 
         ImGui::SameLine();
-        // SOH [Quest] A mod of the player folder stays in the list without its file. Read UpdateModFiles.
+        // SOH [Quest] The file can be missing. Read UpdateModFiles.
         std::string displayName = filePaths.contains(file) ? filePaths.at(file).filename().generic_string()
                                                            : file + " (not found)";
         if (enabled) {

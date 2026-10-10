@@ -36,9 +36,7 @@ import java.io.OutputStream;
  * libultraship locates its data with SDL_AndroidGetExternalStoragePath(), which is the app-private
  * external directory - readable and writable with no permission at all, and adb-reachable. The ROM
  * needs no permission either: the system picker grants access to the one file the player selects.
- * The only permission is the optional "All files access" for the player folder (read PlayerFolder).
- * When the player gave it, this activity copies the saves there and tells the game the path in an
- * environment variable, before SDL starts any thread.
+ * The optional "All files access" permission is for the player folder. Read PlayerFolder.
  */
 public class MainActivity extends SDLActivity {
 
@@ -87,10 +85,7 @@ public class MainActivity extends SDLActivity {
         finishAndRemoveTask();
     }
 
-    /**
-     * SOH [Quest] The player folder, ready for the game, or null. A failed copy of the saves keeps
-     * the game in the old folders, so that the player never sees an empty file select.
-     */
+    /** SOH [Quest] Returns the player folder, or null. Sets the env vars before SDL starts. */
     private static File usePlayerFolder(File root) {
         File player = AllFilesAccess.playerFolder();
         try {
@@ -114,12 +109,12 @@ public class MainActivity extends SDLActivity {
         return null;
     }
 
-    /** SOH [Quest] Called from the game (VR Settings > Mods) on the SDL thread. */
+    /** SOH [Quest] JNI: VR Settings > Mods. */
     public boolean hasAllFilesAccess() {
         return AllFilesAccess.granted();
     }
 
-    /** SOH [Quest] Called from the game (VR Settings > Mods) on the SDL thread. */
+    /** SOH [Quest] JNI: VR Settings > Mods. */
     public void requestAllFilesAccess() {
         runOnUiThread(() -> AllFilesAccess.request(this));
     }

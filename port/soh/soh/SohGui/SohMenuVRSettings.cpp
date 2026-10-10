@@ -676,29 +676,25 @@ static void VrQuickSetup(WidgetInfo& info) {
 }
 
 #ifdef __ANDROID__
-// SOH [Quest] The player folder /sdcard/oot-vr and its permission. Read soh/PlayerFolder.h. The
-// game reads the folder only from the start, so a permission given now applies at the next start.
+// SOH [Quest] The player folder and its permission. Read soh/PlayerFolder.h.
 static void VrModsFolder(WidgetInfo& info) {
     static int sFramesToCheck = 0;
     static bool sGranted = false;
     if (--sFramesToCheck <= 0) {
-        sGranted = PlayerFolder::HasAccess(); // A call into Java: once a second is enough.
+        sGranted = PlayerFolder::HasAccess(); // JNI: once a second.
         sFramesToCheck = 72;
     }
     if (!PlayerFolder::Path().empty()) {
-        ImGui::TextWrapped("The game reads mods from the folder oot-vr/mods on the headset. Copy new mods into "
-                           "it, then start the game again. The game keeps the saves in the folder oot-vr/Save.");
+        ImGui::TextWrapped("Copy mods into oot-vr/mods, then start the game again.");
         return;
     }
     if (sGranted) {
-        ImGui::TextWrapped("Access is allowed. Start the game again to use the folder oot-vr.");
+        ImGui::TextWrapped("Start the game again to use the folder oot-vr.");
         return;
     }
-    ImGui::TextWrapped("Mods change the textures, the models, or the texts of the game. Allow access to the "
-                       "folder oot-vr on the headset, then copy mods into oot-vr/mods. The game also keeps the "
-                       "saves in this folder.");
+    ImGui::TextWrapped("Allow access to make the folder oot-vr for mods and saves.");
     ImGui::Dummy(ImVec2(0.0f, ImGui::GetStyle().ItemSpacing.y));
-    static const VrChoice sChoices[] = { { "Allow Access", "Opens the settings of the headset" } };
+    static const VrChoice sChoices[] = { { "Allow Access", nullptr } };
     if (VrChoiceRow("VrModsAccess", sChoices, 1, -1, ImGui::GetContentRegionAvail().x) == 0) {
         PlayerFolder::RequestAccess();
         sFramesToCheck = 0;
@@ -1092,7 +1088,7 @@ void SohMenu::AddMenuVRSettings() {
 
 #ifdef __ANDROID__
     // ---------------------------------------------------------------------- Mods
-    // SOH [Quest] The player folder. Settings > Mod Menu keeps the list and the order of the mods.
+    // SOH [Quest] The player folder. Settings > Mod Menu sets the order.
     AddSidebarEntry("VR Settings", "Mods", 1);
     WidgetPath modsPath = { "VR Settings", "Mods", SECTION_COLUMN_1 };
     AddWidget(modsPath, "VrModsFolder", WIDGET_CUSTOM).CustomFunction(VrModsFolder).HideInSearch(true);

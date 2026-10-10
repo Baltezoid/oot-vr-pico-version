@@ -1518,7 +1518,7 @@ OTRVersion ReadPortVersionFromOTR(std::string otrPath) {
 // For Windows/Mac/Linux if the version doesn't match, offer to
 OTRVersion DetectOTRVersion(std::string fileName, bool isMQ) {
     bool isOtrOld = false;
-    // SOH [Quest] The game archives can also be in the player folder. soh.o2r comes only from the APK.
+    // SOH [Quest] soh.o2r comes only from the APK.
     std::string otrPath = fileName == "soh.o2r" ? Ship::Context::LocateFileAcrossAppDirs(fileName, appShortName)
                                                 : PlayerFolder::LocateArchive(fileName);
 
