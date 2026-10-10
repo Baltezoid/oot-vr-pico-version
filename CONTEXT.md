@@ -80,3 +80,22 @@ Two different sets of files. They go to the headset in different ways.
   of the game.
 
 This repository never contains game assets.
+
+## Mod
+
+A file that changes the textures, the models, or the texts of the game. A mod
+is an `.o2r` or `.otr` file. The author of the mod gives it. This project does
+not give mods.
+
+## Player folder
+
+The folder on the headset where the player puts files by hand: mods and
+`oot.o2r`. The player can open it with the SideQuest file manager. The game
+also reads the old folder in the app data, so that old installs continue to
+work.
+
+## Pre-rendered room
+
+A room that the N64 shows as a fixed 2D image, for example the house of Link
+or a shop. In stereo, a 2D image causes discomfort. Without a mod, these rooms
+show flat colors.
