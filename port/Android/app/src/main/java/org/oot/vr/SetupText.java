@@ -28,7 +28,8 @@ final class SetupText {
         + "on the headset. It keeps your mods and your saves.";
     static final String MODS_READY = "Mods\n\nConnect the headset to a PC, and copy mods into "
         + "oot-vr/mods. Or select Add mods.";
-    static final String ADDING_MODS = "Copying the mods…";
+    static final String ADDING_MODS = "Copying the mods...";
+    static final String NO_PLAYER_FOLDER = "The game cannot use the folder oot-vr.";
     static final String SAVES_OUT_OF_REACH = "Your saves are in the folder oot-vr. Select Allow to "
         + "use them.";
     static final String ALLOW = "Allow";

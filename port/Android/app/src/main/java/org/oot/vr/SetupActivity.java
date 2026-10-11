@@ -2,17 +2,14 @@ package org.oot.vr;
 
 import android.app.Activity;
 import android.content.ActivityNotFoundException;
-import android.content.ClipData;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.AssetManager;
-import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Process;
-import android.provider.OpenableColumns;
 import android.system.ErrnoException;
 import android.system.Os;
 import android.util.Log;
@@ -70,6 +67,14 @@ public class SetupActivity extends Activity {
         boolean busy() {
             return this == COPYING || this == CHECKING || this == PREPARING || this == EXTRACTING
                 || this == ADDING_MODS;
+        }
+
+        /**
+         * Horizon OS shows the settings screen in its own window, so this panel stays started and
+         * gets no onStart when the player comes back. Poll for the permission instead.
+         */
+        boolean waitsForPermission() {
+            return this == PERMISSION || this == SAVES_NOTICE;
         }
 
         boolean acceptsPick() {
@@ -307,7 +312,7 @@ public class SetupActivity extends Activity {
                 startGame();
                 return;
         }
-        if (stage.busy()) {
+        if (stage.busy() || stage.waitsForPermission()) {
             ui.postDelayed(poll, POLL_MS);
         }
     }
@@ -354,13 +359,8 @@ public class SetupActivity extends Activity {
     }
 
     private void pickMods() {
-        Intent pick = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-        pick.addCategory(Intent.CATEGORY_OPENABLE);
-        // .o2r and .otr have no MIME type. ModImport decides from the name.
-        pick.setType("*/*");
-        pick.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
         try {
-            startActivityForResult(pick, PICK_MODS);
+            startActivityForResult(ModPicker.intent(), PICK_MODS);
         } catch (ActivityNotFoundException e) {
             Log.e(TAG, "No system file picker", e);
         }
@@ -403,65 +403,17 @@ public class SetupActivity extends Activity {
     }
 
     private void onModsPicked(int resultCode, Intent data) {
-        if (resultCode != RESULT_OK || data == null || sStage != Stage.MODS) {
-            return;
-        }
-        List<Uri> uris = new ArrayList<>();
-        ClipData clip = data.getClipData();
-        if (clip != null) {
-            for (int i = 0; i < clip.getItemCount(); i++) {
-                uris.add(clip.getItemAt(i).getUri());
-            }
-        } else if (data.getData() != null) {
-            uris.add(data.getData());
-        }
-        if (uris.isEmpty()) {
+        List<Uri> uris = ModPicker.selected(data);
+        if (resultCode != RESULT_OK || uris.isEmpty() || sStage != Stage.MODS) {
             return;
         }
         Context app = getApplicationContext();
         sStage = Stage.ADDING_MODS;
-        new Thread(() -> addMods(app, uris), "AddMods").start();
-        render();
-    }
-
-    /** Worker thread. Ends in MODS. */
-    private static void addMods(Context c, List<Uri> uris) {
-        File player = AllFilesAccess.playerFolder();
-        if (player == null) {
-            sModsResult = null;
+        new Thread(() -> {
+            sModsResult = ModPicker.copy(app, uris);
             sStage = Stage.MODS;
-            return;
-        }
-        File mods = new File(player, PlayerFolder.MODS);
-        ModImport.Result total = new ModImport.Result();
-        boolean failed = false;
-        for (Uri uri : uris) {
-            try (InputStream in = c.getContentResolver().openInputStream(uri)) {
-                if (in == null) {
-                    throw new IOException("No stream for " + uri);
-                }
-                total.add(ModImport.importFile(displayName(c, uri), in, mods));
-            } catch (IOException | SecurityException e) {
-                Log.w(TAG, "Mod copy failed: " + uri, e);
-                failed = true;
-            }
-        }
-        Log.i(TAG, "Add mods: " + total.added + " added, " + total.skipped + " skipped");
-        sModsResult = SetupText.modsAdded(total.added, total.skipped, failed);
-        sStage = Stage.MODS;
-    }
-
-    private static String displayName(Context c, Uri uri) {
-        try (Cursor cursor = c.getContentResolver().query(
-                uri, new String[] {OpenableColumns.DISPLAY_NAME}, null, null, null)) {
-            if (cursor != null && cursor.moveToFirst() && !cursor.isNull(0)) {
-                return cursor.getString(0);
-            }
-        } catch (RuntimeException e) {
-            Log.w(TAG, "No name for " + uri, e);
-        }
-        String last = uri.getLastPathSegment();
-        return last == null ? "" : last;
+        }, "AddMods").start();
+        render();
     }
 
     private static File romFile(Context c) {

@@ -70,7 +70,7 @@ std::string ConfigFile() {
 
 #ifdef __ANDROID__
 // Calls a method of MainActivity without arguments. Read MainActivity.java.
-static bool CallActivity(const char* method, const char* signature, bool* result) {
+template <typename F> static bool CallActivity(const char* method, const char* signature, F call) {
     JNIEnv* env = static_cast<JNIEnv*>(SDL_AndroidGetJNIEnv());
     jobject activity = static_cast<jobject>(SDL_AndroidGetActivity());
     if (env == nullptr || activity == nullptr) {
@@ -78,16 +78,11 @@ static bool CallActivity(const char* method, const char* signature, bool* result
     }
     jclass cls = env->GetObjectClass(activity);
     jmethodID id = env->GetMethodID(cls, method, signature);
-    bool ok = id != nullptr;
-    if (ok && result != nullptr) {
-        *result = env->CallBooleanMethod(activity, id) == JNI_TRUE;
-    } else if (ok) {
-        env->CallVoidMethod(activity, id);
+    if (id != nullptr) {
+        call(env, activity, id);
     }
-    if (env->ExceptionCheck()) {
-        env->ExceptionClear();
-        ok = false;
-    }
+    bool ok = id != nullptr && !env->ExceptionCheck();
+    env->ExceptionClear();
     env->DeleteLocalRef(cls);
     env->DeleteLocalRef(activity);
     return ok;
@@ -95,18 +90,44 @@ static bool CallActivity(const char* method, const char* signature, bool* result
 #endif
 
 bool HasAccess() {
-#ifdef __ANDROID__
     bool granted = false;
-    return CallActivity("hasAllFilesAccess", "()Z", &granted) && granted;
-#else
-    return false;
+#ifdef __ANDROID__
+    CallActivity("hasAllFilesAccess", "()Z", [&](JNIEnv* env, jobject a, jmethodID id) {
+        granted = env->CallBooleanMethod(a, id) == JNI_TRUE;
+    });
 #endif
+    return granted;
 }
 
 void RequestAccess() {
 #ifdef __ANDROID__
-    CallActivity("requestAllFilesAccess", "()V", nullptr);
+    CallActivity("requestAllFilesAccess", "()V",
+                 [](JNIEnv* env, jobject a, jmethodID id) { env->CallVoidMethod(a, id); });
 #endif
+}
+
+void PickMods() {
+#ifdef __ANDROID__
+    CallActivity("pickMods", "()V", [](JNIEnv* env, jobject a, jmethodID id) { env->CallVoidMethod(a, id); });
+#endif
+}
+
+std::string ModsStatus() {
+    std::string status;
+#ifdef __ANDROID__
+    CallActivity("modsStatus", "()Ljava/lang/String;", [&](JNIEnv* env, jobject a, jmethodID id) {
+        jstring text = static_cast<jstring>(env->CallObjectMethod(a, id));
+        if (text != nullptr) {
+            const char* chars = env->GetStringUTFChars(text, nullptr);
+            if (chars != nullptr) {
+                status = chars;
+                env->ReleaseStringUTFChars(text, chars);
+            }
+            env->DeleteLocalRef(text);
+        }
+    });
+#endif
+    return status;
 }
 
 } // namespace PlayerFolder

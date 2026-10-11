@@ -2,8 +2,10 @@ package org.oot.vr;
 
 import android.app.PendingIntent;
 import android.content.ActivityNotFoundException;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Process;
 import android.system.ErrnoException;
@@ -17,6 +19,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.List;
 
 /**
  * Quest entry point.
@@ -43,6 +46,10 @@ public class MainActivity extends SDLActivity {
     private static final String TAG = "OoTVR";
     /** Home opens this PendingIntent as a panel. From Meta's "Hybrid apps overview" guide. */
     private static final String EXTRA_LAUNCH_IN_HOME = "extra_launch_in_home_pending_intent";
+
+    private static final int PICK_MODS = 1;
+    /** SOH [Quest] The state of Add mods in VR Settings: empty, copying, or the result. */
+    private static volatile String sModsStatus = "";
 
     /** This activity ended in onCreate to start the setup. Read GameProcess. */
     private boolean handedOverToSetup;
@@ -118,6 +125,34 @@ public class MainActivity extends SDLActivity {
     /** SOH [Quest] JNI: VR Settings > Mods. */
     public void requestAllFilesAccess() {
         runOnUiThread(() -> AllFilesAccess.request(this));
+    }
+
+    /** SOH [Quest] JNI: VR Settings > Mods > Add Mods. */
+    public void pickMods() {
+        runOnUiThread(() -> {
+            try {
+                startActivityForResult(ModPicker.intent(), PICK_MODS);
+            } catch (ActivityNotFoundException e) {
+                Log.e(TAG, "No system file picker", e);
+            }
+        });
+    }
+
+    /** SOH [Quest] JNI: VR Settings > Mods. */
+    public String modsStatus() {
+        return sModsStatus;
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        List<Uri> uris = ModPicker.selected(data);
+        if (requestCode != PICK_MODS || resultCode != RESULT_OK || uris.isEmpty()) {
+            return;
+        }
+        sModsStatus = SetupText.ADDING_MODS;
+        Context app = getApplicationContext();
+        new Thread(() -> sModsStatus = ModPicker.copy(app, uris), "AddMods").start();
     }
 
     /**

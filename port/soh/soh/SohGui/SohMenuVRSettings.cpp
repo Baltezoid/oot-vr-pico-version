@@ -684,12 +684,20 @@ static void VrModsFolder(WidgetInfo& info) {
         sGranted = PlayerFolder::HasAccess(); // JNI: once a second.
         sFramesToCheck = 72;
     }
-    if (!PlayerFolder::Path().empty()) {
-        ImGui::TextWrapped("Copy mods into oot-vr/mods, then start the game again.");
-        return;
-    }
-    if (sGranted) {
-        ImGui::TextWrapped("Start the game again to use the folder oot-vr.");
+    if (!PlayerFolder::Path().empty() || sGranted) {
+        ImGui::TextWrapped("Copy mods into oot-vr/mods, or select Add Mods. Start the game again to load them.");
+        ImGui::Dummy(ImVec2(0.0f, ImGui::GetStyle().ItemSpacing.y));
+        static const VrChoice sAdd[] = { { "Add Mods", nullptr } };
+        if (VrChoiceRow("VrModsAdd", sAdd, 1, -1, ImGui::GetContentRegionAvail().x) == 0) {
+            PlayerFolder::PickMods();
+        }
+        static std::string sStatus;
+        if (sFramesToCheck == 72) {
+            sStatus = PlayerFolder::ModsStatus(); // JNI: refreshed with the permission.
+        }
+        if (!sStatus.empty()) {
+            ImGui::TextWrapped("%s", sStatus.c_str());
+        }
         return;
     }
     ImGui::TextWrapped("Allow access to make the folder oot-vr for mods and saves.");

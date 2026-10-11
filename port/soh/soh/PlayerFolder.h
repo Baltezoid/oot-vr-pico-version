@@ -29,4 +29,10 @@ bool HasAccess();
 
 void RequestAccess();
 
+// Opens the system file picker. The selected mods go into the player folder.
+void PickMods();
+
+// Empty, "Copying the mods...", or the result of the last PickMods().
+std::string ModsStatus();
+
 } // namespace PlayerFolder

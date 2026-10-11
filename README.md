@@ -236,8 +236,9 @@ game. A copy of the old saves stays in
 3. Copy the `.o2r` and `.otr` files into `oot-vr/mods/`.
 4. Start the game again.
 
-At the first start, **Add mods** also copies mods from the `Download` folder of
-the headset. It extracts `.zip` files.
+You can also use **Add mods**: at the first start, or in **VR Settings** >
+**Mods**. It copies mods from the `Download` folder of the headset, and it
+extracts `.zip` files.
 
 The game also reads mods from the old folder
 `Android/data/org.oot.vr/files/mods/`.
