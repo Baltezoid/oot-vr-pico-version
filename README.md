@@ -27,15 +27,146 @@ All clips are recordings from a Meta Quest 3S.
 > This repository and its releases do not contain game assets. We do not supply
 > ROMs. Do not ask for ROMs or share ROMs in the issues.
 
+## Contents
+
+- [Features](#features)
+- [Install](#install)
+- [Mods](#mods)
+- [Controls](#controls)
+- [Build from source](#build-from-source)
+- [Documentation](#documentation)
+- [Credits](#credits)
+- [License](#license)
+
 ## Features
 
-- Stereo 3D.
+- Stereo 3D. The refresh rate changes automatically between 90 Hz and 72 Hz.
 - First-person camera at the eye height of Link. The camera follows your head.
-- Motion controls: swing the sword and hold up the shield with your hands.
+  A third-person view is also available.
 - Automatic world scale for child Link and adult Link.
-- Menus on a panel that floats in front of you.
+- Physical combat: swing the sword, the Deku stick, and the Megaton Hammer with
+  your hand. Hold up the shield to block. The Mirror Shield reflects the
+  Twinrova beams.
+- Aim the bow, the slingshot, and the hookshot with your hand. Throw the
+  boomerang, bombs, Deku nuts, and bombchus with your arm.
+- Item selector: take an item with your hand. Bombs, bombchus, and Deku nuts
+  are on your belt.
+- HUD on the wrist. Menus and the pause screen show on a panel that floats in
+  front of you.
+- SoH menu with the Touch controllers and a laser pointer.
+- Quick Setup: view, sword hand, turn style, item selector or C buttons, and
+  HUD position.
+- Setup on the headset: select your dump, and the headset makes the game files.
+  Ocarina of Time and Master Quest are supported.
+- Mods for textures, models, and translations.
+- Boss Rush.
 
 Tested only on the Meta Quest 3S.
+
+## Install
+
+You need:
+
+- a cartridge or disc of Ocarina of Time that you own;
+- a PC with Windows, macOS, or Linux;
+- a USB-C cable for the headset.
+
+Do these steps one time.
+
+### 1. Make a dump of your game
+
+Use one of these versions:
+
+| Platform    | Region                 | Versions                                           |
+| ----------- | ---------------------- | -------------------------------------------------- |
+| Nintendo 64 | Europe (PAL)           | 1.0, 1.1                                           |
+| Nintendo 64 | North America (NTSC-U) | 1.0, 1.1, 1.2                                      |
+| Nintendo 64 | Japan (NTSC-J)         | 1.0, 1.1, 1.2                                      |
+| GameCube    | Europe (PAL)           | Ocarina of Time, Master Quest                      |
+| GameCube    | North America (NTSC-U) | Ocarina of Time, Master Quest                      |
+| GameCube    | Japan (NTSC-J)         | Ocarina of Time, Master Quest, Collector's Edition |
+
+Compare the SHA-1 of your dump with
+[`port/docs/supportedHashes.json`](port/docs/supportedHashes.json). We tested
+only the European GameCube version.
+
+### 2. Enable developer mode on the headset
+
+Follow the steps from Meta:
+[Device Setup](https://developers.meta.com/horizon/documentation/native/android/mobile-device-setup/).
+
+### 3. Install the game with SideQuest
+
+1. Install [SideQuest](https://sidequestvr.com/setup-howto) on your PC.
+2. Connect the headset to the PC with the USB-C cable.
+3. In the headset, select **Always allow from this computer**, then **Allow**.
+4. Download `oot-vr-<version>.apk` from
+   [Releases](https://github.com/gibranfelix/oot-vr/releases).
+5. Drag the APK into the SideQuest window.
+6. With the SideQuest file manager, copy your dump into the `Download` folder
+   of the headset.
+
+With `adb`:
+
+```
+adb install -r oot-vr-<version>.apk
+adb push <your-dump>.z64 /sdcard/Download/
+```
+
+### 4. Start the game
+
+1. In the headset, open **Library** > **Unknown Sources** > **OoT VR**.
+2. Select **Select ROM**, then select your dump in the `Download` folder.
+3. Wait some minutes for the extraction. Do not remove the headset.
+4. Optional: select **Allow** to make the folder for mods. Read [Mods](#mods).
+
+The game makes `oot.o2r` from your dump. Then you can delete the dump. The next
+starts go directly to the game.
+
+If the game does not start, read "If the game does not start" in
+[`port/Android/README.md`](port/Android/README.md).
+
+## Mods
+
+The game loads Ship of Harkinian mods (`.o2r`, `.otr`, or `.zip`): textures,
+models, and texts.
+
+> [!IMPORTANT]
+> This project does not contain or give mods. Get each mod from its author.
+
+### Install a mod
+
+1. Give the game access to the `oot-vr/` folder. Select **Allow** after the
+   first extraction, or select **VR Settings** > **Mods** > **Allow Access**.
+   Turn on the permission for OoT VR, then go back to the game.
+2. Download the mod from the page of its author.
+3. With the SideQuest file manager, copy the mod file into the `Download`
+   folder of the headset.
+4. In the game, select **VR Settings** > **Mods** > **Add Mods**. Select the mod
+   file. The game copies it into `oot-vr/mods/` and extracts `.zip` files.
+5. Close the game and open it again.
+
+The `oot-vr/` folder also keeps your saves and your settings. They stay when you
+remove the game.
+
+### Manage the mods
+
+Open the SoH menu, and go to **Settings** > **Mod Menu**.
+
+- **Enable Mods** turns all mods on or off.
+- The list sets the load order. When two mods change the same texture, the mod
+  that is higher in the list is visible.
+
+### Tested and recommended mods
+
+We tested these mods on a Quest 3S at 72 Hz. Download them only from the pages
+of their authors. Their licenses do not let other sites give the files.
+
+| Mod | Author | Notes |
+| --- | --- | --- |
+| [OoT Reloaded](https://github.com/GhostlyDark/OoT-Reloaded) | GhostlyDark | HD textures. The HD version works well. |
+| [Djipi's 3DS Experience](https://gamebanana.com/mods/477979) | Djipi | Textures and models of the 3DS version. Large files decrease the frame rate. Do not install "01 Main Textures". |
+| [Castilian Spanish Translation](https://gamebanana.com/mods/685796) | Amaro (xoascf) | Version 1.2b. Changes the game texts to Spanish. Also install the file `font_2_.zip` from the same page. |
 
 ## Controls
 
@@ -130,140 +261,6 @@ The ocarina uses the N64 layout:
 | C-Up, C-Down, C-Left, C-Right | Right thumbstick ↑ ↓ ← → |
 | Half step up / down           | Right grip / left grip   |
 | Put the ocarina away          | B button                 |
-
-## Install
-
-You need:
-
-- a cartridge or disc of Ocarina of Time that you own;
-- a PC with Windows, macOS, or Linux;
-- a USB-C cable for the headset.
-
-Do these steps one time.
-
-### 1. Make a dump of your game
-
-Use one of these versions:
-
-| Platform    | Region                 | Versions                                           |
-| ----------- | ---------------------- | -------------------------------------------------- |
-| Nintendo 64 | Europe (PAL)           | 1.0, 1.1                                           |
-| Nintendo 64 | North America (NTSC-U) | 1.0, 1.1, 1.2                                      |
-| Nintendo 64 | Japan (NTSC-J)         | 1.0, 1.1, 1.2                                      |
-| GameCube    | Europe (PAL)           | Ocarina of Time, Master Quest                      |
-| GameCube    | North America (NTSC-U) | Ocarina of Time, Master Quest                      |
-| GameCube    | Japan (NTSC-J)         | Ocarina of Time, Master Quest, Collector's Edition |
-
-Compare the SHA-1 of your dump with
-[`port/docs/supportedHashes.json`](port/docs/supportedHashes.json). We tested
-only the European GameCube version.
-
-### 2. Enable developer mode on the headset
-
-Follow the steps from Meta:
-[Device Setup](https://developers.meta.com/horizon/documentation/native/android/mobile-device-setup/).
-
-### 3. Install the game with SideQuest
-
-1. Install [SideQuest](https://sidequestvr.com/setup-howto) on your PC.
-2. Connect the headset to the PC with the USB-C cable.
-3. In the headset, select **Always allow from this computer**, then **Allow**.
-4. Download `oot-vr-<version>.apk` from
-   [Releases](https://github.com/gibranfelix/oot-vr/releases).
-5. Drag the APK into the SideQuest window.
-6. With the SideQuest file manager, copy your dump into the `Download` folder
-   of the headset.
-
-With `adb`:
-
-```
-adb install -r oot-vr-<version>.apk
-adb push <your-dump>.z64 /sdcard/Download/
-```
-
-### 4. Start the game
-
-1. In the headset, open **Library** > **Unknown Sources** > **OoT VR**.
-2. Select **Select ROM**, then select your dump in the `Download` folder.
-3. Wait some minutes for the extraction. Do not remove the headset.
-4. Optional: select **Allow** to make the folder for mods. Read [Mods](#mods).
-
-The game makes `oot.o2r` from your dump. Then you can delete the dump. The next
-starts go directly to the game.
-
-If the game does not start, read "If the game does not start" in
-[`port/Android/README.md`](port/Android/README.md).
-
-### Alternative: make `oot.o2r` on a PC
-
-Use this method if the extraction on the headset fails. Use **Ship of Harkinian
-9.2.3 "Ackbar Delta"**.
-
-1. Download Ship of Harkinian 9.2.3 from its
-   [release page](https://github.com/HarbourMasters/Shipwright/releases/tag/9.2.3).
-2. Start it and select your dump. Wait for the extraction, then close it.
-3. Find `oot.o2r`:
-   - Windows and Linux: in the folder of `soh.exe` or `soh.appimage`.
-   - macOS: in `~/Library/Application Support/com.shipofharkinian.soh/`.
-4. Copy `oot.o2r` into `Android/data/org.oot.vr/files/` on the headset.
-
-## Mods
-
-The game loads Ship of Harkinian mods (`.o2r` and `.otr`): textures, models,
-and texts.
-
-> [!IMPORTANT]
-> This project does not contain or give mods. Get each mod from its author.
-
-### Make the mods folder
-
-The game needs the "All files access" permission to use the folder `oot-vr/`.
-
-1. Select **Allow** after the first extraction. Or, in the SoH menu, select
-   **VR Settings** > **Mods** > **Allow Access**.
-2. Turn on the permission for OoT VR.
-3. Go back to the game.
-
-The game makes `oot-vr/mods/` and `oot-vr/Save/`. It copies your saves and
-your settings (`shipofharkinian.json`) into `oot-vr/`. They stay when you remove
-the game. The old saves stay in `Android/data/org.oot.vr/files/Save.backup/`.
-
-### Install a mod
-
-1. If the mod is a `.zip` file, extract it on your PC.
-2. Connect the headset to the PC. Open the SideQuest file manager.
-3. Copy the `.o2r` and `.otr` files into `oot-vr/mods/`.
-4. Start the game again.
-
-You can also use **Add Mods** on the headset: at the first start, or in
-**VR Settings** > **Mods**. Select the files, for example in the `Download`
-folder. The game copies them into `oot-vr/mods/` and extracts `.zip` files.
-After **Add Mods** in VR Settings, close the game and open it again.
-
-The game also reads mods from the old folder
-`Android/data/org.oot.vr/files/mods/`.
-
-A `.sav` file is a save, not a mod. The game reads it only from `oot-vr/Save/`.
-Its name sets the slot: `file1.sav`, `file2.sav`, or `file3.sav`.
-
-### Manage the mods
-
-Open the SoH menu, and go to **Settings** > **Mod Menu**.
-
-- **Enable Mods** turns all mods on or off.
-- The list sets the load order. When two mods change the same texture, the mod
-  that is higher in the list is visible.
-
-### Tested mods
-
-Tested on a Quest 3S at 72 Hz.
-
-| Mod                                                                             | Status | Notes                                                                    |
-| ------------------------------------------------------------------------------- | ------ | ------------------------------------------------------------------------ |
-| [OoT Reloaded](https://github.com/GhostlyDark/OoT-Reloaded)                     | Works  | The HD version works well.                                               |
-| Djipi's 3DS Experience                                                          | Works  | Large files decrease the frame rate. Do not install "01 Main Textures". |
-| [Castilian Spanish Translation](https://gamebanana.com/mods/685796)             | Works  | Version 1.2b. Changes the game texts to Spanish.                         |
-| [Castilian Spanish Translation font](https://gamebanana.com/mods/685796)        | Works  | The file `font_2_.zip` on the same page. Install it with the translation. |
 
 ## Build from source
 
