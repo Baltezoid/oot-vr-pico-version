@@ -71,13 +71,10 @@ All clips are recordings from a Meta Quest 3S.
 - Setup on the headset: select your dump, and the headset makes the game files.
   Ocarina of Time and Master Quest are supported.
 - Install mods on the headset with **Add Mods**: textures, models, and
-  translations. The mods, the saves, and the settings stay when you remove the
-  game.
+  translations.
 - EXPLORE: a new file starts as adult Link in the Temple of Time, with all the
   items, songs, and medallions.
 - Boss Rush.
-
-Tested only on the Meta Quest 3S.
 
 ## Install
 
@@ -134,7 +131,7 @@ adb push <your-dump>.z64 /sdcard/Download/
 1. In the headset, open **Library** > **Unknown Sources** > **OoT VR**.
 2. Select **Select ROM**, then select your dump in the `Download` folder.
 3. Wait some minutes for the extraction. Do not remove the headset.
-4. Optional: select **Allow** to make the folder for mods. Read [Mods](#mods).
+4. Optional: select **Allow** to use mods. Read [Mods](#mods).
 
 The game makes `oot.o2r` from your dump. Then you can delete the dump. The next
 starts go directly to the game.
@@ -173,8 +170,7 @@ Open the SoH menu, and go to **Settings** > **Mod Menu**.
 
 ### Tested and recommended mods
 
-We tested these mods on a Quest 3S at 72 Hz. Download them only from the pages
-of their authors. Their licenses do not let other sites give the files.
+Tested on a Quest 3S at 72 Hz.
 
 | Mod | Author | Notes |
 | --- | --- | --- |
@@ -203,9 +199,6 @@ holds the shield, the bow, the slingshot, the hookshot, and the ocarina.
 | Y button                      | Open or close the SoH menu.                                             |
 | Left Menu button              | Start: open the pause screen.                                           |
 | Left grip / right grip        | Previous page / next page of the pause screen.                          |
-
-Swing the sword with your right hand to attack. Hold the shield in front of you
-to block.
 
 ### Items
 
