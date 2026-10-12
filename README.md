@@ -159,11 +159,9 @@ models, and texts.
 3. With the SideQuest file manager, copy the mod file into the `Download`
    folder of the headset.
 4. In the game, select **VR Settings** > **Mods** > **Add Mods**. Select the mod
-   file. The game copies it into `oot-vr/mods/` and extracts `.zip` files.
+   file. The game automatically copies it into `oot-vr/mods/` and extracts
+   `.zip` files.
 5. Close the game and open it again.
-
-The `oot-vr/` folder also keeps your saves and your settings. They stay when you
-remove the game.
 
 ### Manage the mods
 
