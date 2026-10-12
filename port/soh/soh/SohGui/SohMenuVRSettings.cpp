@@ -53,17 +53,17 @@ static const std::map<int32_t, const char*> vrHudAttachOptions = {
 // HUD Attachment modes: 0 = head, 1/2 = the whole HUD on one hand, 3 = wrist (split HUD). The
 // wrist mode keeps its text boxes on the head panel, so it shares the head sliders.
 static bool VrHudHasHeadPanel() {
-    const int32_t attach = CVarGetInteger("gVrHudAttach", 0);
+    const int32_t attach = CVarGetInteger("gVrHudAttach", 3);
     return attach == 0 || attach == 3;
 }
 
 static bool VrHudIsOnHand() {
-    const int32_t attach = CVarGetInteger("gVrHudAttach", 0);
+    const int32_t attach = CVarGetInteger("gVrHudAttach", 3);
     return attach == 1 || attach == 2;
 }
 
 static bool VrHudIsWrist() {
-    return CVarGetInteger("gVrHudAttach", 0) == 3;
+    return CVarGetInteger("gVrHudAttach", 3) == 3;
 }
 
 static const std::map<int32_t, const char*> vrItemSelHandOptions = {
@@ -423,95 +423,6 @@ static void VrInputBindings(WidgetInfo& info) {
     VrResetBindingsButton();
 }
 
-// --- Control schemes: the turning CVars, the item selector on, and the default bindings. The first
-// start in VR asks for one. gVrControlSchemeAsked records the answer.
-struct VrControlScheme {
-    const char* name;
-    const char* summary;
-    int32_t turnOn;
-    int32_t turnStyle;
-};
-static const VrControlScheme sVrControlSchemes[] = {
-    { "Default", "Turn with your body. Flick the right stick to take a C item into your hand.", 0, 0 },
-    { "Shipwright-VR", "Turn smoothly with the right stick. Use the item selector to take items.", 1, 1 },
-};
-
-static void VrApplyControlScheme(int idx) {
-    const VrControlScheme& scheme = sVrControlSchemes[idx];
-    CVarSetInteger("gVrControlScheme", idx);
-    CVarSetInteger("gVrItemSelect", 1);
-    CVarSetInteger("gVrSnapTurnOn", scheme.turnOn);
-    CVarSetInteger("gVrTurnStyle", scheme.turnStyle);
-    for (int i = 0; i < kVrButtonInputCount; i++) {
-        CVarClear(sVrInputDefsSelector[i].cvar);
-    }
-    for (int i = 0; i < kVrOcarinaInputCount; i++) {
-        CVarClear(sVrInputDefsOcarina[i].cvar);
-    }
-    CVarSave();
-    // The selector hooks register on this CVar; the widgets do the same after a change.
-    ShipInit::Init("gVrItemSelect");
-    sVrListenRowMask = 0;
-}
-
-// Shows in place of Quick Setup until the player answers.
-static void VrControlSchemeQuestion() {
-    ImGui::PushFont(OTRGlobals::Instance->fontStandardLargest);
-    ImGui::TextUnformatted("How do you want to turn?");
-    ImGui::PopFont();
-    ImGui::Spacing();
-    const ImVec2 buttonSize(260.0f, 70.0f);
-    static const char* sAnswers[2] = { "With my body", "With the stick" };
-    for (int i = 0; i < 2; i++) {
-        if (i > 0) {
-            ImGui::SameLine();
-        }
-        ImGui::BeginGroup();
-        if (ImGui::Button(sAnswers[i], buttonSize)) {
-            VrApplyControlScheme(i);
-            CVarSetInteger("gVrControlSchemeAsked", 1);
-            CVarSave();
-            mSohMenu->Hide();
-        }
-        // Focus the first answer, so that A on the Touch controller answers at once.
-        if (i == 0 && ImGui::IsWindowAppearing()) {
-            ImGui::SetItemDefaultFocus();
-            ImGui::SetKeyboardFocusHere(-1);
-        }
-        ImGui::TextDisabled("%s", sVrControlSchemes[i].name);
-        ImGui::TextWrapped("%s", sVrControlSchemes[i].summary);
-        ImGui::EndGroup();
-    }
-    ImGui::Spacing();
-    ImGui::TextWrapped("You can change this later in VR Settings > Quick Setup.");
-    ImGui::Separator();
-}
-
-// Opens Quick Setup at each start in VR until the player answers the question. Waits 60 game
-// frames, so that the headset shows the game first.
-static void VrControlSchemeFirstStartTick() {
-    static bool sAskedThisSession = false;
-    static int sFramesInVr = 0;
-    if (sAskedThisSession || CVarGetInteger("gVrControlSchemeAsked", 0) || !VR_IsInitialized() ||
-        !VR_GetFirstPerson()) {
-        return;
-    }
-    if (++sFramesInVr < 60) {
-        return;
-    }
-    sAskedThisSession = true;
-    CVarSetString(CVAR_SETTING("Menu.ActiveHeader"), "VR Settings");
-    CVarSetString(CVAR_SETTING("Menu.VRSettingsSidebarSection"), "Quick Setup");
-    mSohMenu->Show();
-}
-
-static void RegisterVrControlSchemeFirstStart() {
-    COND_HOOK(OnGameFrameUpdate, !CVarGetInteger("gVrControlSchemeAsked", 0), VrControlSchemeFirstStartTick);
-}
-
-static RegisterShipInitFunc initVrControlSchemeFirstStart(RegisterVrControlSchemeFirstStart,
-                                                          { "gVrControlSchemeAsked" });
-
 // --- Quick Setup (#104): rows of large buttons for the main choices. They write the same CVars as
 // the old widgets.
 struct VrChoice {
@@ -643,7 +554,7 @@ static void VrHudCard(float width) {
     static const VrChoice sChoices[] = {
         { "In Front", nullptr }, { "On the Wrist", nullptr }, { "Left Hand", nullptr }, { "Right Hand", nullptr }
     };
-    const int32_t attach = CVarGetInteger("gVrHudAttach", 0);
+    const int32_t attach = CVarGetInteger("gVrHudAttach", 3);
     int current = 0;
     for (int i = 0; i < 4; i++) {
         if (sValues[i] == attach) {
@@ -657,10 +568,6 @@ static void VrHudCard(float width) {
 }
 
 static void VrQuickSetup(WidgetInfo& info) {
-    if (!CVarGetInteger("gVrControlSchemeAsked", 0)) {
-        VrControlSchemeQuestion();
-        return;
-    }
     const ImGuiStyle& style = ImGui::GetStyle();
     const float width = ImGui::GetContentRegionAvail().x;
     const float half = (width - style.ItemSpacing.x) * 0.5f;
@@ -1342,7 +1249,7 @@ void SohMenu::AddMenuVRSettings() {
                      CVarGetFloat("gVrHeadHeightOffset", -9.0f), CVarGetFloat("gVrHeadOffsetForward", 6.0f),
                      CVarGetFloat("gVrHeadOffsetSide", 0.0f), CVarGetFloat("gVrWorldScale", 35.0f),
                      CVarGetFloat("gVrScreenDistance", 2.2f), CVarGetFloat("gVrScreenSize", 2.4f),
-                     CVarGetInteger("gVrHudAttach", 0), CVarGetFloat("gVrHudDistance", 2.0f),
+                     CVarGetInteger("gVrHudAttach", 3), CVarGetFloat("gVrHudDistance", 2.0f),
                      CVarGetFloat("gVrHudSize", 1.5f), CVarGetFloat("gVrHudOffX", 0.0f),
                      CVarGetFloat("gVrHudOffY", 0.0f), CVarGetFloat("gVrHudHandSize", 0.35f),
                      CVarGetFloat("gVrHudHandOffX", 0.0f), CVarGetFloat("gVrHudHandOffY", 0.10f),

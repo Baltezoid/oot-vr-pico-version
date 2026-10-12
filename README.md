@@ -77,8 +77,8 @@ to block.
 
 ### Quick Setup
 
-The first start asks how you want to turn. To change it, go to VR Settings >
-**Quick Setup**:
+By default, you turn with your body and the HUD is on the wrist. To change it,
+go to VR Settings > **Quick Setup**:
 
 | Setting                | Choices                                       |
 | ---------------------- | --------------------------------------------- |
@@ -251,8 +251,8 @@ Its name sets the slot: `file1.sav`, `file2.sav`, or `file3.sav`.
 Open the SoH menu, and go to **Settings** > **Mod Menu**.
 
 - **Enable Mods** turns all mods on or off.
-- The list sets the load order. When two mods change the same texture, the last
-  mod is visible.
+- The list sets the load order. When two mods change the same texture, the mod
+  that is higher in the list is visible.
 
 ### Tested mods
 

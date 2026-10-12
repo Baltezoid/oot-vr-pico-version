@@ -180,7 +180,7 @@ static constexpr HudRegion kWristHudCentre = { 0.0f, 0.0f, 320.0f, 240.0f };
 static constexpr int kMaxHudLayers = 5;
 
 static bool vr_hud_is_wrist() {
-    return CVarGetInteger("gVrHudAttach", 0) == kHudAttachWrist;
+    return CVarGetInteger("gVrHudAttach", 3) == kHudAttachWrist;
 }
 
 static uint32_t vr_hud_render_width() {
@@ -2595,7 +2595,7 @@ static bool vr_wrist_hud_glanced(int hand, const glm::vec3& panel_pos) {
 // local_space (compositor quads must not carry the artificial snap-turn) and fall back to
 // head-locked while that hand is untracked. Returns the number of quads written.
 static uint32_t vr_build_hud_layers(XrCompositionLayerQuad* out, XrCompositionLayerColorScaleBiasKHR* fades) {
-    const int hud_attach = CVarGetInteger("gVrHudAttach", 0);
+    const int hud_attach = CVarGetInteger("gVrHudAttach", 3);
     const glm::vec3 head_hud_pos(CVarGetFloat("gVrHudOffX", 0.0f), CVarGetFloat("gVrHudOffY", 0.0f),
                                  -CVarGetFloat("gVrHudDistance", 2.0f));
     const float head_hud_width = fmaxf(CVarGetFloat("gVrHudSize", 1.5f), 0.05f);
