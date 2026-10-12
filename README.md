@@ -22,6 +22,8 @@ The game does not contain mods.
 | Swing the Megaton Hammer.                                                                    | The Mirror Shield reflects the beam of Twinrova.                                             |
 | ![Link hits the energy ball back to Ganondorf, then hits him](docs/media/boss-rush.webp)     | ![The pause screen of an EXPLORE file shows all the items](docs/media/explore.webp)          |
 | Boss Rush: Ganondorf.                                                                        | EXPLORE: all the items from the start.                                                       |
+| ![Link blocks the attacks of a Tektite with the shield](docs/media/shield.webp)             | ![The laser pointer selects options in VR Settings](docs/media/vr-settings.webp)             |
+| Hold the shield in front of you to block.                                                    | Quick Setup in VR Settings.                                                                  |
 
 > [!IMPORTANT]
 > You must own a legal copy of _The Legend of Zelda: Ocarina of Time_. Make a
