@@ -40,25 +40,41 @@ All clips are recordings from a Meta Quest 3S.
 
 ## Features
 
+**VR**
+
 - Stereo 3D. The refresh rate changes automatically between 90 Hz and 72 Hz.
 - First-person camera at the eye height of Link. The camera follows your head.
   A third-person view is also available.
 - Automatic world scale for child Link and adult Link.
-- Physical combat: swing the sword, the Deku stick, and the Megaton Hammer with
-  your hand. Hold up the shield to block. The Mirror Shield reflects the
-  Twinrova beams.
-- Aim the bow, the slingshot, and the hookshot with your hand. Throw the
-  boomerang, bombs, Deku nuts, and bombchus with your arm.
-- Item selector: take an item with your hand. Bombs, bombchus, and Deku nuts
-  are on your belt.
+
+**Physical weapons.** All weapons use your hands and your arms:
+
+| Weapon | How |
+| --- | --- |
+| Sword, Deku stick, Megaton Hammer | Swing your hand. |
+| Shield | Hold it in front of you to block. The Mirror Shield reflects the Twinrova beams. |
+| Bow, slingshot, hookshot | Aim with your hand. The shot goes along the weapon. |
+| Boomerang | Throw it with your arm. |
+| Bombs, Deku nuts, bombchus | Take them from your belt, and throw them with your arm. |
+
+**Menus and controls**
+
+- Item selector: take an item with your hand.
 - HUD on the wrist. Menus and the pause screen show on a panel that floats in
   front of you.
 - SoH menu with the Touch controllers and a laser pointer.
 - Quick Setup: view, sword hand, turn style, item selector or C buttons, and
   HUD position.
+
+**Game**
+
 - Setup on the headset: select your dump, and the headset makes the game files.
   Ocarina of Time and Master Quest are supported.
-- Mods for textures, models, and translations.
+- Install mods on the headset with **Add Mods**: textures, models, and
+  translations. The mods, the saves, and the settings stay when you remove the
+  game.
+- EXPLORE: a new file starts as adult Link in the Temple of Time, with all the
+  items, songs, and medallions.
 - Boss Rush.
 
 Tested only on the Meta Quest 3S.
