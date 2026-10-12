@@ -2,10 +2,14 @@ package org.oot.vr;
 
 import android.app.PendingIntent;
 import android.content.ActivityNotFoundException;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Process;
+import android.system.ErrnoException;
+import android.system.Os;
 import android.util.Log;
 
 import org.libsdl.app.SDLActivity;
@@ -15,6 +19,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.List;
 
 /**
  * Quest entry point.
@@ -31,18 +36,22 @@ import java.io.OutputStream;
  * touchscreen. What is left here is: make sure soh.o2r is where the game looks for it, send a first
  * start to the setup, and hand over to SDL.
  *
- * No storage permission either. libultraship locates its data with
- * SDL_AndroidGetExternalStoragePath(), which is the app-private external directory - readable and
- * writable with no permission at all, and adb-reachable. The reference port needs
- * MANAGE_EXTERNAL_STORAGE only because it hardcodes /storage/emulated/0/SOH and then has to patch
- * libultraship to make that configurable. Nothing here has to. The ROM needs no permission either:
- * the system picker grants access to the one file the player selects.
+ * libultraship locates its data with SDL_AndroidGetExternalStoragePath(), which is the app-private
+ * external directory - readable and writable with no permission at all, and adb-reachable. The ROM
+ * needs no permission either: the system picker grants access to the one file the player selects.
+ * The optional "All files access" permission is for the player folder. Read PlayerFolder.
  */
 public class MainActivity extends SDLActivity {
 
     private static final String TAG = "OoTVR";
     /** Home opens this PendingIntent as a panel. From Meta's "Hybrid apps overview" guide. */
     private static final String EXTRA_LAUNCH_IN_HOME = "extra_launch_in_home_pending_intent";
+
+    private static final int PICK_MODS = 1;
+    /** SOH [Quest] The state of Add Mods in VR Settings: empty, copying, or the result. */
+    private static volatile String sModsStatus = "";
+    /** SOH [Quest] The picker is open or the copy runs. */
+    private static volatile boolean sModsBusy;
 
     /** This activity ended in onCreate to start the setup. Read GameProcess. */
     private boolean handedOverToSetup;
@@ -52,9 +61,11 @@ public class MainActivity extends SDLActivity {
         // Must match SDL_AndroidGetExternalStoragePath(), which is what libultraship asks for:
         //   /sdcard/Android/data/org.oot.vr/files
         File root = getExternalFilesDir(null);
+        File player = null;
         if (root == null) {
             Log.e(TAG, "External files dir unavailable");
         } else {
+            player = usePlayerFolder(root);
             copyPortArchive(new File(root, "soh.o2r"));
             // RunExtract() checks for an assets/ directory on EVERY launch, before it looks at
             // whether an archive is already present - and if it is missing it registers a modal
@@ -68,12 +79,100 @@ public class MainActivity extends SDLActivity {
         // gets no onResume: it goes straight to onDestroy, whose nativeQuit() only frees what
         // onCreate made. A later MainActivity in the same process makes them again.
         super.onCreate(savedInstanceState);
-        if (root != null && SetupGate.needsSetup(root)) {
+        if (root != null && SetupGate.needsSetup(root, player)) {
             Log.i(TAG, "No game archive: starting the setup");
-            handedOverToSetup = true;
-            startSetup();
-            finishAndRemoveTask();
+            handOverToSetup(false);
+        } else if (root != null && PlayerFolder.savesOutOfReach(root, player != null)) {
+            Log.i(TAG, "The saves are in the player folder, without permission: starting the setup");
+            handOverToSetup(true);
         }
+    }
+
+    private void handOverToSetup(boolean savesNotice) {
+        handedOverToSetup = true;
+        startSetup(savesNotice);
+        finishAndRemoveTask();
+    }
+
+    /** SOH [Quest] Returns the player folder, or null. Sets the env vars before SDL starts. */
+    private static File usePlayerFolder(File root) {
+        File player = AllFilesAccess.playerFolder();
+        try {
+            if (player != null) {
+                PlayerFolder.moveSaves(root, player);
+                PlayerFolder.copyConfig(root, player);
+                Os.setenv(PlayerFolder.ENV, player.getAbsolutePath(), true);
+                PlayerFolder.resetNotice(root);
+                Log.i(TAG, "Player folder: " + player);
+                return player;
+            }
+        } catch (IOException | ErrnoException e) {
+            Log.e(TAG, "Could not use the player folder " + player, e);
+        }
+        if (PlayerFolder.lost(root, false)) {
+            try {
+                Os.setenv(PlayerFolder.ENV_LOST, "1", true);
+            } catch (ErrnoException e) {
+                Log.w(TAG, "Could not set " + PlayerFolder.ENV_LOST, e);
+            }
+        }
+        return null;
+    }
+
+    /** SOH [Quest] JNI: VR Settings > Mods. */
+    public boolean hasAllFilesAccess() {
+        return AllFilesAccess.granted();
+    }
+
+    /** SOH [Quest] JNI: VR Settings > Mods. */
+    public void requestAllFilesAccess() {
+        runOnUiThread(() -> AllFilesAccess.request(this));
+    }
+
+    /** SOH [Quest] JNI: VR Settings > Mods > Add Mods. */
+    public void pickMods() {
+        if (sModsBusy) {
+            return;
+        }
+        sModsBusy = true;
+        runOnUiThread(() -> {
+            try {
+                startActivityForResult(ModPicker.intent(), PICK_MODS);
+            } catch (ActivityNotFoundException e) {
+                Log.e(TAG, "No system file picker", e);
+                sModsBusy = false;
+            }
+        });
+    }
+
+    /** SOH [Quest] JNI: VR Settings > Mods. */
+    public boolean modsBusy() {
+        return sModsBusy;
+    }
+
+    /** SOH [Quest] JNI: VR Settings > Mods. */
+    public String modsStatus() {
+        return sModsStatus;
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode != PICK_MODS) {
+            return;
+        }
+        List<Uri> uris = ModPicker.selected(data);
+        if (resultCode != RESULT_OK || uris.isEmpty()) {
+            sModsBusy = false;
+            return;
+        }
+        sModsStatus = SetupText.ADDING_MODS;
+        Context app = getApplicationContext();
+        new Thread(() -> {
+            ModPicker.Copied copied = ModPicker.copyMods(app, uris);
+            sModsStatus = copied.added > 0 ? copied.text + " " + SetupText.RESTART_FOR_MODS : copied.text;
+            sModsBusy = false;
+        }, "AddMods").start();
     }
 
     /**
@@ -94,9 +193,10 @@ public class MainActivity extends SDLActivity {
      * directly from an immersive activity, a panel opens as an overlay on top of that activity,
      * which is about to end. The direct start remains as a fallback for a system without that Home.
      */
-    private void startSetup() {
+    private void startSetup(boolean savesNotice) {
         Intent setup = new Intent(this, SetupActivity.class);
         setup.setAction(Intent.ACTION_MAIN);
+        setup.putExtra(SetupActivity.EXTRA_SAVES_NOTICE, savesNotice);
         setup.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         PendingIntent pending = PendingIntent.getActivity(this, 0, setup,
             PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);

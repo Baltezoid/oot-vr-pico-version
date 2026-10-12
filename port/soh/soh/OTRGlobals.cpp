@@ -16,6 +16,7 @@
 #include <libultraship/bridge/gfxdebuggerbridge.h>
 #include <libultraship/bridge/windowbridge.h>
 #include <ship/Context.h>
+#include "soh/PlayerFolder.h" // SOH [Quest]
 #include <ship/resource/File.h>
 #include <ship/window/Window.h>
 #include <soh/GameVersions.h>
@@ -278,7 +279,8 @@ std::string portArchivePath = "";
 static bool sohArchiveVersionMatch = false;
 
 OTRGlobals::OTRGlobals() {
-    context = Ship::Context::CreateUninitializedInstance("Ship of Harkinian", appShortName, "shipofharkinian.json");
+    context = Ship::Context::CreateUninitializedInstance("Ship of Harkinian", appShortName,
+                                                         PlayerFolder::ConfigFile()); // SOH [Quest]
 
     portArchivePath = Ship::Context::LocateFileAcrossAppDirs("soh.o2r");
     OTRVersion portArchiveVersion = DetectOTRVersion("soh.o2r", false);
@@ -622,8 +624,8 @@ void OTRGlobals::RunExtract(int argc, char* argv[]) {
                     case PS_FILE_CHECK: {
                         const bool ootO2RExists =
                             std::filesystem::exists(
-                                Ship::Context::LocateFileAcrossAppDirs("oot-mq.o2r", appShortName)) ||
-                            std::filesystem::exists(Ship::Context::LocateFileAcrossAppDirs("oot.o2r", appShortName));
+                                PlayerFolder::LocateArchive("oot-mq.o2r") /* SOH [Quest] */) ||
+                            std::filesystem::exists(PlayerFolder::LocateArchive("oot.o2r") /* SOH [Quest] */);
 
                         if (!ootO2RExists) {
                             SohGui::RegisterPopup(
@@ -693,8 +695,8 @@ void OTRGlobals::RunExtract(int argc, char* argv[]) {
             }
             case ES_VERIFY: {
                 const bool ootO2RExists =
-                    std::filesystem::exists(Ship::Context::LocateFileAcrossAppDirs("oot-mq.o2r", appShortName)) ||
-                    std::filesystem::exists(Ship::Context::LocateFileAcrossAppDirs("oot.o2r", appShortName));
+                    std::filesystem::exists(PlayerFolder::LocateArchive("oot-mq.o2r") /* SOH [Quest] */) ||
+                    std::filesystem::exists(PlayerFolder::LocateArchive("oot.o2r") /* SOH [Quest] */);
 
                 if (!ootO2RExists) {
                     SohGui::RegisterPopup("No ROM Archives",
@@ -789,11 +791,11 @@ void InitGfxDebugger() {
 }
 
 void OTRGlobals::Initialize() {
-    std::string mqPath = Ship::Context::LocateFileAcrossAppDirs("oot-mq.o2r", appShortName);
+    std::string mqPath = PlayerFolder::LocateArchive("oot-mq.o2r") /* SOH [Quest] */;
     if (std::filesystem::exists(mqPath)) {
         context->GetResourceManager()->GetArchiveManager()->AddArchive(mqPath);
     }
-    std::string ootPath = Ship::Context::LocateFileAcrossAppDirs("oot.o2r", appShortName);
+    std::string ootPath = PlayerFolder::LocateArchive("oot.o2r") /* SOH [Quest] */;
     if (std::filesystem::exists(ootPath)) {
         context->GetResourceManager()->GetArchiveManager()->AddArchive(ootPath);
     }
@@ -1517,7 +1519,9 @@ OTRVersion ReadPortVersionFromOTR(std::string otrPath) {
 // For Windows/Mac/Linux if the version doesn't match, offer to
 OTRVersion DetectOTRVersion(std::string fileName, bool isMQ) {
     bool isOtrOld = false;
-    std::string otrPath = Ship::Context::LocateFileAcrossAppDirs(fileName, appShortName);
+    // SOH [Quest] soh.o2r comes only from the APK.
+    std::string otrPath = fileName == "soh.o2r" ? Ship::Context::LocateFileAcrossAppDirs(fileName, appShortName)
+                                                : PlayerFolder::LocateArchive(fileName);
 
     // Doesn't exist so nothing to do here
     if (!std::filesystem::exists(otrPath)) {

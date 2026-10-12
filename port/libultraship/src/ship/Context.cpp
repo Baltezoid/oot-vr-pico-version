@@ -213,7 +213,10 @@ bool Context::InitConfiguration() {
         return true;
     }
 
-    mConfig = std::make_shared<Config>(GetPathRelativeToAppDirectory(mConfigFilePath));
+    // SOH [Quest] An absolute path is used as it is: the config can be in the player folder.
+    mConfig = std::make_shared<Config>(std::filesystem::path(mConfigFilePath).is_absolute()
+                                           ? mConfigFilePath
+                                           : GetPathRelativeToAppDirectory(mConfigFilePath));
 
     if (GetConfig() == nullptr) {
         SPDLOG_ERROR("Failed to initialize config");

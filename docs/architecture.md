@@ -316,6 +316,7 @@ The headset has no console and no debugger. Use these tools:
 | Frame rate and frame times | `adb logcat -s soh:V \| grep Perf`. The game writes one `[VR] Perf:` line each 5 seconds. |
 | Headset CPU and GPU levels | `adb logcat -s VrApi`. |
 | Log files | `/sdcard/Android/data/org.oot.vr/files/logs/` |
+| Player folder permission | `adb shell appops set org.oot.vr MANAGE_EXTERNAL_STORAGE allow`. Use `default` to remove it. The game reads it at start. |
 | Screenshot of the left eye | `adb exec-out screencap -p > s.png`. Not tested on the device. |
 | Headset recordings | `/sdcard/Oculus/VideoShots/`. Get them with `adb pull`. |
 | Save file with all items | In `shipofharkinian.json`, set `gDeveloperTools.DebugEnabled=1` and `DebugSaveFileMode=2`. A new save in slot 1 then has all items. Developer mode also gives a scene selector. |

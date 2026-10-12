@@ -8,6 +8,7 @@
 
 #include "mod_menu.h"
 #include "soh/OTRGlobals.h"
+#include "soh/PlayerFolder.h" // SOH [Quest]
 #include "soh/util.h"
 #include "soh/SohGui/MenuTypes.h"
 #include "soh/SohGui/SohMenu.h"
@@ -210,60 +211,65 @@ void UpdateModFiles(bool init = false, bool reset = false) {
     unsupportedFiles.clear();
     filePaths.clear();
     bool changed = false;
-    std::string modsPath = Ship::Context::LocateFileAcrossAppDirs("mods", appShortName);
     std::map<std::string, std::string> tempMods;
-    if (modsPath.length() > 0 && std::filesystem::exists(modsPath)) {
-        std::vector<std::filesystem::path> enabledFiles;
-        if (std::filesystem::is_directory(modsPath)) {
-            // SOH [Quest] A folder that the game cannot read (copied with adb or SideQuest, or moved
-            // out and back) made the iterator throw and closed the game. Skip such folders. Any other
-            // error stops the walk with a warning instead of a crash.
-            std::error_code walkError;
-            const auto walkOptions = std::filesystem::directory_options::follow_directory_symlink |
-                                     std::filesystem::directory_options::skip_permission_denied;
-            for (auto it = std::filesystem::recursive_directory_iterator(modsPath, walkOptions, walkError);
-                 !walkError && it != std::filesystem::recursive_directory_iterator(); it.increment(walkError)) {
-                const std::filesystem::directory_entry& p = *it;
-                if (p.is_directory()) {
-                    continue;
-                }
-                std::string filename =
-                    p.path().filename().generic_string().substr(0, p.path().filename().generic_string().rfind("."));
-                std::string extension = p.path().extension().generic_string();
-                if (!IsValidExtension(extension)) {
-                    continue;
-                }
-                bool enabled = SohUtils::Contains(filename, enabledModFiles);
-                if (!enabled) {
-                    tempMods.emplace(p.path().lexically_normal().generic_string(), filename);
-                }
-                filePaths.emplace(filename, p.path());
+    // SOH [Quest] The player folder, then the old folder. The first one wins.
+    for (const std::string& modsPath : PlayerFolder::ModFolders()) {
+        std::error_code existsError;
+        if (modsPath.empty() || !std::filesystem::is_directory(modsPath, existsError)) {
+            continue;
+        }
+        // SOH [Quest] A folder that the game cannot read (copied with adb or SideQuest, or moved
+        // out and back) made the iterator throw and closed the game. Skip such folders. Any other
+        // error stops the walk with a warning instead of a crash.
+        std::error_code walkError;
+        const auto walkOptions = std::filesystem::directory_options::follow_directory_symlink |
+                                 std::filesystem::directory_options::skip_permission_denied;
+        for (auto it = std::filesystem::recursive_directory_iterator(modsPath, walkOptions, walkError);
+             !walkError && it != std::filesystem::recursive_directory_iterator(); it.increment(walkError)) {
+            const std::filesystem::directory_entry& p = *it;
+            if (p.is_directory()) {
+                continue;
             }
-            if (walkError) {
-                SPDLOG_WARN("Mods: cannot read {}: {}", modsPath, walkError.message());
+            std::string filename =
+                p.path().filename().generic_string().substr(0, p.path().filename().generic_string().rfind("."));
+            std::string extension = p.path().extension().generic_string();
+            if (!IsValidExtension(extension)) {
+                continue;
             }
-            if (tempMods.size() > 0) {
+            if (filePaths.contains(filename)) {
+                continue; // SOH [Quest]
+            }
+            bool enabled = SohUtils::Contains(filename, enabledModFiles);
+            if (!enabled) {
+                tempMods.emplace(p.path().lexically_normal().generic_string(), filename);
+            }
+            filePaths.emplace(filename, p.path());
+        }
+        if (walkError) {
+            SPDLOG_WARN("Mods: cannot read {}: {}", modsPath, walkError.message());
+        }
+    }
+    if (tempMods.size() > 0) {
+        changed = true;
+        for (auto [path, name] : tempMods) {
+            enabledModFiles.push_back(name);
+        }
+        tempMods.clear();
+    }
+    if (init) {
+        std::vector<std::string> enabledTemp(enabledModFiles);
+        for (std::string mod : enabledTemp) {
+            if (filePaths.contains(mod)) {
+                GetArchiveManager()->AddArchive(filePaths.at(mod).generic_string());
+            } else if (!PlayerFolder::Lost()) {
+                // SOH [Quest] Without the player folder, keep its mods and their order.
+                enabledModFiles.erase(std::find(enabledModFiles.begin(), enabledModFiles.end(), mod));
                 changed = true;
-                for (auto [path, name] : tempMods) {
-                    enabledModFiles.push_back(name);
-                }
-                tempMods.clear();
-            }
-            if (init) {
-                std::vector<std::string> enabledTemp(enabledModFiles);
-                for (std::string mod : enabledTemp) {
-                    if (filePaths.contains(mod)) {
-                        GetArchiveManager()->AddArchive(filePaths.at(mod).generic_string());
-                    } else {
-                        enabledModFiles.erase(std::find(enabledModFiles.begin(), enabledModFiles.end(), mod));
-                        changed = true;
-                    }
-                }
             }
         }
-        if (changed) {
-            SetEnabledModsCVarValue();
-        }
+    }
+    if (changed) {
+        SetEnabledModsCVarValue();
     }
 }
 
@@ -392,7 +398,9 @@ void DrawMods(bool enabled) {
         }
 
         ImGui::SameLine();
-        std::string displayName = filePaths.at(file).filename().generic_string();
+        // SOH [Quest] The file can be missing. Read UpdateModFiles.
+        std::string displayName = filePaths.contains(file) ? filePaths.at(file).filename().generic_string()
+                                                           : file + " (not found)";
         if (enabled) {
             ImGui::PushID(file.c_str());
             float selectableWidth =

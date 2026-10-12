@@ -21,6 +21,11 @@ final class SetupGate {
         return !isArchive(new File(dir, GAME_ARCHIVE)) && !isArchive(new File(dir, MQ_ARCHIVE));
     }
 
+    /** The game also reads the archives from the player folder. Null when the game cannot use it. */
+    static boolean needsSetup(File appDir, File playerFolder) {
+        return needsSetup(appDir) && (playerFolder == null || needsSetup(playerFolder));
+    }
+
     private static boolean isArchive(File f) {
         return f.isFile() && f.length() > 0;
     }

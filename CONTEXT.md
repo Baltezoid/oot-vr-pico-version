@@ -80,3 +80,18 @@ Two different sets of files. They go to the headset in different ways.
   of the game.
 
 This repository never contains game assets.
+
+## Mod
+
+An `.o2r` or `.otr` file that changes textures, models, or texts. Its author
+gives it. This project does not give mods.
+
+## Player folder
+
+`oot-vr/` on the headset. It contains the mods, the saves, the config, and
+optionally `oot.o2r`. The player opens it with a file manager on a PC.
+
+## Pre-rendered room
+
+A room that the N64 shows as a fixed 2D image, for example the house of Link.
+Without a mod, these rooms show flat colors in VR.

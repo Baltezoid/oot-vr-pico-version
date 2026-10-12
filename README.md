@@ -77,8 +77,8 @@ to block.
 
 ### Quick Setup
 
-The first start asks how you want to turn. To change it, go to VR Settings >
-**Quick Setup**:
+By default, you turn with your body and the HUD is on the wrist. To change it,
+go to VR Settings > **Quick Setup**:
 
 | Setting                | Choices                                       |
 | ---------------------- | --------------------------------------------- |
@@ -186,6 +186,7 @@ adb push <your-dump>.z64 /sdcard/Download/
 1. In the headset, open **Library** > **Unknown Sources** > **OoT VR**.
 2. Select **Select ROM**, then select your dump in the `Download` folder.
 3. Wait some minutes for the extraction. Do not remove the headset.
+4. Optional: select **Allow** to make the folder for mods. Read [Mods](#mods).
 
 The game makes `oot.o2r` from your dump. Then you can delete the dump. The next
 starts go directly to the game.
@@ -214,18 +215,44 @@ and texts.
 > [!IMPORTANT]
 > This project does not contain or give mods. Get each mod from its author.
 
+### Make the mods folder
+
+The game needs the "All files access" permission to use the folder `oot-vr/`.
+
+1. Select **Allow** after the first extraction. Or, in the SoH menu, select
+   **VR Settings** > **Mods** > **Allow Access**.
+2. Turn on the permission for OoT VR.
+3. Go back to the game.
+
+The game makes `oot-vr/mods/` and `oot-vr/Save/`. It copies your saves and
+your settings (`shipofharkinian.json`) into `oot-vr/`. They stay when you remove
+the game. The old saves stay in `Android/data/org.oot.vr/files/Save.backup/`.
+
 ### Install a mod
 
-Copy the mod files into `Android/data/org.oot.vr/files/mods/` on the headset.
-Subfolders are permitted. The game turns on new mods at the next start.
+1. If the mod is a `.zip` file, extract it on your PC.
+2. Connect the headset to the PC. Open the SideQuest file manager.
+3. Copy the `.o2r` and `.otr` files into `oot-vr/mods/`.
+4. Start the game again.
+
+You can also use **Add Mods** on the headset: at the first start, or in
+**VR Settings** > **Mods**. Select the files, for example in the `Download`
+folder. The game copies them into `oot-vr/mods/` and extracts `.zip` files.
+After **Add Mods** in VR Settings, close the game and open it again.
+
+The game also reads mods from the old folder
+`Android/data/org.oot.vr/files/mods/`.
+
+A `.sav` file is a save, not a mod. The game reads it only from `oot-vr/Save/`.
+Its name sets the slot: `file1.sav`, `file2.sav`, or `file3.sav`.
 
 ### Manage the mods
 
 Open the SoH menu, and go to **Settings** > **Mod Menu**.
 
 - **Enable Mods** turns all mods on or off.
-- The list sets the load order. When two mods change the same texture, the last
-  mod is visible.
+- The list sets the load order. When two mods change the same texture, the mod
+  that is higher in the list is visible.
 
 ### Tested mods
 

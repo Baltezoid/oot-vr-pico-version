@@ -61,4 +61,16 @@ public class SetupGateTest {
     public void missingDirectoryNeedsSetup() {
         assertTrue(SetupGate.needsSetup(new File(tmp.getRoot(), "absent")));
     }
+
+    @Test
+    public void gameArchiveInThePlayerFolderSkipsSetup() throws IOException {
+        File player = tmp.newFolder("oot-vr");
+        write(new File(player, "oot.o2r"), 16);
+        assertFalse(SetupGate.needsSetup(tmp.newFolder("app"), player));
+    }
+
+    @Test
+    public void withoutThePlayerFolderOnlyTheAppDirectoryCounts() throws IOException {
+        assertTrue(SetupGate.needsSetup(tmp.newFolder("app"), null));
+    }
 }
