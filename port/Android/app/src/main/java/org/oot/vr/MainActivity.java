@@ -48,7 +48,7 @@ public class MainActivity extends SDLActivity {
     private static final String EXTRA_LAUNCH_IN_HOME = "extra_launch_in_home_pending_intent";
 
     private static final int PICK_MODS = 1;
-    /** SOH [Quest] The state of Add mods in VR Settings: empty, copying, or the result. */
+    /** SOH [Quest] The state of Add Mods in VR Settings: empty, copying, or the result. */
     private static volatile String sModsStatus = "";
     /** SOH [Quest] The picker is open or the copy runs. */
     private static volatile boolean sModsBusy;

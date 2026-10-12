@@ -224,10 +224,9 @@ The game needs the "All files access" permission to use the folder `oot-vr/`.
 2. Turn on the permission for OoT VR.
 3. Go back to the game.
 
-The game makes `oot-vr/mods/` and `oot-vr/Save/`. It moves your saves and
-`shipofharkinian.json` into `oot-vr/`, so that they stay when you remove the
-game. A copy of the old saves stays in
-`Android/data/org.oot.vr/files/Save.backup/`.
+The game makes `oot-vr/mods/` and `oot-vr/Save/`. It copies your saves and
+your settings (`shipofharkinian.json`) into `oot-vr/`. They stay when you remove
+the game. The old saves stay in `Android/data/org.oot.vr/files/Save.backup/`.
 
 ### Install a mod
 
@@ -236,9 +235,10 @@ game. A copy of the old saves stays in
 3. Copy the `.o2r` and `.otr` files into `oot-vr/mods/`.
 4. Start the game again.
 
-You can also use **Add mods**: at the first start, or in **VR Settings** >
-**Mods**. It copies mods from the `Download` folder of the headset, and it
-extracts `.zip` files.
+You can also use **Add Mods** on the headset: at the first start, or in
+**VR Settings** > **Mods**. Select the files, for example in the `Download`
+folder. The game copies them into `oot-vr/mods/` and extracts `.zip` files.
+After **Add Mods** in VR Settings, close the game and open it again.
 
 The game also reads mods from the old folder
 `Android/data/org.oot.vr/files/mods/`.

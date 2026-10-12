@@ -27,7 +27,7 @@ final class SetupText {
     static final String PERMISSION = "Mods (optional)\n\nSelect Allow to make the folder oot-vr "
         + "on the headset. It keeps your mods and your saves.";
     static final String MODS_READY = "Mods\n\nConnect the headset to a PC, and copy mods into "
-        + "oot-vr/mods. Or select Add mods.";
+        + "oot-vr/mods. Or select Add Mods.";
     static final String ADDING_MODS = "Copying the mods...";
     static final String NO_PLAYER_FOLDER = "The game cannot use the folder oot-vr.";
     static final String RESTART_FOR_MODS = "Close the game and open it again to load them.";
@@ -35,7 +35,7 @@ final class SetupText {
         + "use them.";
     static final String ALLOW = "Allow";
     static final String SKIP = "Skip";
-    static final String ADD_MODS = "Add mods";
+    static final String ADD_MODS = "Add Mods";
     static final String START_GAME = "Start the game";
     static final String START_WITHOUT_SAVES = "Start without the saves";
 

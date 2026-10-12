@@ -8,7 +8,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 /**
- * Add mods: copies .o2r and .otr files into mods/. A .zip goes into mods/<zip name>/ with its
+ * Add Mods: copies .o2r and .otr files into mods/. A .zip goes into mods/<zip name>/ with its
  * subfolders. Other files are skipped. No Android types: the host tests run it.
  */
 final class ModImport {

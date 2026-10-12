@@ -1,4 +1,4 @@
-// SOH [Quest] The player folder /sdcard/oot-vr: mods, saves, and optionally oot.o2r. Read
+// SOH [Quest] The player folder /sdcard/oot-vr: mods, saves, settings, and optionally oot.o2r. Read
 // PlayerFolder.java. Without it, and on other systems, each function gives the usual SoH path.
 #pragma once
 

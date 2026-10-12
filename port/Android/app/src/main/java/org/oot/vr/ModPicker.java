@@ -14,7 +14,7 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Add mods: the system file picker, and the copy of the selected files. Read ModImport. */
+/** Add Mods: the system file picker, and the copy of the selected files. Read ModImport. */
 final class ModPicker {
 
     private static final String TAG = "OoTVR";
@@ -81,7 +81,7 @@ final class ModPicker {
                 failed = true;
             }
         }
-        Log.i(TAG, "Add mods: " + total.added + " added, " + total.skipped + " skipped");
+        Log.i(TAG, "Add Mods: " + total.added + " added, " + total.skipped + " skipped");
         return new Copied(SetupText.modsAdded(total.added, total.skipped, failed), total.added);
     }
 

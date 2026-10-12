@@ -88,7 +88,7 @@ public class SetupActivity extends Activity {
     private static volatile String sFailure;
     /** Set when an extraction starts. ZAPD's global state allows one extraction per process. */
     private static volatile boolean sExtractorUsed;
-    /** The result of the last Add mods, or null. */
+    /** The result of the last Add Mods, or null. */
     private static volatile String sModsResult;
 
     private final Handler ui = new Handler(Looper.getMainLooper());
