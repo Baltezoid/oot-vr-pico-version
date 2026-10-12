@@ -35,4 +35,7 @@ void PickMods();
 // Empty, "Copying the mods...", or the result of the last PickMods().
 std::string ModsStatus();
 
+// The picker is open or the copy runs.
+bool ModsBusy();
+
 } // namespace PlayerFolder

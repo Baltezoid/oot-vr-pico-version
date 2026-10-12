@@ -50,6 +50,8 @@ public class MainActivity extends SDLActivity {
     private static final int PICK_MODS = 1;
     /** SOH [Quest] The state of Add mods in VR Settings: empty, copying, or the result. */
     private static volatile String sModsStatus = "";
+    /** SOH [Quest] The picker is open or the copy runs. */
+    private static volatile boolean sModsBusy;
 
     /** This activity ended in onCreate to start the setup. Read GameProcess. */
     private boolean handedOverToSetup;
@@ -129,13 +131,23 @@ public class MainActivity extends SDLActivity {
 
     /** SOH [Quest] JNI: VR Settings > Mods > Add Mods. */
     public void pickMods() {
+        if (sModsBusy) {
+            return;
+        }
+        sModsBusy = true;
         runOnUiThread(() -> {
             try {
                 startActivityForResult(ModPicker.intent(), PICK_MODS);
             } catch (ActivityNotFoundException e) {
                 Log.e(TAG, "No system file picker", e);
+                sModsBusy = false;
             }
         });
+    }
+
+    /** SOH [Quest] JNI: VR Settings > Mods. */
+    public boolean modsBusy() {
+        return sModsBusy;
     }
 
     /** SOH [Quest] JNI: VR Settings > Mods. */
@@ -146,13 +158,21 @@ public class MainActivity extends SDLActivity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode != PICK_MODS) {
+            return;
+        }
         List<Uri> uris = ModPicker.selected(data);
-        if (requestCode != PICK_MODS || resultCode != RESULT_OK || uris.isEmpty()) {
+        if (resultCode != RESULT_OK || uris.isEmpty()) {
+            sModsBusy = false;
             return;
         }
         sModsStatus = SetupText.ADDING_MODS;
         Context app = getApplicationContext();
-        new Thread(() -> sModsStatus = ModPicker.copy(app, uris), "AddMods").start();
+        new Thread(() -> {
+            ModPicker.Copied copied = ModPicker.copyMods(app, uris);
+            sModsStatus = copied.added > 0 ? copied.text + " " + SetupText.RESTART_FOR_MODS : copied.text;
+            sModsBusy = false;
+        }, "AddMods").start();
     }
 
     /**

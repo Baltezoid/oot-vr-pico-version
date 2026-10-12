@@ -587,21 +587,25 @@ static void VrQuickSetup(WidgetInfo& info) {
 static void VrModsFolder(WidgetInfo& info) {
     static int sFramesToCheck = 0;
     static bool sGranted = false;
+    static bool sBusy = false;
+    static std::string sStatus;
     if (--sFramesToCheck <= 0) {
-        sGranted = PlayerFolder::HasAccess(); // JNI: once a second.
-        sFramesToCheck = 72;
+        // JNI: four times a second.
+        sGranted = PlayerFolder::HasAccess();
+        sBusy = PlayerFolder::ModsBusy();
+        sStatus = PlayerFolder::ModsStatus();
+        sFramesToCheck = 18;
     }
     if (!PlayerFolder::Path().empty() || sGranted) {
         ImGui::TextWrapped("Copy mods into oot-vr/mods, or select Add Mods. Start the game again to load them.");
         ImGui::Dummy(ImVec2(0.0f, ImGui::GetStyle().ItemSpacing.y));
         static const VrChoice sAdd[] = { { "Add Mods", nullptr } };
+        ImGui::BeginDisabled(sBusy);
         if (VrChoiceRow("VrModsAdd", sAdd, 1, -1, ImGui::GetContentRegionAvail().x) == 0) {
             PlayerFolder::PickMods();
+            sBusy = true;
         }
-        static std::string sStatus;
-        if (sFramesToCheck == 72) {
-            sStatus = PlayerFolder::ModsStatus(); // JNI: refreshed with the permission.
-        }
+        ImGui::EndDisabled();
         if (!sStatus.empty()) {
             ImGui::TextWrapped("%s", sStatus.c_str());
         }

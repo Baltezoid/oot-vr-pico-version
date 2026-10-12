@@ -49,9 +49,23 @@ final class ModPicker {
 
     /** Copies the files into the mods folder. Slow: call it on a worker thread. Returns the result text. */
     static String copy(Context c, List<Uri> uris) {
+        return copyMods(c, uris).text;
+    }
+
+    static final class Copied {
+        final String text;
+        final int added;
+
+        Copied(String text, int added) {
+            this.text = text;
+            this.added = added;
+        }
+    }
+
+    static Copied copyMods(Context c, List<Uri> uris) {
         File player = AllFilesAccess.playerFolder();
         if (player == null) {
-            return SetupText.NO_PLAYER_FOLDER;
+            return new Copied(SetupText.NO_PLAYER_FOLDER, 0);
         }
         File mods = new File(player, PlayerFolder.MODS);
         ModImport.Result total = new ModImport.Result();
@@ -68,7 +82,7 @@ final class ModPicker {
             }
         }
         Log.i(TAG, "Add mods: " + total.added + " added, " + total.skipped + " skipped");
-        return SetupText.modsAdded(total.added, total.skipped, failed);
+        return new Copied(SetupText.modsAdded(total.added, total.skipped, failed), total.added);
     }
 
     private static String displayName(Context c, Uri uri) {

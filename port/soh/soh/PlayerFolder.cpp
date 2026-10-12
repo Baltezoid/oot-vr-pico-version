@@ -112,6 +112,16 @@ void PickMods() {
 #endif
 }
 
+bool ModsBusy() {
+    bool busy = false;
+#ifdef __ANDROID__
+    CallActivity("modsBusy", "()Z", [&](JNIEnv* env, jobject a, jmethodID id) {
+        busy = env->CallBooleanMethod(a, id) == JNI_TRUE;
+    });
+#endif
+    return busy;
+}
+
 std::string ModsStatus() {
     std::string status;
 #ifdef __ANDROID__

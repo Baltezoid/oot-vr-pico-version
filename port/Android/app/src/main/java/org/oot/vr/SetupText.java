@@ -30,6 +30,7 @@ final class SetupText {
         + "oot-vr/mods. Or select Add mods.";
     static final String ADDING_MODS = "Copying the mods...";
     static final String NO_PLAYER_FOLDER = "The game cannot use the folder oot-vr.";
+    static final String RESTART_FOR_MODS = "Close the game and open it again to load them.";
     static final String SAVES_OUT_OF_REACH = "Your saves are in the folder oot-vr. Select Allow to "
         + "use them.";
     static final String ALLOW = "Allow";
