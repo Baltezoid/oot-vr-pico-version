@@ -7,7 +7,8 @@ not tested.
 
 We tested these on a Quest 3S. We did not test on a Quest 3.
 
-- The full main story. We played from Kokiri Forest to Ganon's Tower.
+- Many areas of the game, from Kokiri Forest to the fight with Ganon. We did
+  not play the full story from the start to the end.
 - The first-start setup. The panel asks for the ROM, the headset makes
   `oot.o2r`, and the game starts in VR. We tested it with the European
   GameCube version.

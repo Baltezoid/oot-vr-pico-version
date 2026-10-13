@@ -3,22 +3,28 @@
 _The Legend of Zelda: Ocarina of Time_ in first person on the Meta Quest 3S.
 The game runs on the headset. You do not need a PC to play.
 
-**Status: beta.** You can play the main story from Kokiri Forest to Ganon's
-Tower. Some problems are known: read [`STATUS.md`](STATUS.md) and the
+**Status: beta.** We tested many areas of the game, from Kokiri Forest to the
+fight with Ganon. We did not play the full story from the start to the end.
+Some problems are known: read [`STATUS.md`](STATUS.md) and the
 [open issues](https://github.com/gibranfelix/oot-vr/issues) before you play.
 
-[![Watch the trailer on YouTube](docs/media/trailer.jpg)](https://youtu.be/gzuzNRE-Qyo)
+[![Watch the trailer on YouTube](docs/media/trailer.jpg)](https://youtu.be/kHN2fxl0lSU)
 
-All clips are recordings from a Meta Quest 3S.
+All clips are recordings from a Meta Quest 3S. Some clips use texture mods.
+The game does not contain mods.
 
-|                                                                                 |                                                                                                  |
-| ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| ![Link fights a Tektite with the sword and the shield](docs/media/tektite.webp) | ![Link shoots the bow from the back of Epona](docs/media/epona-bow.webp)                         |
-| Sword and shield against a Tektite.                                             | Bow on Epona.                                                                                    |
-| ![Link holds the ocarina in Kokiri Forest](docs/media/ocarina.webp)             | ![The pause screen on a panel that floats in front of the player](docs/media/floating-menu.webp) |
-| Ocarina.                                                                        | Pause screen.                                                                                    |
-| ![Link fights Ganon with the sword](docs/media/ganon.webp)                      | ![The Great Fairy appears in front of Link](docs/media/great-fairy.webp)                         |
-| Ganon.                                                                          | Great Fairy.                                                                                     |
+|                                                                                              |                                                                                              |
+| -------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| ![Link throws a bomb at a Poe in the graveyard](docs/media/bombs.webp)                       | ![Link puts a bombchu on the floor, and the bombchu runs away](docs/media/bombchu.webp)      |
+| Throw bombs with your arm.                                                                   | Put a bombchu on the floor.                                                                  |
+| ![Link shoots the bow at sunset](docs/media/bow.webp)                                        | ![Link throws the boomerang at Barinade](docs/media/boomerang.webp)                          |
+| The arrow goes along the bow.                                                                | Throw the boomerang with your arm.                                                           |
+| ![Link breaks a rock with the Megaton Hammer](docs/media/hammer.webp)                        | ![The Mirror Shield reflects the beam of Twinrova](docs/media/mirror-shield.webp)            |
+| Swing the Megaton Hammer.                                                                    | The Mirror Shield reflects the beam of Twinrova.                                             |
+| ![Link hits the energy ball back to Ganondorf, then hits him](docs/media/boss-rush.webp)     | ![The pause screen of an EXPLORE file shows all the items](docs/media/explore.webp)          |
+| Boss Rush: Ganondorf.                                                                        | EXPLORE: all the items from the start.                                                       |
+| ![Link blocks the attacks of a Tektite with the shield](docs/media/shield.webp)             | ![The laser pointer selects options in VR Settings](docs/media/vr-settings.webp)             |
+| Hold the shield in front of you to block.                                                    | Quick Setup in VR Settings.                                                                  |
 
 > [!IMPORTANT]
 > You must own a legal copy of _The Legend of Zelda: Ocarina of Time_. Make a
