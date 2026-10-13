@@ -7,7 +7,7 @@ The game runs on the headset. You do not need a PC to play.
 Tower. Some problems are known: read [`STATUS.md`](STATUS.md) and the
 [open issues](https://github.com/gibranfelix/oot-vr/issues) before you play.
 
-[![Watch the trailer on YouTube](docs/media/trailer.jpg)](https://youtu.be/gzuzNRE-Qyo)
+[![Watch the trailer on YouTube](docs/media/trailer.jpg)](https://youtu.be/kHN2fxl0lSU)
 
 All clips are recordings from a Meta Quest 3S. Some clips use texture mods.
 The game does not contain mods.
