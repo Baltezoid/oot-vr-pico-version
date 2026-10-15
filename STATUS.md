@@ -23,6 +23,8 @@ We tested these on a Quest 3S. We did not test on a Quest 3.
 - The SoH menu with the Touch controllers and a laser pointer.
 - The wrist HUD. Hearts, magic, and rupees show on the off-hand wrist when you
   look at it. The item buttons show above the sword-hand controller.
+- The update from the VR menu. The game finds a newer release, downloads the
+  APK, and opens the Android installer. We tested it with a local test release.
 
 ## Open work
 

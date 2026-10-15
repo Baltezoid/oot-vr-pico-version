@@ -14,7 +14,7 @@ final class UpdateText {
         + "Then uninstall the game, and install the new release with SideQuest.";
     static final String NO_INSTALLER = "The headset did not open the installer. "
         + "Install the new release with SideQuest.";
-    static final String INSTALLING = "Select Update on the panel. The game closes. Then open it again.";
+    static final String INSTALLING = "Confirm the install on the panel. The game closes. Then open it again.";
 
     /** ProgressBar maximum, as in SetupText. */
     static final int BAR_MAX = 1000;

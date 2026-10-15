@@ -155,8 +155,10 @@ internet connection.
 1. When a new release is available, the menu opens on the file select screen.
    You can also select **VR Settings** > **Update** at any time.
 2. Select **Update**. Wait for the download.
-3. On the panel of the installer, select **Update**. The game closes.
-4. Open **OoT VR** again. Your saves stay.
+3. The first time, the headset asks for a permission. Select **Settings**, turn
+   on **Allow from this source**, and go back.
+4. On the panel of the installer, confirm the install. The game closes.
+5. Open **OoT VR** again. Your saves stay.
 
 If your version does not have **VR Settings** > **Update**, install the new
 release with SideQuest one time. Do the steps in
