@@ -5,10 +5,12 @@ import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.ParcelFileDescriptor;
 import android.provider.OpenableColumns;
 import android.util.Log;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -71,11 +73,9 @@ final class ModPicker {
         ModImport.Result total = new ModImport.Result();
         boolean failed = false;
         for (Uri uri : uris) {
-            try (InputStream in = c.getContentResolver().openInputStream(uri)) {
-                if (in == null) {
-                    throw new IOException("No stream for " + uri);
-                }
-                total.add(ModImport.importFile(displayName(c, uri), in, mods));
+            String name = displayName(c, uri);
+            try {
+                total.add(importOne(c, uri, name, mods));
             } catch (IOException | SecurityException e) {
                 Log.w(TAG, "Mod copy failed: " + uri, e);
                 failed = true;
@@ -83,6 +83,24 @@ final class ModPicker {
         }
         Log.i(TAG, "Add Mods: " + total.added + " added, " + total.skipped + " skipped");
         return new Copied(SetupText.modsAdded(total.added, total.skipped, failed), total.added);
+    }
+
+    private static ModImport.Result importOne(Context c, Uri uri, String name, File mods)
+            throws IOException {
+        if (ModImport.is7z(ModImport.baseName(name))) {
+            try (ParcelFileDescriptor fd = c.getContentResolver().openFileDescriptor(uri, "r")) {
+                if (fd == null) {
+                    throw new IOException("No file for " + uri);
+                }
+                return ModImport.import7z(name, new FileInputStream(fd.getFileDescriptor()).getChannel(), mods);
+            }
+        }
+        try (InputStream in = c.getContentResolver().openInputStream(uri)) {
+            if (in == null) {
+                throw new IOException("No stream for " + uri);
+            }
+            return ModImport.importFile(name, in, mods);
+        }
     }
 
     private static String displayName(Context c, Uri uri) {

@@ -147,7 +147,7 @@ If the game does not start, read "If the game does not start" in
 
 ## Mods
 
-The game loads Ship of Harkinian mods (`.o2r`, `.otr`, or `.zip`): textures,
+The game loads Ship of Harkinian mods (`.o2r`, `.otr`, `.zip`, or `.7z`): textures,
 models, and texts.
 
 > [!IMPORTANT]
@@ -163,7 +163,7 @@ models, and texts.
    folder of the headset.
 4. In the game, select **VR Settings** > **Mods** > **Add Mods**. Select the mod
    file. The game automatically copies it into `oot-vr/mods/` and extracts
-   `.zip` files.
+   `.zip` and `.7z` files.
 5. Close the game and open it again.
 
 ### Manage the mods
