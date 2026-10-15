@@ -50,6 +50,7 @@ final class Updater {
     private static volatile int sBar;
     private static volatile String sInstalled = "";
     private static volatile LatestRelease sLatest;
+    private static boolean sChecked;
 
     private Updater() {
     }
@@ -81,7 +82,11 @@ final class Updater {
     }
 
     /** Starts the check on a thread. A development build does not check. */
-    static void check(Context context) {
+    static synchronized void check(Context context) {
+        if (sChecked) {
+            return;
+        }
+        sChecked = true;
         Context app = context.getApplicationContext();
         sInstalled = installedVersion(app);
         // Each start deletes the APK of an earlier update.
@@ -130,10 +135,14 @@ final class Updater {
                     return;
                 }
             }
-            int signer = sameSigner(activity, apk);
-            if (signer != 0) {
+            Boolean same = sameSigner(activity, apk);
+            if (same == null || !same) {
                 apk.delete();
-                set(signer < 0 ? FAILED : OLD_SIGNATURE, signer < 0 ? UpdateText.DAMAGED : UpdateText.OLD_SIGNATURE);
+                if (same == null) {
+                    set(FAILED, UpdateText.DAMAGED);
+                } else {
+                    set(OLD_SIGNATURE, UpdateText.OLD_SIGNATURE);
+                }
                 return;
             }
             activity.runOnUiThread(() -> install(activity, apk));
@@ -147,7 +156,8 @@ final class Updater {
         }
         HttpURLConnection connection = open(latest.apkUrl);
         try (InputStream in = connection.getInputStream()) {
-            long total = connection.getContentLengthLong() > 0 ? connection.getContentLengthLong() : latest.apkSize;
+            long length = connection.getContentLengthLong();
+            long total = length > 0 ? length : latest.apkSize;
             Download.save(in, apk, done -> {
                 sBar = UpdateText.barPosition(done, total);
                 sText = UpdateText.downloading(done, total);
@@ -171,22 +181,22 @@ final class Updater {
         }
     }
 
-    /** 0: same signer. 1: another signer. -1: Android cannot read the file. */
+    /** True: the same signer. False: another signer. Null: Android cannot read the file. */
     @SuppressWarnings("deprecation") // GET_SIGNATURES: GET_SIGNING_CERTIFICATES does not read an archive on all versions.
-    private static int sameSigner(Context context, File apk) {
+    private static Boolean sameSigner(Context context, File apk) {
         PackageManager pm = context.getPackageManager();
         PackageInfo archive = pm.getPackageArchiveInfo(apk.getPath(), PackageManager.GET_SIGNATURES);
         if (archive == null || archive.signatures == null || archive.signatures.length == 0) {
-            return -1;
+            return null;
         }
         try {
             PackageInfo self = pm.getPackageInfo(context.getPackageName(), PackageManager.GET_SIGNATURES);
             if (!context.getPackageName().equals(archive.packageName)) {
-                return 1;
+                return false;
             }
-            return sameSignatures(self.signatures, archive.signatures) ? 0 : 1;
+            return sameSignatures(self.signatures, archive.signatures);
         } catch (PackageManager.NameNotFoundException e) {
-            return -1;
+            return null;
         }
     }
 
@@ -227,7 +237,6 @@ final class Updater {
         connection.setConnectTimeout(TIMEOUT_MS);
         connection.setReadTimeout(TIMEOUT_MS);
         connection.setRequestProperty("User-Agent", "oot-vr");
-        connection.setRequestProperty("Accept", "application/vnd.github+json");
         int code = connection.getResponseCode();
         if (code != HttpURLConnection.HTTP_OK) {
             connection.disconnect();

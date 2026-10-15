@@ -4,16 +4,16 @@ package org.oot.vr;
 final class UpdateText {
 
     static final String DEVELOPMENT_BUILD = "This build does not look for updates.";
-    static final String CHECKING = "Looking for a new version...";
-    static final String LATEST = "You have the latest version.";
-    static final String CHECK_FAILED = "The game could not look for a new version. "
+    static final String CHECKING = "Looking for a new release...";
+    static final String LATEST = "You have the latest release.";
+    static final String CHECK_FAILED = "The game could not look for a new release. "
         + "Connect the headset to the internet, and start the game again.";
     static final String DOWNLOAD_FAILED = "The download failed. Select Update to try again.";
     static final String DAMAGED = "The downloaded file is damaged. Select Update to try again.";
     static final String OLD_SIGNATURE = "This version cannot update itself. Back up the folder oot-vr. "
-        + "Then uninstall the game, and install the new version with SideQuest.";
+        + "Then uninstall the game, and install the new release with SideQuest.";
     static final String NO_INSTALLER = "The headset did not open the installer. "
-        + "Install the new version with SideQuest.";
+        + "Install the new release with SideQuest.";
     static final String INSTALLING = "Select Update on the panel. The game closes. Then open it again.";
 
     /** ProgressBar maximum, as in SetupText. */
@@ -25,7 +25,7 @@ final class UpdateText {
     }
 
     static String available(String tag) {
-        return "Version " + tag + " is available.";
+        return "Release " + tag + " is available.";
     }
 
     static String downloading(long done, long total) {

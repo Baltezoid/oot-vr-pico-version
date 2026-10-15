@@ -158,8 +158,8 @@ internet connection.
 3. On the panel of the installer, select **Update**. The game closes.
 4. Open **OoT VR** again. Your saves stay.
 
-If your version does not have **VR Settings** > **Update**, install the new APK
-with SideQuest one time. Do the steps in
+If your version does not have **VR Settings** > **Update**, install the new
+release with SideQuest one time. Do the steps in
 [3. Install the game with SideQuest](#3-install-the-game-with-sidequest).
 
 ## Mods

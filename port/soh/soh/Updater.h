@@ -29,6 +29,9 @@ struct Status {
 
 Status Read();
 
+// Only the state: one JNI call.
+State ReadState();
+
 // Downloads the APK of the newer release and opens the installer.
 void Start();
 
@@ -37,6 +40,7 @@ bool CanStart(State state);
 
 // The menu is open at VR Settings > Update because of the notice of the file select screen.
 bool NoticeOpen();
+void OpenNotice();
 void CloseNotice();
 
 } // namespace Updater

@@ -13,7 +13,7 @@ namespace Updater {
 Status Read() {
     Status status;
 #ifdef __ANDROID__
-    status.state = static_cast<State>(QuestActivity::CallInt("updateState"));
+    status.state = ReadState();
     status.text = QuestActivity::CallString("updateText");
     status.installed = QuestActivity::CallString("updateInstalled");
     status.latest = QuestActivity::CallString("updateLatest");
@@ -21,6 +21,14 @@ Status Read() {
     status.progress = static_cast<float>(QuestActivity::CallInt("updateBar")) / 1000.0f;
 #endif
     return status;
+}
+
+State ReadState() {
+#ifdef __ANDROID__
+    return static_cast<State>(QuestActivity::CallInt("updateState"));
+#else
+    return Off;
+#endif
 }
 
 void Start() {
@@ -37,6 +45,10 @@ static bool sNoticeOpen = false;
 
 bool NoticeOpen() {
     return sNoticeOpen;
+}
+
+void OpenNotice() {
+    sNoticeOpen = true;
 }
 
 void CloseNotice() {
@@ -56,7 +68,7 @@ static void OnFileChooseMainUpdateNotice(void*) {
         return;
     }
     sFramesToCheck = 20; // JNI: three times a second.
-    const Updater::State state = static_cast<Updater::State>(QuestActivity::CallInt("updateState"));
+    const Updater::State state = Updater::ReadState();
     if (state == Updater::Checking) {
         return;
     }
@@ -64,7 +76,7 @@ static void OnFileChooseMainUpdateNotice(void*) {
     if (state == Updater::Available) {
         CVarSetString(CVAR_SETTING("Menu.ActiveHeader"), "VR Settings");
         CVarSetString(CVAR_SETTING("Menu.VRSettingsSidebarSection"), "Update");
-        Updater::sNoticeOpen = true;
+        Updater::OpenNotice();
         SohGui::ShowEscMenu();
     }
 }

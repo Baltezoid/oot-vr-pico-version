@@ -99,7 +99,7 @@ Without a mod, these rooms show flat colors in VR.
 ## Release
 
 An APK that the project publishes on GitHub with a version tag, for example
-`v0.6.0-beta`. Each release is the latest release.
+`v0.6.0-beta`. The project marks each new release as the latest release.
 
 ## Update
 

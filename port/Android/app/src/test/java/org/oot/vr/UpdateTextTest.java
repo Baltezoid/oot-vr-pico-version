@@ -26,6 +26,6 @@ public class UpdateTextTest {
 
     @Test
     public void availableTellsTheVersion() {
-        assertEquals("Version v0.7.0-beta is available.", UpdateText.available("v0.7.0-beta"));
+        assertEquals("Release v0.7.0-beta is available.", UpdateText.available("v0.7.0-beta"));
     }
 }

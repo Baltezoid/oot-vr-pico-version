@@ -627,12 +627,17 @@ static void VrModsFolder(WidgetInfo& info) {
 static void VrUpdate(WidgetInfo& info) {
     static int sFramesToCheck = 0;
     static int sLastFrame = -1;
+    static bool sNoticeSeen = false;
     static Updater::Status sStatus;
-    // The menu closed since the last frame: the notice is not open now.
-    if (ImGui::GetFrameCount() - sLastFrame > 1) {
+    const int frame = ImGui::GetFrameCount();
+    if (Updater::NoticeOpen() && !sNoticeSeen) {
+        // The first frame of the notice. The notice opens one time in each session.
+        sNoticeSeen = true;
+    } else if (frame - sLastFrame > 1) {
+        // The menu closed since the last frame: the notice is not open now.
         Updater::CloseNotice();
     }
-    sLastFrame = ImGui::GetFrameCount();
+    sLastFrame = frame;
     if (--sFramesToCheck <= 0) {
         // JNI: four times a second.
         sStatus = Updater::Read();
