@@ -56,7 +56,7 @@ The Mod list is `mod-list.json`. Read
      "author": "Author",
      "page": "https://<page of the mod>",
      "notice": "https://<link to the notice>",
-     "description": "Optional. The game shows it before the download.",
+     "description": "What the player gets, for example: HD textures.",
      "installed_size": 4062463848,
      "files": [
        {
@@ -72,7 +72,9 @@ The Mod list is `mod-list.json`. Read
 
    - The file `name` must end with `.o2r`, `.otr`, `.zip`, or `.7z`. It sets
      the folder in `oot-vr/mods/`.
-   - `description`, `installed_size`, and `skip` are optional.
+   - `description` shows in the Mod list. Tell what the mod changes and what
+     the game does not install.
+   - `installed_size` and `skip` are optional.
 
 5. Install the mod from the Mod list on a headset. In the pull request, link
    the request of the community, and tell the frame rate.

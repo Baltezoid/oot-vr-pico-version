@@ -29,7 +29,8 @@ public class ModListTest {
 
     private static String entry(String name, String files) {
         return "{\"name\":\"" + name + "\",\"author\":\"Author\",\"page\":\"https://example.org/mod\","
-            + "\"notice\":\"https://github.com/gibranfelix/oot-vr/issues/1\",\"files\":[" + files + "]}";
+            + "\"notice\":\"https://github.com/gibranfelix/oot-vr/issues/1\",\"description\":\"HD textures\","
+            + "\"files\":[" + files + "]}";
     }
 
     private static String list(String... entries) {
@@ -55,16 +56,13 @@ public class ModListTest {
     }
 
     @Test
-    public void readsTheOptionalDescriptionAndInstalledSize() {
+    public void readsTheDescriptionAndTheOptionalInstalledSize() {
         String good = file("a.o2r", "https://example.org/a", HASH, 10, null);
-        String json = entry("Pack", good).replace("\"files\"",
-            "\"description\":\"Optional parts are installed.\",\"installed_size\":4000,\"files\"");
-        ModList.Entry mod = ModList.parse(list(json, entry("Plain", good))).get(0);
-        assertEquals("Optional parts are installed.", mod.description);
+        String json = entry("Pack", good).replace("\"files\"", "\"installed_size\":4000,\"files\"");
+        ModList.Entry mod = ModList.parse(list(json)).get(0);
+        assertEquals("HD textures", mod.description);
         assertEquals(4000, mod.installedSize);
-        ModList.Entry plain = ModList.parse(list(entry("Plain", good))).get(0);
-        assertEquals("", plain.description);
-        assertEquals(0, plain.installedSize);
+        assertEquals(0, ModList.parse(list(entry("Plain", good))).get(0).installedSize);
     }
 
     @Test
@@ -78,6 +76,7 @@ public class ModListTest {
             entry("Not a mod", file("a.exe", "https://example.org/a", HASH, 10, null)),
             entry("Path in the name", file("../a.o2r", "https://example.org/a", HASH, 10, null)),
             entry("", good),
+            entry("No description", good).replace("\"description\":\"HD textures\",", ""),
             entry("Good", good)));
         assertEquals(1, mods.size());
         assertEquals("Good", mods.get(0).name);

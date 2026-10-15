@@ -49,7 +49,7 @@ final class ModList {
         final String author;
         /** The page of the author. */
         final String page;
-        /** Optional. Empty if not given. */
+        /** What the player gets. */
         final String description;
         /** Optional: the size in mods/ after the extraction. 0 if not given. */
         final long installedSize;
@@ -107,8 +107,10 @@ final class ModList {
         String page = mod.optString("page", "");
         // The game does not show the notice. Read CONTRIBUTING.md.
         String notice = mod.optString("notice", "");
+        String description = mod.optString("description", "");
         JSONArray files = mod.optJSONArray("files");
         if (name.isEmpty() || author.isEmpty() || !page.startsWith("https://") || notice.isEmpty()
+                || description.isEmpty()
                 || files == null || files.length() == 0) {
             return null;
         }
@@ -121,7 +123,7 @@ final class ModList {
             }
             out.add(file);
         }
-        return new Entry(name, author, page, mod.optString("description", ""),
+        return new Entry(name, author, page, description,
             Math.max(0, mod.optLong("installed_size", 0)), Collections.unmodifiableList(out));
     }
 

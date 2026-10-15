@@ -659,6 +659,9 @@ static void VrModList() {
         ImGui::PushID(i);
         ImGui::TextUnformatted(mod.name.c_str());
         ImGui::TextDisabled("%s - %s", mod.author.c_str(), mod.size.c_str());
+        if (!mod.description.empty()) {
+            ImGui::TextWrapped("%s", mod.description.c_str());
+        }
         const VrChoice choice[] = { { mod.installed ? "Installed" : "Download", nullptr } };
         ImGui::BeginDisabled(mod.installed);
         if (VrChoiceRow("VrModListMod", choice, 1, -1, width) == 0) {
