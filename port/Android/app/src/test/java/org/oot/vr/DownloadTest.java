@@ -66,4 +66,18 @@ public class DownloadTest {
         assertTrue(target.isFile());
         assertArrayEquals(new byte[] { 9 }, Files.readAllBytes(target.toPath()));
     }
+
+    @Test
+    public void aStreamLargerThanTheLimitLeavesNoFile() {
+        File target = new File(tmp.getRoot(), "mod.o2r");
+        try {
+            Download.save(new ByteArrayInputStream(new byte[200_000]), target, 1_000, done -> { });
+            fail();
+        } catch (Download.TooLarge e) {
+            assertFalse(target.exists());
+            assertFalse(Download.partialFile(target).exists());
+        } catch (IOException e) {
+            fail(e.toString());
+        }
+    }
 }

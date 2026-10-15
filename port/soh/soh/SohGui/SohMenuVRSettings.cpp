@@ -4,6 +4,7 @@
 #include "soh/ShipInit.hpp"
 #include "SohGui.hpp"
 #include "soh/PlayerFolder.h" // SOH [Quest]
+#include "soh/ModList.h"      // SOH [Quest]
 #include "soh/Updater.h"      // SOH [Quest]
 #include <libultraship/bridge/consolevariablebridge.h>
 #include <imgui.h>
@@ -584,6 +585,91 @@ static void VrQuickSetup(WidgetInfo& info) {
 }
 
 #ifdef __ANDROID__
+// SOH [Quest] The Mod list. Read soh/ModList.h.
+static void VrModList() {
+    static int sFramesToCheck = 0;
+    static int sLastFrame = -1;
+    static int sConfirm = -1; // The mod on the confirmation, or -1.
+    static ModList::Status sStatus;
+    const int frame = ImGui::GetFrameCount();
+    if (frame - sLastFrame > 1) {
+        // The player opened the page: read the list again.
+        ModList::Open();
+        sConfirm = -1;
+        sFramesToCheck = 0;
+    }
+    sLastFrame = frame;
+    if (--sFramesToCheck <= 0) {
+        // JNI: four times a second.
+        sStatus = ModList::Read();
+        sFramesToCheck = 18;
+    }
+
+    const ImGuiStyle& style = ImGui::GetStyle();
+    const float width = ImGui::GetContentRegionAvail().x;
+    ImGui::Dummy(ImVec2(0.0f, style.ItemSpacing.y * 2.0f));
+    ImGui::SeparatorText("Mod list");
+    if (sStatus.state == ModList::Downloading) {
+        if (sStatus.active >= 0 && sStatus.active < static_cast<int>(sStatus.mods.size())) {
+            ImGui::TextUnformatted(sStatus.mods[sStatus.active].name.c_str());
+        }
+        ImGui::TextWrapped("%s", sStatus.text.c_str());
+        ImGui::ProgressBar(sStatus.progress, ImVec2(width, 0.0f), "");
+        return;
+    }
+    if (!sStatus.text.empty()) {
+        ImGui::TextWrapped("%s", sStatus.text.c_str());
+        ImGui::Dummy(ImVec2(0.0f, style.ItemSpacing.y));
+    }
+    if (sStatus.state != ModList::Ready) {
+        return;
+    }
+
+    if (sConfirm >= 0 && sConfirm < static_cast<int>(sStatus.mods.size())) {
+        const ModList::Mod& mod = sStatus.mods[sConfirm];
+        ImGui::TextUnformatted(mod.name.c_str());
+        ImGui::Text("Author: %s", mod.author.c_str());
+        ImGui::TextWrapped("Page: %s", mod.page.c_str());
+        if (mod.installedSize.empty()) {
+            ImGui::Text("Size: %s", mod.size.c_str());
+        } else {
+            ImGui::Text("Size: %s download, %s installed", mod.size.c_str(), mod.installedSize.c_str());
+        }
+        if (!mod.description.empty()) {
+            ImGui::TextWrapped("%s", mod.description.c_str());
+        }
+        ImGui::Dummy(ImVec2(0.0f, style.ItemSpacing.y));
+        ImGui::TextWrapped("This mod is not part of oot-vr. Its author gives it.");
+        ImGui::Dummy(ImVec2(0.0f, style.ItemSpacing.y));
+        static const VrChoice sChoices[] = { { "Download", nullptr }, { "Cancel", nullptr } };
+        const int pressed = VrChoiceRow("VrModListConfirm", sChoices, 2, -1, width);
+        if (pressed == 0) {
+            ModList::Download(sConfirm);
+            sFramesToCheck = 0;
+        }
+        if (pressed >= 0) {
+            sConfirm = -1;
+        }
+        return;
+    }
+    sConfirm = -1;
+
+    for (int i = 0; i < static_cast<int>(sStatus.mods.size()); i++) {
+        const ModList::Mod& mod = sStatus.mods[i];
+        ImGui::PushID(i);
+        ImGui::TextUnformatted(mod.name.c_str());
+        ImGui::TextDisabled("%s - %s", mod.author.c_str(), mod.size.c_str());
+        const VrChoice choice[] = { { mod.installed ? "Installed" : "Download", nullptr } };
+        ImGui::BeginDisabled(mod.installed);
+        if (VrChoiceRow("VrModListMod", choice, 1, -1, width) == 0) {
+            sConfirm = i;
+        }
+        ImGui::EndDisabled();
+        ImGui::Dummy(ImVec2(0.0f, style.ItemSpacing.y));
+        ImGui::PopID();
+    }
+}
+
 // SOH [Quest] The player folder and its permission. Read soh/PlayerFolder.h.
 static void VrModsFolder(WidgetInfo& info) {
     static int sFramesToCheck = 0;
@@ -610,6 +696,7 @@ static void VrModsFolder(WidgetInfo& info) {
         if (!sStatus.empty()) {
             ImGui::TextWrapped("%s", sStatus.c_str());
         }
+        VrModList();
         return;
     }
     ImGui::TextWrapped("Allow access to make the folder oot-vr for mods and saves.");

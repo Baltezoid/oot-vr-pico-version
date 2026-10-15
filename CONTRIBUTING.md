@@ -37,6 +37,52 @@ your ROM.
 An automatic review can add comments to your pull request. A maintainer does
 the final review. Only a maintainer can merge.
 
+## Propose a mod for the Mod list
+
+The Mod list is `mod-list.json`. Read
+[`docs/adr/0001-download-mods-from-authors.md`](docs/adr/0001-download-mods-from-authors.md).
+
+1. Make sure that the mod is public on the page of its author.
+2. Tell the author, in a comment on that page or in an issue: "oot-vr
+   downloads your mod from your page. Tell us if you do not want this, and we
+   remove it."
+3. Download each file. Get its SHA-256 with `sha256sum` and its size with
+   `stat -c %s`.
+4. Add an entry to `mod-list.json`:
+
+   ```json
+   {
+     "name": "Name of the mod",
+     "author": "Author",
+     "page": "https://<page of the mod>",
+     "notice": "https://<link to the notice>",
+     "description": "Optional. The game shows it before the download.",
+     "installed_size": 4062463848,
+     "files": [
+       {
+         "name": "<file name>.zip",
+         "url": "https://<direct link to the file>",
+         "sha256": "<SHA-256>",
+         "size": 123456,
+         "skip": ["<file or folder in the archive>"]
+       }
+     ]
+   }
+   ```
+
+   - The file `name` must end with `.o2r`, `.otr`, `.zip`, or `.7z`. It sets
+     the folder in `oot-vr/mods/`.
+   - `description`, `installed_size`, and `skip` are optional.
+
+5. Install the mod from the Mod list on a headset. In the pull request, link
+   the request of the community, and tell the frame rate.
+
+When the author changes a file, the download fails. Send a pull request with
+the new SHA-256 and size.
+
+To remove a mod, the author or a rights holder opens an issue. The maintainers
+remove the entry without a discussion.
+
 ## Test a pull request on a headset
 
 Each pull request makes a debug APK. You do not need a local build to test it.

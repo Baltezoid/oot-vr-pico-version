@@ -17,8 +17,20 @@ final class Download {
         return new File(target.getPath() + ".partial");
     }
 
+    /** The stream has more bytes than the limit. */
+    static final class TooLarge extends IOException {
+        TooLarge(long limit) {
+            super("More than " + limit + " bytes");
+        }
+    }
+
     /** Calls progress with the number of bytes saved. */
     static void save(InputStream in, File target, LongConsumer progress) throws IOException {
+        save(in, target, Long.MAX_VALUE, progress);
+    }
+
+    /** Like save. Stops with TooLarge after more than limit bytes. */
+    static void save(InputStream in, File target, long limit, LongConsumer progress) throws IOException {
         File partial = partialFile(target);
         boolean done = false;
         try {
@@ -29,6 +41,9 @@ final class Download {
                 while ((n = in.read(buf)) > 0) {
                     out.write(buf, 0, n);
                     saved += n;
+                    if (saved > limit) {
+                        throw new TooLarge(limit);
+                    }
                     progress.accept(saved);
                 }
             }

@@ -158,4 +158,34 @@ public class ModImportTest {
         assertEquals(0, r.added);
         assertEquals(1, r.skipped);
     }
+
+    @Test
+    public void aSkippedPartOfAZipDoesNotGoIntoTheModsFolder() throws IOException {
+        File mods = tmp.newFolder("mods");
+        ModImport.Result r = ModImport.importFile("3ds.zip",
+            zip("3DS/01 Main Textures/main.o2r", "main", "3DS/02 Models/models.o2r", "models"), mods,
+            Arrays.asList("01 main textures"));
+        assertEquals(1, r.added);
+        assertFalse(new File(mods, "3ds/3DS/01 Main Textures/main.o2r").exists());
+        assertTrue(new File(mods, "3ds/3DS/02 Models/models.o2r").isFile());
+    }
+
+    @Test
+    public void aSkippedPartOfA7zDoesNotGoIntoTheModsFolder() throws IOException {
+        File mods = tmp.newFolder("mods");
+        ModImport.Result r = ModImport.import7z("3ds.7z",
+            sevenZ("01 Main Textures/main.o2r", "main", "02 Models/models.o2r", "models", "02 Models/extra.o2r", "x"),
+            mods, Arrays.asList("01 Main Textures", "02 Models/extra.o2r"));
+        assertEquals(1, r.added);
+        assertFalse(new File(mods, "3ds/01 Main Textures/main.o2r").exists());
+        assertFalse(new File(mods, "3ds/02 Models/extra.o2r").exists());
+        assertTrue(new File(mods, "3ds/02 Models/models.o2r").isFile());
+    }
+
+    @Test
+    public void aSkipMatchesOnlyAWholePart() {
+        assertTrue(ModImport.skipped("a/01 Main Textures/b.o2r", Arrays.asList("01 Main Textures")));
+        assertFalse(ModImport.skipped("a/01 Main Textures HD/b.o2r", Arrays.asList("01 Main Textures")));
+        assertFalse(ModImport.skipped("a/b.o2r", Arrays.asList("")));
+    }
 }

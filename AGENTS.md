@@ -132,6 +132,8 @@ Examine each pull request for these problems. Each one is a P1 problem.
 - The pull request adds a VR call without a `vr_is_initialized()` or
   `VR_IsInitialized()` check. The game must also run with VR off.
 - The pull request adds a VR control that does not work in Boss Rush.
+- The pull request adds a mod to the Mod list without a link to the notice to
+  its author.
 - The pull request adds documentation that does not use ASD-STE100, or that
   does not obey the rules for issues, pull requests, and comments in
   [Documentation language](#documentation-language).

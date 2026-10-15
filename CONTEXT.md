@@ -86,6 +86,11 @@ This repository never contains game assets.
 An `.o2r` or `.otr` file that changes textures, models, or texts. Its author
 gives it. This project does not give mods.
 
+## Mod list
+
+The mods that the game can download from the page of their author. This project
+does not keep copies. The author can ask for the removal of a mod.
+
 ## Player folder
 
 `oot-vr/` on the headset. It contains the mods, the saves, the config, and

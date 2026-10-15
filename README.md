@@ -172,6 +172,20 @@ models, and texts.
 > [!IMPORTANT]
 > This project does not contain or give mods. Get each mod from its author.
 
+### Download a mod from the Mod list
+
+The game downloads each mod in the Mod list from the page of its author. The
+headset must have an internet connection.
+
+1. Give the game access to the `oot-vr/` folder. Read step 1 in
+   [Install a mod](#install-a-mod).
+2. Select **VR Settings** > **Mods**.
+3. Select **Download** below a mod, and then **Download** again.
+4. Close the game and open it again.
+
+To propose a mod, read
+[`CONTRIBUTING.md`](CONTRIBUTING.md#propose-a-mod-for-the-mod-list).
+
 ### Install a mod
 
 1. Give the game access to the `oot-vr/` folder. Select **Allow** after the

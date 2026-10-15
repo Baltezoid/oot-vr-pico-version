@@ -32,6 +32,11 @@ inline void CallVoid(const char* method) {
     Call(method, "()V", [](JNIEnv* env, jobject a, jmethodID id) { env->CallVoidMethod(a, id); });
 }
 
+inline void CallVoid(const char* method, int arg) {
+    Call(method, "(I)V",
+         [=](JNIEnv* env, jobject a, jmethodID id) { env->CallVoidMethod(a, id, static_cast<jint>(arg)); });
+}
+
 inline bool CallBool(const char* method) {
     bool result = false;
     Call(method, "()Z",
