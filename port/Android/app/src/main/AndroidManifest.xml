@@ -37,6 +37,11 @@
     <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE"/>
     <uses-permission android:name="android.permission.VIBRATE"/>
 
+    <!-- SOH [Quest] VR Settings > Update: read the latest release on GitHub, download its APK, and
+         give it to the Android installer. Read Updater.java. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>
+
     <application android:label="@string/app_name"
         android:icon="@mipmap/ic_launcher"
         android:allowBackup="false"
@@ -97,5 +102,14 @@
                 <category android:name="com.oculus.intent.category.2D"/>
             </intent-filter>
         </activity>
+
+        <!-- SOH [Quest] Gives the downloaded APK of an update to the Android installer. -->
+        <provider android:name="androidx.core.content.FileProvider"
+            android:authorities="org.oot.vr.update"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/update_paths"/>
+        </provider>
     </application>
 </manifest>

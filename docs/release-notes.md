@@ -43,7 +43,8 @@ GitHub makes. Replace these notes with the template below.
 3. Copy your dump into the `Download` folder of the headset.
 4. Start **OoT VR** from **Unknown Sources**, and select your dump.
 
-If you have an older version, install this APK over it. Your saves stay.
+If you have an older version, select **VR Settings** > **Update** in the game.
+If your version does not have **Update**, install this APK over it. Your saves stay.
 
 **Full Changelog**: https://github.com/gibranfelix/oot-vr/compare/<previous tag>...vX.Y.Z-beta
 ```

@@ -85,6 +85,9 @@ public class MainActivity extends SDLActivity {
         } else if (root != null && PlayerFolder.savesOutOfReach(root, player != null)) {
             Log.i(TAG, "The saves are in the player folder, without permission: starting the setup");
             handOverToSetup(true);
+        } else {
+            // SOH [Quest] VR Settings > Update. Read Updater.
+            Updater.check(this);
         }
     }
 
@@ -153,6 +156,36 @@ public class MainActivity extends SDLActivity {
     /** SOH [Quest] JNI: VR Settings > Mods. */
     public String modsStatus() {
         return sModsStatus;
+    }
+
+    /** SOH [Quest] JNI: VR Settings > Update. The numbers are in Updater. */
+    public int updateState() {
+        return Updater.state();
+    }
+
+    /** SOH [Quest] JNI: VR Settings > Update. */
+    public String updateText() {
+        return Updater.text();
+    }
+
+    /** SOH [Quest] JNI: VR Settings > Update. The download, from 0 to UpdateText.BAR_MAX. */
+    public int updateBar() {
+        return Updater.bar();
+    }
+
+    /** SOH [Quest] JNI: VR Settings > Update. */
+    public String updateInstalled() {
+        return Updater.installed();
+    }
+
+    /** SOH [Quest] JNI: VR Settings > Update. */
+    public String updateLatest() {
+        return Updater.latest();
+    }
+
+    /** SOH [Quest] JNI: VR Settings > Update > Update. */
+    public void startUpdate() {
+        Updater.start(this);
     }
 
     @Override

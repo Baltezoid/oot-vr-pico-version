@@ -8,10 +8,7 @@
 #include <cstdlib>
 #include <filesystem>
 
-#ifdef __ANDROID__
-#include <SDL2/SDL_system.h>
-#include <jni.h>
-#endif
+#include "QuestActivity.h"
 
 namespace PlayerFolder {
 
@@ -68,76 +65,40 @@ std::string ConfigFile() {
     return Path().empty() ? "shipofharkinian.json" : Path() + "/shipofharkinian.json";
 }
 
-#ifdef __ANDROID__
-// Calls a method of MainActivity without arguments. Read MainActivity.java.
-template <typename F> static bool CallActivity(const char* method, const char* signature, F call) {
-    JNIEnv* env = static_cast<JNIEnv*>(SDL_AndroidGetJNIEnv());
-    jobject activity = static_cast<jobject>(SDL_AndroidGetActivity());
-    if (env == nullptr || activity == nullptr) {
-        return false;
-    }
-    jclass cls = env->GetObjectClass(activity);
-    jmethodID id = env->GetMethodID(cls, method, signature);
-    if (id != nullptr) {
-        call(env, activity, id);
-    }
-    bool ok = id != nullptr && !env->ExceptionCheck();
-    env->ExceptionClear();
-    env->DeleteLocalRef(cls);
-    env->DeleteLocalRef(activity);
-    return ok;
-}
-#endif
-
 bool HasAccess() {
-    bool granted = false;
 #ifdef __ANDROID__
-    CallActivity("hasAllFilesAccess", "()Z", [&](JNIEnv* env, jobject a, jmethodID id) {
-        granted = env->CallBooleanMethod(a, id) == JNI_TRUE;
-    });
+    return QuestActivity::CallBool("hasAllFilesAccess");
+#else
+    return false;
 #endif
-    return granted;
 }
 
 void RequestAccess() {
 #ifdef __ANDROID__
-    CallActivity("requestAllFilesAccess", "()V",
-                 [](JNIEnv* env, jobject a, jmethodID id) { env->CallVoidMethod(a, id); });
+    QuestActivity::CallVoid("requestAllFilesAccess");
 #endif
 }
 
 void PickMods() {
 #ifdef __ANDROID__
-    CallActivity("pickMods", "()V", [](JNIEnv* env, jobject a, jmethodID id) { env->CallVoidMethod(a, id); });
+    QuestActivity::CallVoid("pickMods");
 #endif
 }
 
 bool ModsBusy() {
-    bool busy = false;
 #ifdef __ANDROID__
-    CallActivity("modsBusy", "()Z", [&](JNIEnv* env, jobject a, jmethodID id) {
-        busy = env->CallBooleanMethod(a, id) == JNI_TRUE;
-    });
+    return QuestActivity::CallBool("modsBusy");
+#else
+    return false;
 #endif
-    return busy;
 }
 
 std::string ModsStatus() {
-    std::string status;
 #ifdef __ANDROID__
-    CallActivity("modsStatus", "()Ljava/lang/String;", [&](JNIEnv* env, jobject a, jmethodID id) {
-        jstring text = static_cast<jstring>(env->CallObjectMethod(a, id));
-        if (text != nullptr) {
-            const char* chars = env->GetStringUTFChars(text, nullptr);
-            if (chars != nullptr) {
-                status = chars;
-                env->ReleaseStringUTFChars(text, chars);
-            }
-            env->DeleteLocalRef(text);
-        }
-    });
+    return QuestActivity::CallString("modsStatus");
+#else
+    return "";
 #endif
-    return status;
 }
 
 } // namespace PlayerFolder

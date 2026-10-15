@@ -37,6 +37,7 @@ The game does not contain mods.
 
 - [Features](#features)
 - [Install](#install)
+- [Update](#update)
 - [Mods](#mods)
 - [Controls](#controls)
 - [Build from source](#build-from-source)
@@ -81,6 +82,7 @@ The game does not contain mods.
 - EXPLORE: a new file starts as adult Link in the Temple of Time, with all the
   items, songs, and medallions.
 - Boss Rush.
+- Update on the headset: the game finds a new release and installs it.
 
 ## Install
 
@@ -144,6 +146,23 @@ starts go directly to the game.
 
 If the game does not start, read "If the game does not start" in
 [`port/Android/README.md`](port/Android/README.md).
+
+## Update
+
+The game looks for a new release at each start. The headset must have an
+internet connection.
+
+1. When a new release is available, the menu opens on the file select screen.
+   You can also select **VR Settings** > **Update** at any time.
+2. Select **Update**. Wait for the download.
+3. The first time, the headset asks for a permission. Select **Settings**, turn
+   on **Allow from this source**, and go back.
+4. On the panel of the installer, confirm the install. The game closes.
+5. Open **OoT VR** again. Your saves stay.
+
+If your version does not have **VR Settings** > **Update**, install the new
+release with SideQuest one time. Do the steps in
+[3. Install the game with SideQuest](#3-install-the-game-with-sidequest).
 
 ## Mods
 

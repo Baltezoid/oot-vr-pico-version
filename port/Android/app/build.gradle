@@ -77,4 +77,6 @@ dependencies {
     implementation 'org.tukaani:xz:1.12'
     // The setup's decision logic lives in plain-Java classes so it can be tested on the host.
     testImplementation 'junit:junit:4.13.2'
+    // Android has org.json. The host tests need the real one, not the android.jar stub.
+    testImplementation 'org.json:json:20240303'
 }

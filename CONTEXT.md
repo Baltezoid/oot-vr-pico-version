@@ -95,3 +95,13 @@ optionally `oot.o2r`. The player opens it with a file manager on a PC.
 
 A room that the N64 shows as a fixed 2D image, for example the house of Link.
 Without a mod, these rooms show flat colors in VR.
+
+## Release
+
+An APK that the project publishes on GitHub with a version tag, for example
+`v0.6.0-beta`. The project marks each new release as the latest release.
+
+## Update
+
+The game finds a newer release, downloads its APK, and installs it on the
+headset. The player starts the update from the VR menu. The saves stay.
