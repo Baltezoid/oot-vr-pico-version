@@ -82,15 +82,12 @@ final class ModImport {
         return r;
     }
 
-    /**
-     * Copies the mods in one selected .7z file. A .7z keeps its file list at the end, so it needs
-     * a channel, not a stream. Closes the channel.
-     */
+    /** Like importFile for a .7z. A .7z needs random access, so it takes a channel. Closes it. */
     static Result import7z(String name, SeekableByteChannel channel, File modsDir) throws IOException {
         Result r = new Result();
         File target = archiveFolder(baseName(name), ".7z", modsDir);
         try (SevenZFile archive = SevenZFile.builder().setSeekableByteChannel(channel).get()) {
-            // Reads the entries in order: a solid .7z decompresses each block one time only.
+            // In order: random access decompresses a solid block again for each entry.
             InputStream entryData = new InputStream() {
                 @Override
                 public int read() throws IOException {

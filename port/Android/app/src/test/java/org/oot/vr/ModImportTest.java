@@ -10,6 +10,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.Arrays;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -37,7 +38,6 @@ public class ModImportTest {
         return new ByteArrayInputStream(bytes.toByteArray());
     }
 
-    /** A solid .7z with LZMA2, like the packs that mod authors publish. */
     private static SeekableInMemoryByteChannel sevenZ(String... namesAndContents) throws IOException {
         SeekableInMemoryByteChannel bytes = new SeekableInMemoryByteChannel();
         try (SevenZOutputFile out = new SevenZOutputFile(bytes)) {
@@ -49,7 +49,7 @@ public class ModImportTest {
                 out.closeArchiveEntry();
             }
         }
-        return new SeekableInMemoryByteChannel(java.util.Arrays.copyOf(bytes.array(), (int) bytes.size()));
+        return new SeekableInMemoryByteChannel(Arrays.copyOf(bytes.array(), (int) bytes.size()));
     }
 
     @Test

@@ -88,7 +88,6 @@ final class ModPicker {
     private static ModImport.Result importOne(Context c, Uri uri, String name, File mods)
             throws IOException {
         if (ModImport.is7z(ModImport.baseName(name))) {
-            // A .7z needs random access: read it through a file descriptor, not a stream.
             try (ParcelFileDescriptor fd = c.getContentResolver().openFileDescriptor(uri, "r")) {
                 if (fd == null) {
                     throw new IOException("No file for " + uri);
