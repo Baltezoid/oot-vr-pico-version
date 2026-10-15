@@ -1,3 +1,59 @@
 {
-  "mods": []
+  "mods": [
+    {
+      "name": "OoT Reloaded",
+      "author": "GhostlyDark",
+      "page": "https://github.com/GhostlyDark/OoT-Reloaded",
+      "notice": "https://github.com/GhostlyDark/OoT-Reloaded/issues",
+      "description": "HD textures for the whole game.",
+      "installed_size": 4062468526,
+      "files": [
+        {
+          "name": "oot-reloaded-v11.0.0-soh-o2r-hd.7z",
+          "url": "https://github.com/GhostlyDark/OoT-Reloaded/releases/download/v11.0.0/oot-reloaded-v11.0.0-soh-o2r-hd.7z",
+          "sha256": "a6a551e880739de7f5313888f6cf4eea2eb9d2f04274697fe8ad524ea3c30161",
+          "size": 626160013
+        }
+      ]
+    },
+    {
+      "name": "Djipi's 3DS Experience",
+      "author": "Djipi",
+      "page": "https://gamebanana.com/mods/477979",
+      "notice": "https://gamebanana.com/mods/477979",
+      "description": "Textures and models of the 3DS version. The game does not install \"01 Main Textures\". The optional parts are installed: ARIA, Majora Chest, and 3D Objects.",
+      "files": [
+        {
+          "name": "djipi_s_3ds_experience_tot_fix.zip",
+          "url": "https://gamebanana.com/dl/1810733",
+          "sha256": "02ff6f7ecfddab85dbe33925ae23a68b76c13d1cef6dc27b82546075cd262404",
+          "size": 654820398,
+          "skip": [
+            "Djipi's 3DE - 01 Main Textures.otr"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Castilian Spanish Translation",
+      "author": "Amaro (xoascf)",
+      "page": "https://gamebanana.com/mods/685796",
+      "notice": "https://gamebanana.com/mods/685796",
+      "description": "Spanish (Castilian) texts and an HD font.",
+      "files": [
+        {
+          "name": "oot_castellano_v12b.zip",
+          "url": "https://gamebanana.com/dl/1727913",
+          "sha256": "4679d264d890bbe9a570e6c390f1a70bee5d74fe92a024ea6f39d483981ff3d5",
+          "size": 362235
+        },
+        {
+          "name": "font_2_.zip",
+          "url": "https://gamebanana.com/dl/1727931",
+          "sha256": "a652ac67dfad37584d5c797aea449c6e5cd6bef15e3c3ff4d75a72becb51fa46",
+          "size": 237711
+        }
+      ]
+    }
+  ]
 }

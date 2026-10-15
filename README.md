@@ -209,7 +209,7 @@ Open the SoH menu, and go to **Settings** > **Mod Menu**.
 
 ### Tested and recommended mods
 
-Tested on a Quest 3S at 72 Hz.
+Tested on a Quest 3S at 72 Hz. These mods are also in the Mod list.
 
 | Mod | Author | Notes |
 | --- | --- | --- |
