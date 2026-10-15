@@ -13,6 +13,9 @@ import java.nio.file.Files;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
+import org.apache.commons.compress.archivers.sevenz.SevenZArchiveEntry;
+import org.apache.commons.compress.archivers.sevenz.SevenZOutputFile;
+import org.apache.commons.compress.utils.SeekableInMemoryByteChannel;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -32,6 +35,21 @@ public class ModImportTest {
             }
         }
         return new ByteArrayInputStream(bytes.toByteArray());
+    }
+
+    /** A solid .7z with LZMA2, like the packs that mod authors publish. */
+    private static SeekableInMemoryByteChannel sevenZ(String... namesAndContents) throws IOException {
+        SeekableInMemoryByteChannel bytes = new SeekableInMemoryByteChannel();
+        try (SevenZOutputFile out = new SevenZOutputFile(bytes)) {
+            for (int i = 0; i < namesAndContents.length; i += 2) {
+                SevenZArchiveEntry entry = new SevenZArchiveEntry();
+                entry.setName(namesAndContents[i]);
+                out.putArchiveEntry(entry);
+                out.write(namesAndContents[i + 1].getBytes("UTF-8"));
+                out.closeArchiveEntry();
+            }
+        }
+        return new SeekableInMemoryByteChannel(java.util.Arrays.copyOf(bytes.array(), (int) bytes.size()));
     }
 
     @Test
@@ -109,5 +127,35 @@ public class ModImportTest {
         File mods = tmp.newFolder("mods");
         ModImport.importFile("../x/../mod.o2r", new ByteArrayInputStream(new byte[1]), mods);
         assertTrue(new File(mods, "mod.o2r").isFile());
+    }
+
+    @Test
+    public void a7zGivesItsModsInAFolderWithItsName() throws IOException {
+        File mods = tmp.newFolder("mods");
+        ModImport.Result r = ModImport.import7z("reloaded-hd.7z",
+            sevenZ("Reloaded_HD.o2r", "hd", "readme.txt", "text", "extra/pack.otr", "pack"), mods);
+        assertEquals(2, r.added);
+        assertEquals(0, r.skipped);
+        assertEquals("hd",
+            new String(Files.readAllBytes(new File(mods, "reloaded-hd/Reloaded_HD.o2r").toPath()), "UTF-8"));
+        assertEquals("pack",
+            new String(Files.readAllBytes(new File(mods, "reloaded-hd/extra/pack.otr").toPath()), "UTF-8"));
+        assertFalse(new File(mods, "reloaded-hd/readme.txt").exists());
+    }
+
+    @Test
+    public void a7zEntryCannotWriteOutsideTheModsFolder() throws IOException {
+        File mods = tmp.newFolder("mods");
+        ModImport.import7z("bad.7z", sevenZ("../../escape.o2r", "x"), mods);
+        assertFalse(new File(tmp.getRoot(), "escape.o2r").exists());
+        assertTrue(new File(mods, "bad/escape.o2r").isFile());
+    }
+
+    @Test
+    public void a7zWithoutModsIsSkipped() throws IOException {
+        File mods = tmp.newFolder("mods");
+        ModImport.Result r = ModImport.import7z("photos.7z", sevenZ("a.png", "x"), mods);
+        assertEquals(0, r.added);
+        assertEquals(1, r.skipped);
     }
 }
