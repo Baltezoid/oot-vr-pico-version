@@ -4,6 +4,7 @@
 #include "soh/ShipInit.hpp"
 #include "SohGui.hpp"
 #include "soh/PlayerFolder.h" // SOH [Quest]
+#include "soh/Updater.h"      // SOH [Quest]
 #include <libultraship/bridge/consolevariablebridge.h>
 #include <imgui.h>
 #include <imgui_internal.h>
@@ -621,6 +622,50 @@ static void VrModsFolder(WidgetInfo& info) {
 }
 #endif
 
+#ifdef __ANDROID__
+// SOH [Quest] The update to a newer release. Read soh/Updater.h.
+static void VrUpdate(WidgetInfo& info) {
+    static int sFramesToCheck = 0;
+    static int sLastFrame = -1;
+    static Updater::Status sStatus;
+    // The menu closed since the last frame: the notice is not open now.
+    if (ImGui::GetFrameCount() - sLastFrame > 1) {
+        Updater::CloseNotice();
+    }
+    sLastFrame = ImGui::GetFrameCount();
+    if (--sFramesToCheck <= 0) {
+        // JNI: four times a second.
+        sStatus = Updater::Read();
+        sFramesToCheck = 18;
+    }
+    const ImGuiStyle& style = ImGui::GetStyle();
+    const float width = ImGui::GetContentRegionAvail().x;
+    if (!sStatus.installed.empty()) {
+        ImGui::Text("Installed version: %s", sStatus.installed.c_str());
+    }
+    ImGui::TextWrapped("%s", sStatus.text.c_str());
+    ImGui::Dummy(ImVec2(0.0f, style.ItemSpacing.y));
+    if (sStatus.state == Updater::Downloading) {
+        ImGui::ProgressBar(sStatus.progress, ImVec2(width, 0.0f), "");
+        return;
+    }
+    if (!Updater::CanStart(sStatus.state)) {
+        return;
+    }
+    const bool notice = Updater::NoticeOpen();
+    static const VrChoice sChoices[] = { { "Update", nullptr }, { "Later", nullptr } };
+    const int pressed = VrChoiceRow("VrUpdate", sChoices, notice ? 2 : 1, -1, width);
+    if (pressed == 0) {
+        Updater::Start();
+        Updater::CloseNotice();
+        sFramesToCheck = 0;
+    } else if (pressed == 1) {
+        Updater::CloseNotice();
+        mSohMenu->Hide();
+    }
+}
+#endif
+
 static void VrRightStickCardWidget(WidgetInfo& info) {
     VrRightStickCard(ImGui::GetContentRegionAvail().x);
 }
@@ -1011,6 +1056,14 @@ void SohMenu::AddMenuVRSettings() {
     AddSidebarEntry("VR Settings", "Mods", 1);
     WidgetPath modsPath = { "VR Settings", "Mods", SECTION_COLUMN_1 };
     AddWidget(modsPath, "VrModsFolder", WIDGET_CUSTOM).CustomFunction(VrModsFolder).HideInSearch(true);
+#endif
+
+#ifdef __ANDROID__
+    // -------------------------------------------------------------------- Update
+    // SOH [Quest] The update to a newer release.
+    AddSidebarEntry("VR Settings", "Update", 1);
+    WidgetPath updatePath = { "VR Settings", "Update", SECTION_COLUMN_1 };
+    AddWidget(updatePath, "VrUpdate", WIDGET_CUSTOM).CustomFunction(VrUpdate).HideInSearch(true);
 #endif
 
     // ----------------------------------------------------------------- Developer
