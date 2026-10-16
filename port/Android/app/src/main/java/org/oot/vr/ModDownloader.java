@@ -97,6 +97,9 @@ final class ModDownloader {
                         long all = Math.min(done, total);
                         sBar = UpdateText.barPosition(all, total);
                         sText = ModListText.downloading(all, total);
+                    }, () -> {
+                        sBar = UpdateText.BAR_MAX;
+                        sText = ModListText.INSTALLING;
                     });
             }
             Log.i(TAG, "Mod list: " + entry.name + ": " + result);

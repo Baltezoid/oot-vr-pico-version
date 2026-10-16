@@ -34,6 +34,7 @@ public class ModInstallTest {
     /** The files on the page of the author. */
     private final Map<String, byte[]> server = new HashMap<>();
     private final List<Long> progress = new ArrayList<>();
+    private int copying;
 
     @Before
     public void folders() throws IOException {
@@ -83,7 +84,7 @@ public class ModInstallTest {
                 throw new IOException("HTTP 404");
             }
             return new ByteArrayInputStream(data);
-        }, progress::add);
+        }, progress::add, () -> copying++);
     }
 
     @Test
@@ -95,6 +96,7 @@ public class ModInstallTest {
         assertTrue(new File(mods, "font/font/es.o2r").isFile());
         assertFalse(cache.exists());
         assertFalse(progress.isEmpty());
+        assertEquals(1, copying);
     }
 
     @Test
@@ -104,6 +106,7 @@ public class ModInstallTest {
         assertEquals(ModListText.WRONG_FILE, result);
         assertFalse(new File(mods, "a.o2r").exists());
         assertFalse(new File(mods, "b.o2r").exists());
+        assertEquals(0, copying);
         assertFalse(cache.exists());
     }
 

@@ -9,6 +9,7 @@ final class ModListText {
     static final String NO_CONNECTION = "No connection. Connect the headset to the internet, and open this page again.";
     static final String DAMAGED = "The game could not read the Mod list. Open this page again later.";
     static final String EMPTY = "The Mod list is empty.";
+    static final String INSTALLING = "Installing... A large mod can take some minutes.";
     static final String DOWNLOAD_FAILED = "The download failed. Select Download to try again.";
     static final String WRONG_FILE = "The downloaded file is not the file in the Mod list. The game deleted it.";
     static final String INSTALL_FAILED = "The game could not copy the mod into oot-vr/mods.";
