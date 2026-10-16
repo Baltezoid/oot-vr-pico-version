@@ -19,16 +19,22 @@ final class ModListText {
     private ModListText() {
     }
 
-    /** Megabytes, rounded up. Gigabytes from 1 GB, with one decimal. */
+    /** KB below 1 MB. GB from 1 GB, with one decimal. */
     static String size(long bytes) {
         if (bytes >= 1024 * MB) {
             return String.format(Locale.ROOT, "%.1f GB", bytes / (1024.0 * MB));
         }
-        return Math.max(1, (bytes + MB - 1) / MB) + " MB";
+        if (bytes >= MB) {
+            return Math.round((double) bytes / MB) + " MB";
+        }
+        return Math.max(1, Math.round(bytes / 1024.0)) + " KB";
     }
 
+    /** In the unit of size(total), so that the end of the download shows the size of the list. */
     static String downloading(long done, long total) {
-        return "Downloading... " + done / MB + " / " + total / MB + " MB";
+        long unit = total >= MB ? MB : 1024;
+        String name = total >= MB ? " MB" : " KB";
+        return "Downloading... " + Math.round((double) done / unit) + " / " + Math.round((double) total / unit) + name;
     }
 
     static String installed(String name) {

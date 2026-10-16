@@ -9,15 +9,19 @@ public class ModListTextTest {
     private static final long MB = 1024 * 1024;
 
     @Test
-    public void sizeInMegabytes() {
-        assertEquals("12 MB", ModListText.size(12 * MB));
-        assertEquals("1 MB", ModListText.size(1_000));
-        assertEquals("1.2 GB", ModListText.size(1229 * MB));
+    public void sizeInKilobytesMegabytesAndGigabytes() {
+        assertEquals("586 KB", ModListText.size(600_000));
+        assertEquals("1 KB", ModListText.size(10));
+        assertEquals("597 MB", ModListText.size(626_160_013));
+        assertEquals("3.8 GB", ModListText.size(4_062_468_526L));
     }
 
     @Test
-    public void progressOfAllTheFiles() {
-        assertEquals("Downloading... 12 / 30 MB", ModListText.downloading(12 * MB, 30 * MB));
+    public void theEndOfTheDownloadShowsTheSizeOfTheList() {
+        assertEquals("Downloading... 624 / 624 MB", ModListText.downloading(654_820_398, 654_820_398));
+        assertEquals("Downloading... 12 / 624 MB", ModListText.downloading(12 * MB, 654_820_398));
+        assertEquals("Downloading... 293 / 586 KB", ModListText.downloading(300_000, 600_000));
+        assertEquals("624 MB", ModListText.size(654_820_398));
     }
 
     @Test
