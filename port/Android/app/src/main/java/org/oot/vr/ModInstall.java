@@ -22,8 +22,12 @@ final class ModInstall {
     private ModInstall() {
     }
 
-    /** Returns the text for the player. progress gets the bytes of all the files. Deletes dir. */
-    static String install(ModList.Entry entry, File dir, File mods, Fetch fetch, LongConsumer progress) {
+    /**
+     * Returns the text for the player. progress gets the bytes of all the files. copying runs when
+     * the copy starts. Deletes dir.
+     */
+    static String install(ModList.Entry entry, File dir, File mods, Fetch fetch, LongConsumer progress,
+            Runnable copying) {
         try {
             if (!dir.isDirectory() && !dir.mkdirs()) {
                 return ModListText.DOWNLOAD_FAILED;
@@ -32,6 +36,7 @@ final class ModInstall {
             if (failed != null) {
                 return failed;
             }
+            copying.run();
             return copy(entry, dir, mods) ? ModListText.installed(entry.name) : ModListText.INSTALL_FAILED;
         } finally {
             FileOps.deleteTree(dir);
