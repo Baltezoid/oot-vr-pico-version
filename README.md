@@ -166,52 +166,43 @@ release with SideQuest one time. Do the steps in
 
 ## Mods
 
-The game loads Ship of Harkinian mods (`.o2r`, `.otr`, `.zip`, or `.7z`): textures,
-models, and texts.
+The game loads Ship of Harkinian mods: `.o2r`, `.otr`, `.zip`, and `.7z`.
 
 > [!IMPORTANT]
-> The mods are not part of oot-vr. Their authors give them, and this project
-> does not keep copies.
+> The mods are not part of oot-vr. Their authors give them. This project does
+> not keep copies.
 
-To set the load order, open the SoH menu and go to **Settings** > **Mod Menu**.
-When two mods change the same texture, the mod that is higher in the list is
-visible.
+To install a mod, the game needs access to the `oot-vr/` folder. Select **VR
+Settings** > **Mods** > **Allow Access**, and turn on the permission for OoT VR.
+
+To change the load order, open the SoH menu and select **Settings** > **Mod
+Menu**. When two mods change the same texture, the higher mod shows.
 
 ### Automatic install
 
-The game downloads each mod in the Mod list from the page of its author. The
-headset must have an internet connection.
+The headset must have an internet connection.
 
-1. Give the game access to the `oot-vr/` folder. Select **Allow** after the
-   first extraction, or select **VR Settings** > **Mods** > **Allow Access**.
-   Turn on the permission for OoT VR, then go back to the game.
-2. Select **VR Settings** > **Mods**.
-3. Select **Download** below a mod, and then **Download** again.
-4. Close the game and open it again.
+1. Select **VR Settings** > **Mods**.
+2. Select **Download** below a mod, and then select **Download** again.
+3. Restart the game.
 
 ### Manual install
 
-1. Give the game access to the `oot-vr/` folder, as in the automatic install.
-2. Download the mod from the page of its author.
-3. With the SideQuest file manager, copy the mod file into the `Download`
-   folder of the headset.
-4. In the game, select **VR Settings** > **Mods** > **Add Mods**. Select the mod
-   file. The game copies it into `oot-vr/mods/` and extracts `.zip` and `.7z`
-   files.
-5. Close the game and open it again.
+1. Download the mod from the page of its author.
+2. Copy the file into the `Download` folder of the headset with SideQuest.
+3. Select **VR Settings** > **Mods** > **Add Mods**, and select the file.
+4. Restart the game.
 
-### Request a new mod
+### Request a mod
 
 Open a
 [mod request](https://github.com/gibranfelix/oot-vr/issues/new?template=add_mod.yml).
-To add the mod yourself, read
-[`CONTRIBUTING.md`](CONTRIBUTING.md#propose-a-mod-for-the-mod-list).
 
-### Request the removal of a mod
+### Remove a mod from the Mod list
 
 Open a
 [removal request](https://github.com/gibranfelix/oot-vr/issues/new?template=remove_mod.yml).
-Any person can open it. We remove the mod without a discussion.
+You do not need to give a reason.
 
 ### Tested and recommended mods
 
