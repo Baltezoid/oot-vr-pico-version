@@ -204,16 +204,6 @@ Open a
 [removal request](https://github.com/gibranfelix/oot-vr/issues/new?template=remove_mod.yml).
 You do not need to give a reason.
 
-### Tested and recommended mods
-
-Tested on a Quest 3S at 72 Hz. These mods are also in the Mod list.
-
-| Mod | Author | Notes |
-| --- | --- | --- |
-| [OoT Reloaded](https://github.com/GhostlyDark/OoT-Reloaded) | GhostlyDark | HD textures. The HD version works well. |
-| [Djipi's 3DS Experience](https://gamebanana.com/mods/477979) | Djipi | Textures and models of the 3DS version. Large files decrease the frame rate. Do not install "01 Main Textures". |
-| [Castilian Spanish Translation](https://gamebanana.com/mods/685796) | Amaro (xoascf) | Version 1.2b. Changes the game texts to Spanish. Also install the file `font_2_.zip` from the same page. |
-
 ## Controls
 
 The right hand holds the sword, the boomerang, and the items that you swing.
