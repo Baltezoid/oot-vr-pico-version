@@ -89,7 +89,7 @@ gives it. This project does not give mods.
 ## Mod list
 
 The mods that the game can download from the page of their author. This project
-does not keep copies. The author can ask for the removal of a mod.
+does not keep copies. Any person can ask for the removal of a mod in an issue.
 
 ## Player folder
 

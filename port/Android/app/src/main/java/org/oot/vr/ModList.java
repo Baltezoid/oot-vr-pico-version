@@ -105,11 +105,9 @@ final class ModList {
         String name = mod.optString("name", "");
         String author = mod.optString("author", "");
         String page = mod.optString("page", "");
-        // The game does not show the notice. Read CONTRIBUTING.md.
-        String notice = mod.optString("notice", "");
         String description = mod.optString("description", "");
         JSONArray files = mod.optJSONArray("files");
-        if (name.isEmpty() || author.isEmpty() || !page.startsWith("https://") || notice.isEmpty()
+        if (name.isEmpty() || author.isEmpty() || !page.startsWith("https://")
                 || description.isEmpty()
                 || files == null || files.length() == 0) {
             return null;

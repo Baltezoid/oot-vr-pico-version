@@ -177,6 +177,11 @@ models, and texts.
 The game downloads each mod in the Mod list from the page of its author. The
 headset must have an internet connection.
 
+The mods are not part of oot-vr. Their authors give them, and this project does
+not keep copies. To remove a mod from the Mod list, open a
+[removal request](https://github.com/gibranfelix/oot-vr/issues/new?template=remove_mod.yml).
+We remove it without a discussion.
+
 1. Give the game access to the `oot-vr/` folder. Read step 1 in
    [Install a mod](#install-a-mod).
 2. Select **VR Settings** > **Mods**.

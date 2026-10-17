@@ -74,7 +74,7 @@ public class ModInstallTest {
 
     private static ModList.Entry entry(String... files) {
         return ModList.parse("{\"mods\":[{\"name\":\"Pack\",\"author\":\"A\",\"page\":\"https://example.org\","
-            + "\"notice\":\"https://example.org/s\",\"description\":\"D\",\"files\":[" + String.join(",", files) + "]}]}").get(0);
+            + "\"description\":\"D\",\"files\":[" + String.join(",", files) + "]}]}").get(0);
     }
 
     private String install(ModList.Entry entry) {
