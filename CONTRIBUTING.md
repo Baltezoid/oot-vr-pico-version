@@ -37,6 +37,44 @@ your ROM.
 An automatic review can add comments to your pull request. A maintainer does
 the final review. Only a maintainer can merge.
 
+## Add a mod to the Mod list
+
+Read [`docs/adr/0001-download-mods-from-authors.md`](docs/adr/0001-download-mods-from-authors.md).
+
+1. Make sure that the mod is public on the page of its author.
+2. Get the SHA-256 and the size of each file with `sha256sum` and `stat -c %s`.
+3. Add an entry to `mod-list.json`:
+
+   ```json
+   {
+     "name": "Name of the mod",
+     "author": "Author",
+     "page": "https://<page of the mod>",
+     "description": "HD textures.",
+     "installed_size": 4062463848,
+     "files": [
+       {
+         "name": "<file name>.zip",
+         "url": "https://<direct link to the file>",
+         "sha256": "<SHA-256>",
+         "size": 123456,
+         "skip": ["<file or folder in the archive>"]
+       }
+     ]
+   }
+   ```
+
+   - The file `name` sets the folder in `oot-vr/mods/`. It ends with `.o2r`,
+     `.otr`, `.zip`, or `.7z`.
+   - The Mod list shows `description`. Tell what the mod changes.
+   - `installed_size` and `skip` are optional.
+
+4. Install the mod from the Mod list on a headset. In the pull request, link
+   the mod request and give the frame rate.
+
+When the author changes a file, the download fails. Update its SHA-256 and
+size.
+
 ## Test a pull request on a headset
 
 Each pull request makes a debug APK. You do not need a local build to test it.

@@ -1,0 +1,24 @@
+name: Request a mod
+description: Request a mod for the Mod list.
+title: "Add a mod: "
+body:
+  - type: markdown
+    attributes:
+      value: The mod must be public on the page of its author. Do not attach files.
+  - type: input
+    id: mod
+    attributes:
+      label: Name of the mod
+    validations:
+      required: true
+  - type: input
+    id: page
+    attributes:
+      label: Page of the mod
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Optional.
