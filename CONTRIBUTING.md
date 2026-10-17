@@ -43,9 +43,9 @@ The Mod list is `mod-list.json`. Read
 [`docs/adr/0001-download-mods-from-authors.md`](docs/adr/0001-download-mods-from-authors.md).
 
 1. Make sure that the mod is public on the page of its author.
-2. Tell the author, in a comment on that page or in an issue: "oot-vr
-   downloads your mod from your page. Tell us if you do not want this, and we
-   remove it."
+2. Optional: tell the author, in a comment on that page or in an issue:
+   "oot-vr downloads your mod from your page. Tell us if you do not want this,
+   and we remove it."
 3. Download each file. Get its SHA-256 with `sha256sum` and its size with
    `stat -c %s`.
 4. Add an entry to `mod-list.json`:
@@ -55,7 +55,6 @@ The Mod list is `mod-list.json`. Read
      "name": "Name of the mod",
      "author": "Author",
      "page": "https://<page of the mod>",
-     "notice": "https://<link to the notice>",
      "description": "What the player gets, for example: HD textures.",
      "installed_size": 4062463848,
      "files": [
@@ -82,8 +81,9 @@ The Mod list is `mod-list.json`. Read
 When the author changes a file, the download fails. Send a pull request with
 the new SHA-256 and size.
 
-To remove a mod, the author or a rights holder opens an issue. The maintainers
-remove the entry without a discussion.
+To remove a mod, open a
+[removal request](https://github.com/gibranfelix/oot-vr/issues/new?template=remove_mod.yml).
+Any person can open it. The maintainers remove the entry without a discussion.
 
 ## Test a pull request on a headset
 

@@ -29,7 +29,7 @@ public class ModListTest {
 
     private static String entry(String name, String files) {
         return "{\"name\":\"" + name + "\",\"author\":\"Author\",\"page\":\"https://example.org/mod\","
-            + "\"notice\":\"https://github.com/gibranfelix/oot-vr/issues/1\",\"description\":\"HD textures\","
+            + "\"description\":\"HD textures\","
             + "\"files\":[" + files + "]}";
     }
 
