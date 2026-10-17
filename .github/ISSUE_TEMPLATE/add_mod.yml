@@ -1,0 +1,26 @@
+name: Add a mod to the Mod list
+description: Ask for a mod that the game can download from the page of its author.
+title: "Add a mod: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The mod must be public on the page of its author. Do not attach mod files or game files.
+  - type: input
+    id: mod
+    attributes:
+      label: Name of the mod
+    validations:
+      required: true
+  - type: input
+    id: page
+    attributes:
+      label: Page of the mod
+      description: The page of the author, for example on GameBanana or GitHub.
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      description: Optional. For example, the files to install, or a test on a headset.
