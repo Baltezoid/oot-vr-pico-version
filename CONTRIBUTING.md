@@ -37,25 +37,20 @@ your ROM.
 An automatic review can add comments to your pull request. A maintainer does
 the final review. Only a maintainer can merge.
 
-## Propose a mod for the Mod list
+## Add a mod to the Mod list
 
-The Mod list is `mod-list.json`. Read
-[`docs/adr/0001-download-mods-from-authors.md`](docs/adr/0001-download-mods-from-authors.md).
+Read [`docs/adr/0001-download-mods-from-authors.md`](docs/adr/0001-download-mods-from-authors.md).
 
 1. Make sure that the mod is public on the page of its author.
-2. Optional: tell the author, in a comment on that page or in an issue:
-   "oot-vr downloads your mod from your page. Tell us if you do not want this,
-   and we remove it."
-3. Download each file. Get its SHA-256 with `sha256sum` and its size with
-   `stat -c %s`.
-4. Add an entry to `mod-list.json`:
+2. Get the SHA-256 and the size of each file with `sha256sum` and `stat -c %s`.
+3. Add an entry to `mod-list.json`:
 
    ```json
    {
      "name": "Name of the mod",
      "author": "Author",
      "page": "https://<page of the mod>",
-     "description": "What the player gets, for example: HD textures.",
+     "description": "HD textures.",
      "installed_size": 4062463848,
      "files": [
        {
@@ -69,21 +64,16 @@ The Mod list is `mod-list.json`. Read
    }
    ```
 
-   - The file `name` must end with `.o2r`, `.otr`, `.zip`, or `.7z`. It sets
-     the folder in `oot-vr/mods/`.
-   - `description` shows in the Mod list. Tell what the mod changes and what
-     the game does not install.
+   - The file `name` sets the folder in `oot-vr/mods/`. It ends with `.o2r`,
+     `.otr`, `.zip`, or `.7z`.
+   - The Mod list shows `description`. Tell what the mod changes.
    - `installed_size` and `skip` are optional.
 
-5. Install the mod from the Mod list on a headset. In the pull request, link
-   the request of the community, and tell the frame rate.
+4. Install the mod from the Mod list on a headset. In the pull request, link
+   the mod request and give the frame rate.
 
-When the author changes a file, the download fails. Send a pull request with
-the new SHA-256 and size.
-
-To remove a mod, open a
-[removal request](https://github.com/gibranfelix/oot-vr/issues/new?template=remove_mod.yml).
-Any person can open it. The maintainers remove the entry without a discussion.
+When the author changes a file, the download fails. Update its SHA-256 and
+size.
 
 ## Test a pull request on a headset
 
