@@ -105,3 +105,35 @@ An APK that the project publishes on GitHub with a version tag, for example
 
 The game finds a newer release, downloads its APK, and installs it on the
 headset. The player starts the update from the VR menu. The saves stay.
+
+## Quest type
+
+The way to play that the player selects in the file select. The quest types
+are Normal, Master Quest, Boss Rush, EXPLORE, and ARENA.
+
+## Boss Rush
+
+A quest type with only the boss fights. The game does not save a Boss Rush
+file. When Link dies, the game goes back to the file select.
+
+## EXPLORE
+
+A quest type that starts a saved file as adult Link with all the equipment.
+It has no end.
+
+## ARENA
+
+A quest type with waves of enemies in one closed scene. Like Boss Rush, the
+game does not save an ARENA file. When Link dies, the game goes back to the
+file select.
+
+## Wave
+
+A group of enemies that the game spawns at one time in ARENA. The next wave
+starts when all the enemies of the wave are dead.
+
+## Hyper enemy
+
+An enemy that moves and attacks two times faster. The Hyper Enemies setting of
+Ship of Harkinian makes all enemies Hyper. In ARENA, the wave selects the Hyper
+enemies.

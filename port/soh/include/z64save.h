@@ -390,6 +390,10 @@ typedef enum {
 // SOH [Quest] The EXPLORE option in the quest selector. It is not a quest.id value:
 // an EXPLORE file uses QUEST_NORMAL, or QUEST_MASTER when only Master Quest is available.
 #define FS_QUEST_EXPLORE (QUEST_BOSSRUSH + 1)
+// SOH [Quest] ARENA. The ARENA file is temporary, as in Boss Rush: the game never saves it. Thus
+// this quest.id value is never in a save.
+#define QUEST_ARENA (FS_QUEST_EXPLORE + 1)
+#define IS_ARENA (gSaveContext.ship.quest.id == QUEST_ARENA)
 
 typedef enum {
     /* 0x00 */ BTN_ENABLED,

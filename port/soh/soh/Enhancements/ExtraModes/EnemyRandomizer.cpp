@@ -33,6 +33,8 @@ extern std::shared_ptr<SohMenu> mSohMenu;
 #define CVAR_ENEMY_RANDOMIZER_DEFAULT ENEMY_RANDOMIZER_OFF
 #define CVAR_ENEMY_RANDOMIZER_VALUE CVarGetInteger(CVAR_ENEMY_RANDOMIZER_NAME, CVAR_ENEMY_RANDOMIZER_DEFAULT)
 #define ENEMY_RANDOMIZER_ENABLED CVAR_ENEMY_RANDOMIZER_VALUE != CVAR_ENEMY_RANDOMIZER_DEFAULT
+// SOH [Quest] ARENA spawns enemies of this list out of their scenes. It needs the same fixes.
+#define ENEMY_FIXES_ENABLED (ENEMY_RANDOMIZER_ENABLED || IS_ARENA)
 
 typedef struct EnemyEntry {
     const char* cvar;
@@ -650,10 +652,10 @@ void CustomPeehatLarvaDestroy(Actor* thisx, PlayState* play) {
 }
 
 void RegisterEnemyRandomizer() {
-    COND_ID_HOOK(OnActorInit, ACTOR_EN_MB, ENEMY_RANDOMIZER_ENABLED, FixClubMoblinScale);
+    COND_ID_HOOK(OnActorInit, ACTOR_EN_MB, ENEMY_FIXES_ENABLED, FixClubMoblinScale);
 
     // prevent dark link from triggering a voidout
-    COND_VB_SHOULD(VB_TRIGGER_VOIDOUT, ENEMY_RANDOMIZER_ENABLED, {
+    COND_VB_SHOULD(VB_TRIGGER_VOIDOUT, ENEMY_FIXES_ENABLED, {
         Actor* actor = va_arg(args, Actor*);
 
         if (actor->category != ACTORCAT_PLAYER) {
@@ -663,7 +665,7 @@ void RegisterEnemyRandomizer() {
     });
 
     // prevent dark link dealing fall damage to the player
-    COND_VB_SHOULD(VB_RECIEVE_FALL_DAMAGE, ENEMY_RANDOMIZER_ENABLED, {
+    COND_VB_SHOULD(VB_RECIEVE_FALL_DAMAGE, ENEMY_FIXES_ENABLED, {
         Actor* actor = va_arg(args, Actor*);
 
         if (actor->category != ACTORCAT_PLAYER) {
@@ -672,7 +674,7 @@ void RegisterEnemyRandomizer() {
     });
 
     // prevent dark link from interfering with HESS/recoil/etc when at more than 100 away from him
-    COND_VB_SHOULD(VB_TORCH2_HANDLE_CLANKING, ENEMY_RANDOMIZER_ENABLED, {
+    COND_VB_SHOULD(VB_TORCH2_HANDLE_CLANKING, ENEMY_FIXES_ENABLED, {
         Actor* darkLink = va_arg(args, Actor*);
 
         if (darkLink->xzDistToPlayer > 100.0f) {
@@ -681,7 +683,7 @@ void RegisterEnemyRandomizer() {
     });
 
     // prevent dark link from interfering with ice floors
-    COND_VB_SHOULD(VB_SET_STATIC_PREV_FLOOR_TYPE, ENEMY_RANDOMIZER_ENABLED, {
+    COND_VB_SHOULD(VB_SET_STATIC_PREV_FLOOR_TYPE, ENEMY_FIXES_ENABLED, {
         Player* playerOrDarkLink = va_arg(args, Player*);
 
         if (playerOrDarkLink->actor.id != ACTOR_PLAYER) {
@@ -690,7 +692,7 @@ void RegisterEnemyRandomizer() {
     });
 
     // prevent dark link from interfering with ice floors
-    COND_VB_SHOULD(VB_SET_STATIC_FLOOR_TYPE, ENEMY_RANDOMIZER_ENABLED, {
+    COND_VB_SHOULD(VB_SET_STATIC_FLOOR_TYPE, ENEMY_FIXES_ENABLED, {
         Player* playerOrDarkLink = va_arg(args, Player*);
 
         if (playerOrDarkLink->actor.id != ACTOR_PLAYER) {
@@ -699,7 +701,7 @@ void RegisterEnemyRandomizer() {
     });
 
     // prevent dark link from being grabbed by like likes and therefore grabbing the player
-    COND_VB_SHOULD(VB_LIKE_LIKE_GRAB_PLAYER, ENEMY_RANDOMIZER_ENABLED, {
+    COND_VB_SHOULD(VB_LIKE_LIKE_GRAB_PLAYER, ENEMY_FIXES_ENABLED, {
         EnRr* likeLike = va_arg(args, EnRr*);
 
         if (!(likeLike->collider1.base.oc != NULL && likeLike->collider1.base.oc->category == ACTORCAT_PLAYER) &&
@@ -709,7 +711,7 @@ void RegisterEnemyRandomizer() {
     });
 
     // Allow Random Gerudo Fighters (contain no keys) to spawn without any switch flags
-    COND_VB_SHOULD(VB_GERUDO_FIGHTER_CONTINUE_WAITING, ENEMY_RANDOMIZER_ENABLED, {
+    COND_VB_SHOULD(VB_GERUDO_FIGHTER_CONTINUE_WAITING, ENEMY_FIXES_ENABLED, {
         EnGeldB* enGeldB = va_arg(args, EnGeldB*);
 
         if (enGeldB->keyFlag == 0) {
@@ -720,7 +722,7 @@ void RegisterEnemyRandomizer() {
     });
 
     // Don't play Miniboss music for Random Gerudo Fighters
-    COND_VB_SHOULD(VB_GERUDO_FIGHTER_PLAY_MINIBOSS_MUSIC, ENEMY_RANDOMIZER_ENABLED, {
+    COND_VB_SHOULD(VB_GERUDO_FIGHTER_PLAY_MINIBOSS_MUSIC, ENEMY_FIXES_ENABLED, {
         EnGeldB* enGeldB = va_arg(args, EnGeldB*);
 
         if (enGeldB->keyFlag == 0) {
@@ -729,20 +731,24 @@ void RegisterEnemyRandomizer() {
     });
 
     // If Random Gerudo Fighters knock Link down, void him out like Wallmasters
-    COND_VB_SHOULD(VB_GERUDO_FIGHTER_THROW_LINK_TO_JAIL, ENEMY_RANDOMIZER_ENABLED, {
+    COND_VB_SHOULD(VB_GERUDO_FIGHTER_THROW_LINK_TO_JAIL, ENEMY_FIXES_ENABLED, {
         EnGeldB* enGeldB = va_arg(args, EnGeldB*);
 
         if (enGeldB->keyFlag == 0) {
             *should = false;
-            Sfx_PlaySfxCentered(NA_SE_OC_ABYSS);
-            Play_TriggerRespawn(gPlayState);
+            // SOH [Quest] A respawn in ARENA loads the arena again. Link only falls down.
+            if (!IS_ARENA) {
+                Sfx_PlaySfxCentered(NA_SE_OC_ABYSS);
+                Play_TriggerRespawn(gPlayState);
+            }
         }
     });
 
     // If Random Gerudo Fighters are defeated, drop some items
-    COND_ID_HOOK(OnEnemyDefeat, ACTOR_EN_GELDB, ENEMY_RANDOMIZER_ENABLED, OnGerudoFighterDefeat);
+    COND_ID_HOOK(OnEnemyDefeat, ACTOR_EN_GELDB, ENEMY_FIXES_ENABLED, OnGerudoFighterDefeat);
 
-    COND_VB_SHOULD(VB_SPAWN_ACTOR_ENTRY, ENEMY_RANDOMIZER_ENABLED, {
+    // SOH [Quest] ARENA removes the boss of its scene from the actor entries (Arena.cpp).
+    COND_VB_SHOULD(VB_SPAWN_ACTOR_ENTRY, ENEMY_RANDOMIZER_ENABLED && !IS_ARENA, {
         ActorContext* actorCtx = va_arg(args, ActorContext*);
         ActorEntry* actorEntry = va_arg(args, ActorEntry*);
         PlayState* play = va_arg(args, PlayState*);
@@ -1159,5 +1165,6 @@ void RegisterEnemyRandomizerWidgets() {
     }
 }
 
-static RegisterShipInitFunc initFunc(RegisterEnemyRandomizer, { CVAR_ENEMY_RANDOMIZER_NAME });
+// SOH [Quest] IS_ARENA: Arena.cpp runs this path when a game loads.
+static RegisterShipInitFunc initFunc(RegisterEnemyRandomizer, { CVAR_ENEMY_RANDOMIZER_NAME, "IS_ARENA" });
 static RegisterMenuInitFunc menuInitFunc(RegisterEnemyRandomizerWidgets);

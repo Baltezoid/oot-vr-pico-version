@@ -2,6 +2,7 @@
 #include "soh/ShipInit.hpp"
 #include "functions.h"
 #include "macros.h"
+#include "variables.h" // SOH [Quest] IS_ARENA
 
 extern "C" PlayState* gPlayState;
 
@@ -11,6 +12,11 @@ static constexpr int32_t CVAR_HYPER_ENEMIES_DEFAULT = 0;
 
 static void MakeHyperEnemies(void* refActor) {
     // Run the update function a second time to make enemies and minibosses move and act twice as fast.
+
+    // SOH [Quest] ARENA selects its Hyper enemies with the curve of the waves (Arena.cpp).
+    if (IS_ARENA) {
+        return;
+    }
 
     Player* player = GET_PLAYER(gPlayState);
     Actor* actor = static_cast<Actor*>(refActor);

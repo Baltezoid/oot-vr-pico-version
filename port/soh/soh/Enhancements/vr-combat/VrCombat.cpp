@@ -118,7 +118,8 @@ extern "C" bool VrCombat_InPlay(void) {
     if (gPlayState == NULL || GET_PLAYER(gPlayState) == NULL) {
         return false;
     }
-    return VrGameplayGate::InPlay(gSaveContext.gameMode == GAMEMODE_NORMAL, gSaveContext.fileNum, IS_BOSS_RUSH);
+    return VrGameplayGate::InPlay(gSaveContext.gameMode == GAMEMODE_NORMAL, gSaveContext.fileNum,
+                                  IS_BOSS_RUSH || IS_ARENA);
 }
 
 extern "C" bool VrCombat_Active(void) {

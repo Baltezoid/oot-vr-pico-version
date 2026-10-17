@@ -100,10 +100,16 @@ The host unit tests for `VrMenuInput` are in
 
 ## Game modes
 
-Boss Rush does not use a save slot. Its `fileNum` is `0xFE`.
-`GameInteractor::IsSaveLoaded()` is false for it. `VrCombat_InPlay()` accepts
-the slots, the debug save, and Boss Rush. Tests:
+Boss Rush and ARENA do not use a save slot. Their `fileNum` is `0xFE`.
+`GameInteractor::IsSaveLoaded()` is false for them. `VrCombat_InPlay()` accepts
+the slots, the debug save, Boss Rush, and ARENA. Tests:
 `port/soh/tests/vr/VrGameplayGateTests.cpp`.
+
+ARENA is in `port/soh/soh/Enhancements/arena/`. `ArenaRules.h` contains the
+rules of each wave: the enemies of each level, the Hyper enemies, when the wave
+starts, and where an enemy spawns. It has no game types. The host unit tests
+are in `port/soh/tests/arena/ArenaRulesTests.cpp`. `Arena.cpp` connects these
+rules to the game.
 
 ## Physical melee
 

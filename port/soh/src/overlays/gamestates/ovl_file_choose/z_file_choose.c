@@ -26,11 +26,12 @@
 #include "soh/ShipUtils.h"
 
 #define MIN_QUEST (ResourceMgr_GameHasOriginal() ? QUEST_NORMAL : QUEST_MASTER)
-// SOH [Quest] EXPLORE is the last option in the quest selector.
-#define MAX_QUEST FS_QUEST_EXPLORE
+// SOH [Quest] ARENA is the last option in the quest selector, after EXPLORE.
+#define MAX_QUEST QUEST_ARENA
 
 void Sram_InitDebugSave(void);
 void Sram_InitBossRushSave();
+void Sram_InitArenaSave(void); // SOH [Quest]
 
 void FileChoose_DrawTextureI8(GraphicsContext* gfxCtx, const void* texture, s16 texWidth, s16 texHeight, s16 rectLeft,
                               s16 rectTop, s16 rectWidth, s16 rectHeight, s16 dsdx, s16 dtdy) {
@@ -681,6 +682,15 @@ void FileChoose_UpdateQuestMenu(GameState* thisx) {
                                    &gSfxDefaultFreqAndVolScale, &gSfxDefaultReverb);
             this->prevConfigMode = this->configMode;
             this->configMode = CM_ROTATE_TO_BOSS_RUSH_MENU;
+            return;
+        } else if (this->questType[this->buttonIndex] == QUEST_ARENA) {
+            // SOH [Quest] ARENA has no name and no options. It starts the game immediately. FileChoose_LoadGame
+            // makes the temporary file.
+            Audio_PlaySoundGeneral(NA_SE_SY_FSEL_DECIDE_L, &gSfxDefaultPos, 4, &gSfxDefaultFreqAndVolScale,
+                                   &gSfxDefaultFreqAndVolScale, &gSfxDefaultReverb);
+            this->prevConfigMode = this->configMode;
+            this->menuMode = FS_MENU_MODE_SELECT;
+            this->selectMode = SM_FADE_OUT;
             return;
         } else if (this->questType[this->buttonIndex] == QUEST_RANDOMIZER) {
             Audio_PlaySoundGeneral(NA_SE_SY_FSEL_DECIDE_L, &gSfxDefaultPos, 4, &gSfxDefaultFreqAndVolScale,
@@ -1827,6 +1837,19 @@ void FileChoose_DrawWindowContents(GameState* thisx) {
                     ResourceMgr_GameHasOriginal() ? gTitleZeldaShieldLogoTex : gTitleZeldaShieldLogoMQTex, 160, 160);
                 FileChoose_DrawImageRGBA32(this->state.gfxCtx, 182, 180, gTitleExploreSubtitleTex, 128, 32);
                 break;
+
+            // SOH [Quest] ARENA: the logo of the available dungeons, and the ARENA subtitle.
+            case QUEST_ARENA:
+                gDPSetPrimColor(POLY_OPA_DISP++, 0, 0, 255, 255, 255, this->logoAlpha);
+                FileChoose_DrawTextureI8(this->state.gfxCtx, gTitleTheLegendOfTextTex, 72, 8, 156, 108, 72, 8, 1024,
+                                         1024);
+                FileChoose_DrawTextureI8(this->state.gfxCtx, gTitleOcarinaOfTimeTMTextTex, 96, 8, 154, 163, 96, 8, 1024,
+                                         1024);
+                FileChoose_DrawImageRGBA32(
+                    this->state.gfxCtx, 160, 135,
+                    ResourceMgr_GameHasOriginal() ? gTitleZeldaShieldLogoTex : gTitleZeldaShieldLogoMQTex, 160, 160);
+                FileChoose_DrawImageRGBA32(this->state.gfxCtx, 182, 180, gTitleArenaSubtitleTex, 128, 32);
+                break;
         }
     } else if (this->configMode == CM_BOSS_RUSH_MENU) {
         FileChoose_DrawBossRushMenuWindowContents(this);
@@ -2527,8 +2550,16 @@ void FileChoose_LoadGame(GameState* thisx) {
     gSaveContext.fileNum = this->buttonIndex;
     gSaveContext.gameMode = GAMEMODE_NORMAL;
 
-    if ((this->buttonIndex == FS_BTN_SELECT_FILE_1 && CVarGetInteger(CVAR_DEVELOPER_TOOLS("DebugEnabled"), 0)) ||
-        this->buttonIndex == 0xFF) {
+    // SOH [Quest] ARENA uses a temporary file, as Boss Rush does. buttonIndex stays on the slot, because the draw
+    // functions of the quest menu read questType[buttonIndex].
+    bool arena = this->buttonIndex <= FS_BTN_SELECT_FILE_3 && this->questType[this->buttonIndex] == QUEST_ARENA;
+    if (arena) {
+        gSaveContext.fileNum = 0xFE;
+    }
+
+    if (!arena &&
+        ((this->buttonIndex == FS_BTN_SELECT_FILE_1 && CVarGetInteger(CVAR_DEVELOPER_TOOLS("DebugEnabled"), 0)) ||
+         this->buttonIndex == 0xFF)) {
         if (this->buttonIndex == 0xFF) {
             Sram_InitDebugSave();
         } else {
@@ -2538,6 +2569,8 @@ void FileChoose_LoadGame(GameState* thisx) {
     } else {
         if (this->buttonIndex == 0xFE) {
             Sram_InitBossRushSave();
+        } else if (arena) { // SOH [Quest]
+            Sram_InitArenaSave();
         } else {
             Sram_OpenSave();
         }
