@@ -1,0 +1,18 @@
+name: Remove a mod from the Mod list
+description: Request the removal of a mod from the Mod list.
+title: "Remove a mod: "
+body:
+  - type: markdown
+    attributes:
+      value: We remove the mod. You do not need to give a reason.
+  - type: input
+    id: mod
+    attributes:
+      label: Name of the mod
+    validations:
+      required: true
+  - type: textarea
+    id: reason
+    attributes:
+      label: Reason
+      description: Optional.

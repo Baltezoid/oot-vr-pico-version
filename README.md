@@ -166,42 +166,43 @@ release with SideQuest one time. Do the steps in
 
 ## Mods
 
-The game loads Ship of Harkinian mods (`.o2r`, `.otr`, `.zip`, or `.7z`): textures,
-models, and texts.
+The game loads Ship of Harkinian mods: `.o2r`, `.otr`, `.zip`, and `.7z`.
 
 > [!IMPORTANT]
-> This project does not contain or give mods. Get each mod from its author.
+> The mods are not part of oot-vr. Their authors give them. This project does
+> not keep copies.
 
-### Install a mod
+To install a mod, the game needs access to the `oot-vr/` folder. Select **VR
+Settings** > **Mods** > **Allow Access**, and turn on the permission for OoT VR.
 
-1. Give the game access to the `oot-vr/` folder. Select **Allow** after the
-   first extraction, or select **VR Settings** > **Mods** > **Allow Access**.
-   Turn on the permission for OoT VR, then go back to the game.
-2. Download the mod from the page of its author.
-3. With the SideQuest file manager, copy the mod file into the `Download`
-   folder of the headset.
-4. In the game, select **VR Settings** > **Mods** > **Add Mods**. Select the mod
-   file. The game automatically copies it into `oot-vr/mods/` and extracts
-   `.zip` and `.7z` files.
-5. Close the game and open it again.
+To change the load order, open the SoH menu and select **Settings** > **Mod
+Menu**. When two mods change the same texture, the higher mod shows.
 
-### Manage the mods
+### Automatic install
 
-Open the SoH menu, and go to **Settings** > **Mod Menu**.
+The headset must have an internet connection.
 
-- **Enable Mods** turns all mods on or off.
-- The list sets the load order. When two mods change the same texture, the mod
-  that is higher in the list is visible.
+1. Select **VR Settings** > **Mods**.
+2. Select **Download** below a mod, and then select **Download** again.
+3. Restart the game.
 
-### Tested and recommended mods
+### Manual install
 
-Tested on a Quest 3S at 72 Hz.
+1. Download the mod from the page of its author.
+2. Copy the file into the `Download` folder of the headset with SideQuest.
+3. Select **VR Settings** > **Mods** > **Add Mods**, and select the file.
+4. Restart the game.
 
-| Mod | Author | Notes |
-| --- | --- | --- |
-| [OoT Reloaded](https://github.com/GhostlyDark/OoT-Reloaded) | GhostlyDark | HD textures. The HD version works well. |
-| [Djipi's 3DS Experience](https://gamebanana.com/mods/477979) | Djipi | Textures and models of the 3DS version. Large files decrease the frame rate. Do not install "01 Main Textures". |
-| [Castilian Spanish Translation](https://gamebanana.com/mods/685796) | Amaro (xoascf) | Version 1.2b. Changes the game texts to Spanish. Also install the file `font_2_.zip` from the same page. |
+### Request a mod
+
+Open a
+[mod request](https://github.com/gibranfelix/oot-vr/issues/new?template=add_mod.yml).
+
+### Remove a mod from the Mod list
+
+Open a
+[removal request](https://github.com/gibranfelix/oot-vr/issues/new?template=remove_mod.yml).
+You do not need to give a reason.
 
 ## Controls
 

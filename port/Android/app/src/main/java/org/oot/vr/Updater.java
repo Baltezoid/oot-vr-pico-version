@@ -12,13 +12,10 @@ import android.util.Log;
 
 import androidx.core.content.FileProvider;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
 /**
@@ -32,7 +29,6 @@ final class Updater {
 
     private static final String TAG = "OoTVR";
     private static final String LATEST_URL = "https://api.github.com/repos/gibranfelix/oot-vr/releases/latest";
-    private static final int TIMEOUT_MS = 15_000;
 
     // The same numbers are in soh/soh/Updater.h.
     static final int OFF = 0;
@@ -99,7 +95,7 @@ final class Updater {
         new Thread(() -> {
             LatestRelease latest = null;
             try {
-                latest = LatestRelease.parse(readText(LATEST_URL));
+                latest = LatestRelease.parse(Http.readText(LATEST_URL));
             } catch (IOException e) {
                 Log.w(TAG, "Could not read the latest release (" + e.getMessage() + ")");
             }
@@ -154,7 +150,7 @@ final class Updater {
         if (!dir.isDirectory() && !dir.mkdirs()) {
             throw new IOException("Could not create " + dir);
         }
-        HttpURLConnection connection = open(latest.apkUrl);
+        HttpURLConnection connection = Http.open(latest.apkUrl);
         try (InputStream in = connection.getInputStream()) {
             long length = connection.getContentLengthLong();
             long total = length > 0 ? length : latest.apkSize;
@@ -230,33 +226,5 @@ final class Updater {
 
     private static File apkFile(Context context, LatestRelease latest) {
         return new File(updateDir(context), "oot-vr-" + latest.tag.replaceAll("[^0-9A-Za-z.-]", "_") + ".apk");
-    }
-
-    private static HttpURLConnection open(String url) throws IOException {
-        HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
-        connection.setConnectTimeout(TIMEOUT_MS);
-        connection.setReadTimeout(TIMEOUT_MS);
-        connection.setRequestProperty("User-Agent", "oot-vr");
-        int code = connection.getResponseCode();
-        if (code != HttpURLConnection.HTTP_OK) {
-            connection.disconnect();
-            throw new IOException("HTTP " + code);
-        }
-        return connection;
-    }
-
-    private static String readText(String url) throws IOException {
-        HttpURLConnection connection = open(url);
-        try (InputStream in = connection.getInputStream()) {
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
-            byte[] buf = new byte[8192];
-            int n;
-            while ((n = in.read(buf)) > 0) {
-                out.write(buf, 0, n);
-            }
-            return out.toString(StandardCharsets.UTF_8.name());
-        } finally {
-            connection.disconnect();
-        }
     }
 }

@@ -188,6 +188,21 @@ public class MainActivity extends SDLActivity {
         Updater.start(this);
     }
 
+    /** SOH [Quest] JNI: VR Settings > Mods > Mod list. Reads the list again. */
+    public void openModList() {
+        ModDownloader.open();
+    }
+
+    /** SOH [Quest] JNI: VR Settings > Mods > Mod list. JSON: read soh/soh/ModList.h. */
+    public String modListStatus() {
+        return ModDownloader.status();
+    }
+
+    /** SOH [Quest] JNI: VR Settings > Mods > Mod list > Download. */
+    public void downloadMod(int index) {
+        ModDownloader.download(this, index);
+    }
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
