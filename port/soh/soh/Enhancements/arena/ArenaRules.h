@@ -11,7 +11,7 @@ constexpr int kLevels = 4;
 constexpr int kMaxAlive = 10;
 // The game logic runs 20 times each second (R_UPDATE_RATE 3).
 constexpr int kFramesPerSecond = 20;
-constexpr int kPauseFrames = 5 * kFramesPerSecond;
+constexpr int kPauseFrames = 10 * kFramesPerSecond;
 
 // The enemies of a wave: the number of each level, and how many of them are Hyper. Index 0 is level 1.
 struct WaveSpec {
@@ -88,7 +88,7 @@ class Director {
         return mPauseFramesLeft > 0;
     }
 
-    // Rounds up, so the countdown shows 5, 4, 3, 2, 1.
+    // Rounds up, so the countdown shows 10, 9, ..., 1.
     int PauseSecondsLeft() const {
         return (mPauseFramesLeft + kFramesPerSecond - 1) / kFramesPerSecond;
     }

@@ -12,14 +12,15 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <random>
 #include <unordered_map>
+#include <spdlog/spdlog.h>
 
 extern "C" {
 #include <z64.h>
 #include "functions.h"
 #include "macros.h"
 #include "variables.h"
+#include "src/overlays/actors/ovl_Demo_Gj/z_demo_gj.h"
 #include "src/overlays/actors/ovl_Door_Shutter/z_door_shutter.h"
 #include "overlays/ovl_Boss_Ganon2/ovl_Boss_Ganon2.h"
 #include "textures/icon_item_nes_static/icon_item_nes_static.h"
@@ -46,6 +47,8 @@ struct ArenaScene {
     f32 boundaryRadius;
     Vec3f linkStart;
     s16 linkYaw;
+    // The name in the quest menu.
+    const char* name;
 };
 
 // Phantom Ganon: the room is about 300 units from the center to the paintings (z_en_fhg.c). The boss spawns the
@@ -60,7 +63,8 @@ static const ArenaScene sArenaScenes[] = {
       480.0f,
       0.0f,
       { 14.0f, -33.0f, -3160.0f },
-      static_cast<s16>(0x8000) },
+      static_cast<s16>(0x8000),
+      "Phantom Ganon" },
     { SCENE_GANON_BOSS,
       ENTR_GANON_BOSS_0,
       { -200.0f, 1086.0f, -200.0f },
@@ -69,7 +73,8 @@ static const ArenaScene sArenaScenes[] = {
       600.0f,
       750.0f,
       { -200.0f, 1086.0f, 300.0f },
-      static_cast<s16>(0x8000) },
+      static_cast<s16>(0x8000),
+      "Ganon" },
 };
 
 struct ArenaEnemy {
@@ -250,6 +255,15 @@ static void OnPlayerUpdate() {
     if (!sLinkPlaced) {
         PlaceLink(play);
         sLinkPlaced = true;
+        SPDLOG_INFO("[ARENA] Link placed in scene {:#x} at ({}, {}, {})", play->sceneNum, player->actor.world.pos.x,
+                    player->actor.world.pos.y, player->actor.world.pos.z);
+    }
+
+    // The light of the fight: BossGanon2_Update sets it each frame, and ARENA removes the boss.
+    if (sArena->sceneNum == SCENE_GANON_BOSS) {
+        play->envCtx.unk_BF = 0;
+        play->envCtx.unk_DC = 2;
+        Math_ApproachZeroF(&play->envCtx.unk_D8, 1.0f, 0.1f);
     }
 
     if (sArena->boundaryRadius > 0.0f) {
@@ -261,18 +275,59 @@ static void OnPlayerUpdate() {
         }
     }
 
-    if (sDead || gSaveContext.health <= 0 || Player_InBlockingCsMode(play, player)) {
+    if (sDead || gSaveContext.health <= 0) {
+        return;
+    }
+    if (Player_InBlockingCsMode(play, player)) {
+        if (play->gameplayFrames % 40 == 0) {
+            SPDLOG_INFO("[ARENA] Waves wait: csAction {} stateFlags1 {:#x} csState {} transition {}", player->csAction,
+                        player->stateFlags1, play->csCtx.state, play->transitionTrigger);
+        }
         return;
     }
 
     ArenaRules::SpawnRequest request;
+    int wave = sDirector.Wave();
     if (sDirector.Tick(CountAliveEnemies(), &request) && !SpawnEnemy(play, request)) {
+        SPDLOG_INFO("[ARENA] Spawn failed, level {}", request.level + 1);
         sDirector.Requeue(request);
+    }
+    if (sDirector.Wave() != wave) {
+        SPDLOG_INFO("[ARENA] Wave {} done", wave);
     }
 
     if (!sMusicStarted && !sDirector.InPause()) {
         Audio_QueueSeqCmd(SEQ_PLAYER_BGM_MAIN << 24 | NA_BGM_MINI_BOSS);
         sMusicStarted = true;
+    }
+}
+
+// The rubble of the Ganon fight: the piles where Ganondorf rises, and the rubble that Ganon breaks. It is in the way
+// of the enemies. The rubble around the arena stays: it is the wall of the arena.
+static bool IsRubbleInTheArena(s16 id, s16 params) {
+    return id == ACTOR_DEMO_GJ && (params & 0xFF) != DEMOGJ_TYPE_AROUNDARENA;
+}
+
+// A second check after VB_SPAWN_ACTOR_ENTRY: other actors can spawn the boss, Zelda, pots, and grass. The boss of
+// Phantom Ganon spawns its horse (EnfHG) in its init.
+static void OnActorInit(void* refActor) {
+    Actor* actor = static_cast<Actor*>(refActor);
+    if (IsRubbleInTheArena(actor->id, actor->params)) {
+        Actor_Kill(actor);
+        return;
+    }
+    switch (actor->id) {
+        case ACTOR_BOSS_GANONDROF:
+        case ACTOR_EN_FHG:
+        case ACTOR_BOSS_GANON2:
+        case ACTOR_EN_ZL3:
+        case ACTOR_EN_KUSA:
+        case ACTOR_OBJ_TSUBO:
+            SPDLOG_INFO("[ARENA] Kill actor {:#x} after its init", actor->id);
+            Actor_Kill(actor);
+            break;
+        default:
+            break;
     }
 }
 
@@ -295,6 +350,7 @@ static void DrawGanonFireRing() {
         return;
     }
 
+    Gfx_SetupDL_25Xlu(play->state.gfxCtx);
     OPEN_DISPS(play->state.gfxCtx);
     Matrix_Push();
     gDPPipeSync(POLY_XLU_DISP++);
@@ -323,6 +379,11 @@ static void OnVanillaBehavior(GIVanillaBehavior id, bool* should, va_list origin
             ActorEntry* actorEntry = va_arg(args, ActorEntry*);
             va_arg(args, PlayState*);
             Actor** actor = va_arg(args, Actor**);
+            if (IsRubbleInTheArena(actorEntry->id, actorEntry->params)) {
+                *actor = NULL;
+                *should = false;
+                break;
+            }
             switch (actorEntry->id) {
                 case ACTOR_BOSS_GANONDROF:
                 case ACTOR_BOSS_GANON2:
@@ -332,6 +393,7 @@ static void OnVanillaBehavior(GIVanillaBehavior id, bool* should, va_list origin
                 case ACTOR_EN_KUSA:
                 case ACTOR_OBJ_TSUBO:
                 case ACTOR_EN_BOX:
+                    SPDLOG_INFO("[ARENA] Remove scene actor {:#x}", actorEntry->id);
                     *actor = NULL;
                     *should = false;
                     break;
@@ -370,8 +432,9 @@ static void OnVanillaBehavior(GIVanillaBehavior id, bool* should, va_list origin
             *should = false;
             break;
         }
+        // After the death, Arena_Draw shows the time.
         case VB_SHOW_GAMEPLAY_TIMER: {
-            *should = true;
+            *should = !sDead;
             break;
         }
         case VB_BE_ABLE_TO_SAVE:
@@ -438,38 +501,78 @@ static void DrawCenteredLine(GraphicsContext* gfxCtx, const char* text, s32 y, f
     DrawTextLine(gfxCtx, text, SCREEN_WIDTH / 2.0f - TextWidth(text, scale) / 2.0f, y, scale, r, g, b);
 }
 
+// The hooks stay registered from the boot, and each hook checks IS_ARENA. Do not register them in an OnLoadGame hook:
+// other OnLoadGame hooks register OnLoadGame hooks while GameInteractor runs them, and then it can skip a hook.
 static void RegisterArena() {
-    COND_HOOK(OnLoadGame, true, [](int32_t fileNum) {
+    GameInteractor* gi = GameInteractor::Instance;
+    gi->RegisterGameHook<GameInteractor::OnLoadGame>([](int32_t fileNum) {
         // The fixes of EnemyRandomizer.cpp for enemies out of their scene.
         ShipInit::Init("IS_ARENA");
-
-        COND_HOOK(OnVanillaBehavior, IS_ARENA, OnVanillaBehavior);
-        COND_HOOK(OnSceneInit, IS_ARENA, [](s16 sceneNum) { RestartWave(); });
-        COND_HOOK(OnPlayerUpdate, IS_ARENA, OnPlayerUpdate);
-        COND_HOOK(OnActorUpdate, IS_ARENA, OnActorUpdate);
-        COND_HOOK(OnActorDestroy, IS_ARENA, [](void* actor) { sWaveEnemies.erase(static_cast<Actor*>(actor)); });
-        COND_HOOK(OnPlayDrawEnd, IS_ARENA, DrawGanonFireRing);
-
-        // Pots and grass that the scene spawns later.
-        COND_ID_HOOK(OnActorInit, ACTOR_EN_KUSA, IS_ARENA, [](void* actor) { Actor_Kill((Actor*)actor); });
-        COND_ID_HOOK(OnActorInit, ACTOR_OBJ_TSUBO, IS_ARENA, [](void* actor) { Actor_Kill((Actor*)actor); });
+    });
+    gi->RegisterGameHook<GameInteractor::OnVanillaBehavior>([](GIVanillaBehavior id, bool* should, va_list args) {
+        if (IS_ARENA) {
+            OnVanillaBehavior(id, should, args);
+        }
+    });
+    gi->RegisterGameHook<GameInteractor::OnSceneInit>([](s16 sceneNum) {
+        if (IS_ARENA) {
+            RestartWave();
+        }
+    });
+    gi->RegisterGameHook<GameInteractor::OnPlayerUpdate>([]() {
+        if (IS_ARENA) {
+            OnPlayerUpdate();
+        }
+    });
+    gi->RegisterGameHook<GameInteractor::OnActorInit>([](void* actor) {
+        if (IS_ARENA) {
+            OnActorInit(actor);
+        }
+    });
+    gi->RegisterGameHook<GameInteractor::OnActorUpdate>([](void* actor) {
+        if (IS_ARENA) {
+            OnActorUpdate(actor);
+        }
+    });
+    gi->RegisterGameHook<GameInteractor::OnActorDestroy>([](void* actor) {
+        if (IS_ARENA) {
+            sWaveEnemies.erase(static_cast<Actor*>(actor));
+        }
+    });
+    gi->RegisterGameHook<GameInteractor::OnPlayDrawEnd>([]() {
+        if (IS_ARENA) {
+            DrawGanonFireRing();
+        }
     });
 }
 
 static RegisterShipInitFunc initFunc(RegisterArena);
+
+// The arena that the player selected in the quest menu. It stays selected for the next run.
+static int sSelectedScene = 0;
+
+extern "C" void Arena_SelectNextScene(int step) {
+    int count = ARRAY_COUNT(sArenaScenes);
+    sSelectedScene = ((sSelectedScene + step) % count + count) % count;
+}
+
+extern "C" const char* Arena_GetSelectedSceneName(void) {
+    return sArenaScenes[sSelectedScene].name;
+}
 
 extern "C" void Arena_InitSave(void) {
     // Link, for the few text boxes. The player does not enter a name.
     static const u8 sPlayerName[] = { 0x15, 0x2C, 0x31, 0x2E, 0x3E, 0x3E, 0x3E, 0x3E };
     memcpy(gSaveContext.playerName, sPlayerName, sizeof(sPlayerName));
 
-    // Play_Init seeds Rand_ZeroOne. The file select runs before it, so use another source.
-    sArena = &sArenaScenes[std::random_device{}() % ARRAY_COUNT(sArenaScenes)];
+    sArena = &sArenaScenes[sSelectedScene];
 
     gSaveContext.ship.quest.id = QUEST_ARENA;
     gSaveContext.entranceIndex = sArena->entrance;
     gSaveContext.cutsceneIndex = 0;
     gSaveContext.linkAge = LINK_AGE_ADULT;
+    // Without this flag, the first entrance to the scene of Ganon plays the collapse of the castle.
+    Flags_SetEventChkInf(EVENTCHKINF_WATCHED_GANONS_CASTLE_COLLAPSE_CAUGHT_BY_GERUDO);
 
     // 20 hearts and double magic.
     gSaveContext.healthCapacity = gSaveContext.health = 20 * 16;
@@ -478,28 +581,32 @@ extern "C" void Arena_InitSave(void) {
     gSaveContext.magicLevel = 2;
     gSaveContext.magic = 96;
 
-    // The bombs, the bow, the longshot, and the Bunny Hood. No bottles.
+    // All the weapons and the magic of adult Link, and the Bunny Hood. No bottles.
     std::array<u8, 24> items = {
-        ITEM_NONE, ITEM_NONE,     ITEM_BOMB, ITEM_BOW,  ITEM_NONE, ITEM_NONE, ITEM_NONE, ITEM_NONE,
-        ITEM_NONE, ITEM_LONGSHOT, ITEM_NONE, ITEM_NONE, ITEM_NONE, ITEM_NONE, ITEM_NONE, ITEM_NONE,
-        ITEM_NONE, ITEM_NONE,     ITEM_NONE, ITEM_NONE, ITEM_NONE, ITEM_NONE, ITEM_NONE, ITEM_MASK_BUNNY,
+        ITEM_NONE, ITEM_NUT,  ITEM_BOMB,    ITEM_BOW,      ITEM_ARROW_FIRE,  ITEM_DINS_FIRE,
+        ITEM_NONE, ITEM_NONE, ITEM_BOMBCHU, ITEM_LONGSHOT, ITEM_ARROW_ICE,   ITEM_FARORES_WIND,
+        ITEM_NONE, ITEM_NONE, ITEM_NONE,    ITEM_HAMMER,   ITEM_ARROW_LIGHT, ITEM_NAYRUS_LOVE,
+        ITEM_NONE, ITEM_NONE, ITEM_NONE,    ITEM_NONE,     ITEM_NONE,        ITEM_MASK_BUNNY,
     };
     for (int i = 0; i < ARRAY_COUNT(gSaveContext.inventory.items); i++) {
         gSaveContext.inventory.items[i] = items[i];
     }
 
-    // The largest bomb bag and quiver, and they are full. Boss Rush gives the same ammo with BR_CHOICE_AMMO_MAXED.
-    std::array<s8, 16> ammo = { 0, 0, 40, 50, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+    // The largest bomb bag, quiver, and nut capacity, and they are full. Boss Rush gives the same ammo with
+    // BR_CHOICE_AMMO_MAXED.
+    std::array<s8, 16> ammo = { 0, 40, 40, 50, 0, 0, 0, 0, 50, 0, 0, 0, 0, 0, 0, 0 };
     for (int i = 0; i < ARRAY_COUNT(gSaveContext.inventory.ammo); i++) {
         gSaveContext.inventory.ammo[i] = ammo[i];
     }
     Inventory_ChangeUpgrade(UPG_QUIVER, 3);
     Inventory_ChangeUpgrade(UPG_BOMB_BAG, 3);
+    Inventory_ChangeUpgrade(UPG_NUTS, 3);
 
     gSaveContext.inventory.equipment |= OWNED_EQUIP_FLAG(EQUIP_TYPE_SWORD, EQUIP_INV_SWORD_MASTER);
     gSaveContext.inventory.equipment |= OWNED_EQUIP_FLAG(EQUIP_TYPE_SWORD, EQUIP_INV_SWORD_BIGGORON);
     gSaveContext.bgsFlag = true;
     gSaveContext.inventory.equipment |= OWNED_EQUIP_FLAG(EQUIP_TYPE_SHIELD, EQUIP_INV_SHIELD_MIRROR);
+    gSaveContext.inventory.equipment |= OWNED_EQUIP_FLAG(EQUIP_TYPE_BOOTS, EQUIP_INV_BOOTS_IRON);
     gSaveContext.inventory.equipment |= OWNED_EQUIP_FLAG(EQUIP_TYPE_BOOTS, EQUIP_INV_BOOTS_HOVER);
 
     // B: the Master Sword, so the shield works. The player can equip the Biggoron Sword in the pause menu.
@@ -518,6 +625,8 @@ extern "C" void Arena_InitSave(void) {
     Inventory_ChangeEquipment(EQUIP_TYPE_BOOTS, EQUIP_VALUE_BOOTS_KOKIRI);
 
     ResetRun();
+    // The OnLoadGame hook also does this, but GameInteractor can skip it (RegisterArena).
+    ShipInit::Init("IS_ARENA");
 }
 
 extern "C" void Arena_Draw(PlayState* play) {
@@ -525,14 +634,14 @@ extern "C" void Arena_Draw(PlayState* play) {
         return;
     }
 
-    char line[48];
+    char line[64];
     const char* waveText = sWaveText[TextLanguage()];
 
     if (sDead) {
         SetupTextDraw(play->state.gfxCtx);
-        snprintf(line, sizeof(line), "%s %d", waveText, sDeathWave);
-        DrawCenteredLine(play->state.gfxCtx, line, 40, 2.0f, 255, 200, 50);
-        DrawCenteredLine(play->state.gfxCtx, sDeathTime, 75, 1.5f, 255, 255, 255);
+        // One line above the GAME OVER title of the game.
+        snprintf(line, sizeof(line), "%s %d   %s", waveText, sDeathWave, sDeathTime);
+        DrawCenteredLine(play->state.gfxCtx, line, 40, 1.5f, 255, 200, 50);
         return;
     }
 

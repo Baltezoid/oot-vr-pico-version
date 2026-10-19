@@ -96,7 +96,8 @@ static void FirstWaveStartsAfterThePause() {
 static void PauseShowsTheSecondsLeft() {
     Director director;
     director.Start();
-    EXPECT(director.PauseSecondsLeft() == kPauseFrames / kFramesPerSecond);
+    // The player needs 10 seconds to get ready (headset test of issue #115).
+    EXPECT(director.PauseSecondsLeft() == 10);
     SpawnRequest request;
     director.Tick(0, &request);
     EXPECT(director.PauseSecondsLeft() == kPauseFrames / kFramesPerSecond);

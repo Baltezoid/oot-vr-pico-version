@@ -111,6 +111,11 @@ starts, and where an enemy spawns. It has no game types. The host unit tests
 are in `port/soh/tests/arena/ArenaRulesTests.cpp`. `Arena.cpp` connects these
 rules to the game.
 
+`Arena.cpp` registers its hooks one time at boot, and each hook checks
+`IS_ARENA`. Do not register hooks in an `OnLoadGame` hook. Other `OnLoadGame`
+hooks register `OnLoadGame` hooks while `GameInteractor` runs them. Then
+`GameInteractor` can skip a hook.
+
 ## Physical melee
 
 The swords, the Deku Stick, and the Megaton Hammer hit when the player swings

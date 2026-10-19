@@ -9,7 +9,13 @@ extern "C" {
 
 struct PlayState;
 
-// Replaces the new save in gSaveContext with the ARENA save, and selects the arena at random.
+// Selects the next arena (step 1) or the previous arena (step -1) for the quest menu.
+void Arena_SelectNextScene(int step);
+
+// The name of the selected arena, for the quest menu.
+const char* Arena_GetSelectedSceneName(void);
+
+// Replaces the new save in gSaveContext with the ARENA save in the selected arena.
 void Arena_InitSave(void);
 
 // Draws the wave number on the HUD, and the result when Link dies. Play_Draw calls it after the gameplay timer.
