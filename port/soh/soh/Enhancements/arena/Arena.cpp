@@ -131,6 +131,7 @@ static const EnemyLevel sLevels[ArenaRules::kLevels] = {
 };
 
 static const char* sWaveText[] = { "WAVE", "WELLE", "VAGUE" };
+static const char* sEnemiesLeftText[] = { "Enemies", "Gegner", "Ennemis" };
 
 static void* sContinuePromptNoTexs[] = {
     (void*)gPauseNoENGTex,
@@ -143,6 +144,10 @@ static const ArenaScene* sArena = nullptr;
 static ArenaRules::Director sDirector;
 // The wave enemies that are alive or that wait for their deletion. The value is true for a Hyper enemy.
 static std::unordered_map<Actor*, bool> sWaveEnemies;
+// The ambient light and the directional light that ARENA adds in the Ganon arena.
+static const s16 kGanonExtraAmbient = 70;
+static const s16 kGanonExtraLight = 50;
+
 static bool sLinkPlaced = false;
 static bool sMusicStarted = false;
 static bool sDead = false;
@@ -218,6 +223,12 @@ static bool SpawnEnemy(PlayState* play, const ArenaRules::SpawnRequest& request)
         return false;
     }
     sWaveEnemies[actor] = request.hyper;
+
+    // Smoke and a sound at the enemy, so the player sees and hears where it comes.
+    Vec3f zero = { 0.0f, 0.0f, 0.0f };
+    Vec3f smokePos = { pos.x, floorY + 20.0f, pos.z };
+    EffectSsDeadDb_Spawn(play, &smokePos, &zero, &zero, 150, 20, 255, 255, 255, 200, 120, 120, 255, 1, 9, false);
+    Audio_PlayActorSound2(actor, NA_SE_EN_PO_APPEAR);
     return true;
 }
 
@@ -259,12 +270,21 @@ static void OnPlayerUpdate() {
                     player->actor.world.pos.y, player->actor.world.pos.z);
     }
 
-    // The light of the fight: BossGanon2_Update sets it each frame, and ARENA removes the boss.
+    // The light of the fight: BossGanon2_Update sets it each frame, and ARENA removes the boss. The fight is too dark
+    // to find the enemies, so ARENA adds ambient light.
     if (sArena->sceneNum == SCENE_GANON_BOSS) {
         play->envCtx.unk_BF = 0;
         play->envCtx.unk_DC = 2;
         Math_ApproachZeroF(&play->envCtx.unk_D8, 1.0f, 0.1f);
+        for (int i = 0; i < 3; i++) {
+            play->envCtx.adjAmbientColor[i] = kGanonExtraAmbient;
+            play->envCtx.adjLight1Color[i] = kGanonExtraLight;
+        }
     }
+
+    // Stalchildren die in the day (IS_DAY in z_en_skb.c). ARENA keeps the night.
+    gSaveContext.dayTime = CLOCK_TIME(0, 0);
+    gSaveContext.nightFlag = 1;
 
     if (sArena->boundaryRadius > 0.0f) {
         KeepInBoundary(&player->actor);
@@ -581,11 +601,12 @@ extern "C" void Arena_InitSave(void) {
     gSaveContext.magicLevel = 2;
     gSaveContext.magic = 96;
 
-    // All the weapons and the magic of adult Link, and the Bunny Hood. No bottles.
+    // All the weapons of adult Link, Din's Fire, and the Bunny Hood. No bottles. No Farore's Wind: it loads the scene
+    // again and restarts the wave. No Nayru's Love: Link cannot take damage.
     std::array<u8, 24> items = {
         ITEM_NONE, ITEM_NUT,  ITEM_BOMB,    ITEM_BOW,      ITEM_ARROW_FIRE,  ITEM_DINS_FIRE,
-        ITEM_NONE, ITEM_NONE, ITEM_BOMBCHU, ITEM_LONGSHOT, ITEM_ARROW_ICE,   ITEM_FARORES_WIND,
-        ITEM_NONE, ITEM_NONE, ITEM_NONE,    ITEM_HAMMER,   ITEM_ARROW_LIGHT, ITEM_NAYRUS_LOVE,
+        ITEM_NONE, ITEM_NONE, ITEM_BOMBCHU, ITEM_LONGSHOT, ITEM_ARROW_ICE,   ITEM_NONE,
+        ITEM_NONE, ITEM_NONE, ITEM_NONE,    ITEM_HAMMER,   ITEM_ARROW_LIGHT, ITEM_NONE,
         ITEM_NONE, ITEM_NONE, ITEM_NONE,    ITEM_NONE,     ITEM_NONE,        ITEM_MASK_BUNNY,
     };
     for (int i = 0; i < ARRAY_COUNT(gSaveContext.inventory.items); i++) {
@@ -654,6 +675,12 @@ extern "C" void Arena_Draw(PlayState* play) {
     // Below the gameplay timer (Interface_DrawTotalGameplayTimer).
     snprintf(line, sizeof(line), "%s %d", waveText, sDirector.Wave());
     DrawTextLine(play->state.gfxCtx, line, OTRGetRectDimensionFromLeftEdge(24), 92, 1.0f, 255, 255, 255);
+    if (!sDirector.InPause()) {
+        char left[32];
+        snprintf(left, sizeof(left), "%s: %d", sEnemiesLeftText[TextLanguage()],
+                 sDirector.EnemiesLeft(CountAliveEnemies()));
+        DrawTextLine(play->state.gfxCtx, left, OTRGetRectDimensionFromLeftEdge(24), 108, 1.0f, 255, 255, 255);
+    }
 
     if (sDirector.InPause()) {
         DrawCenteredLine(play->state.gfxCtx, line, 70, 2.5f, 255, 200, 50);

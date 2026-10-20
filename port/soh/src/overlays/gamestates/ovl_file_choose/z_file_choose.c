@@ -1701,9 +1701,9 @@ const char* FileChoose_GetSohOptionsTitleTexName(Language lang) {
     }
 }
 
-// SOH [Quest] The selected arena below the ARENA subtitle, with arrows for the stick.
+// SOH [Quest] The selected arena in large text below the ARENA subtitle, with arrows for the stick.
 static void FileChoose_DrawArenaSelection(FileChooseContext* this) {
-    const f32 scale = 0.9f;
+    const f32 scale = 1.5f;
     char text[48];
     f32 width = 0.0f;
 
@@ -1711,7 +1711,7 @@ static void FileChoose_DrawArenaSelection(FileChooseContext* this) {
     for (const char* c = text; *c != '\0'; c++) {
         width += Ship_GetCharFontWidth((u8)*c) * (R_TEXT_CHAR_SCALE / 100.0f) * scale;
     }
-    Interface_DrawTextLine(this->state.gfxCtx, text, (s16)(SCREEN_WIDTH / 2 - width / 2), 214, 255, 200, 50,
+    Interface_DrawTextLine(this->state.gfxCtx, text, (s16)(SCREEN_WIDTH / 2 - width / 2), 125, 255, 200, 50,
                            this->logoAlpha, scale, true);
 }
 
@@ -1878,6 +1878,13 @@ void FileChoose_DrawWindowContents(GameState* thisx) {
 
             // SOH [Quest] ARENA: the logo of the available dungeons, and the ARENA subtitle.
             case QUEST_ARENA:
+                // During the selection of the arena, the subtitle and the arena replace the logo.
+                if (sArenaSelect) {
+                    gDPSetPrimColor(POLY_OPA_DISP++, 0, 0, 255, 255, 255, this->logoAlpha);
+                    FileChoose_DrawImageRGBA32(this->state.gfxCtx, 147, 95, gTitleArenaSubtitleTex, 128, 32);
+                    FileChoose_DrawArenaSelection(this);
+                    break;
+                }
                 gDPSetPrimColor(POLY_OPA_DISP++, 0, 0, 255, 255, 255, this->logoAlpha);
                 FileChoose_DrawTextureI8(this->state.gfxCtx, gTitleTheLegendOfTextTex, 72, 8, 156, 108, 72, 8, 1024,
                                          1024);
@@ -1887,9 +1894,6 @@ void FileChoose_DrawWindowContents(GameState* thisx) {
                     this->state.gfxCtx, 160, 135,
                     ResourceMgr_GameHasOriginal() ? gTitleZeldaShieldLogoTex : gTitleZeldaShieldLogoMQTex, 160, 160);
                 FileChoose_DrawImageRGBA32(this->state.gfxCtx, 182, 180, gTitleArenaSubtitleTex, 128, 32);
-                if (sArenaSelect) {
-                    FileChoose_DrawArenaSelection(this);
-                }
                 break;
         }
     } else if (this->configMode == CM_BOSS_RUSH_MENU) {

@@ -272,6 +272,20 @@ static void PointOutsideTheBoundaryComesBack() {
     EXPECT(std::fabs(outside.z - -200.0f) < 0.01f);
 }
 
+static void EnemiesLeftCountsTheAliveAndTheEnemiesToSpawn() {
+    Director director;
+    director.Start();
+    SkipPause(director);
+    // Wave 1 has 4 enemies.
+    EXPECT(director.EnemiesLeft(0) == 4);
+    SpawnRequest request;
+    EXPECT(director.Tick(0, &request));
+    EXPECT(director.Tick(1, &request));
+    EXPECT(director.EnemiesLeft(2) == 4);
+    // One of the two enemies is dead.
+    EXPECT(director.EnemiesLeft(1) == 3);
+}
+
 int main() {
     CurveIsTheCurveOfTheIssue();
     WaveHasThreePlusNEnemiesUpTo25();
@@ -288,6 +302,7 @@ int main() {
     SpawnPointIsNotFartherThanTheMaximum();
     RestartWaveSpawnsTheWholeWaveAgain();
     PointOutsideTheBoundaryComesBack();
+    EnemiesLeftCountsTheAliveAndTheEnemiesToSpawn();
     if (sFailures == 0) {
         std::printf("All ArenaRules tests passed.\n");
     }

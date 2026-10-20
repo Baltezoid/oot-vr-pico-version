@@ -93,6 +93,11 @@ class Director {
         return (mPauseFramesLeft + kFramesPerSecond - 1) / kFramesPerSecond;
     }
 
+    // The enemies of the wave that the player must kill: the enemies that are alive and the enemies to spawn.
+    int EnemiesLeft(int alive) const {
+        return Remaining() + alive;
+    }
+
     // alive: the number of wave enemies that are alive now. Returns true and sets request when the game must spawn
     // an enemy in this frame. The game spawns a maximum of one enemy in each frame.
     bool Tick(int alive, SpawnRequest* request) {
