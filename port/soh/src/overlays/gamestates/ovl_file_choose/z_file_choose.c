@@ -16,6 +16,7 @@
 #include "objects/gameplay_keep/gameplay_keep.h"
 #include "soh_assets.h"
 #include "soh/Enhancements/boss-rush/BossRush.h"
+#include "soh/Enhancements/arena/Arena.h" // SOH [Quest]
 #include "soh/Enhancements/FileSelectEnhancements.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
 #include <assert.h>
@@ -26,11 +27,15 @@
 #include "soh/ShipUtils.h"
 
 #define MIN_QUEST (ResourceMgr_GameHasOriginal() ? QUEST_NORMAL : QUEST_MASTER)
-// SOH [Quest] EXPLORE is the last option in the quest selector.
-#define MAX_QUEST FS_QUEST_EXPLORE
+// SOH [Quest] ARENA is the last option in the quest selector, after EXPLORE.
+#define MAX_QUEST QUEST_ARENA
 
 void Sram_InitDebugSave(void);
 void Sram_InitBossRushSave();
+void Sram_InitArenaSave(void); // SOH [Quest]
+
+// SOH [Quest] True after A on ARENA: the player selects the arena with the stick. A starts, B goes back.
+static bool sArenaSelect = false;
 
 void FileChoose_DrawTextureI8(GraphicsContext* gfxCtx, const void* texture, s16 texWidth, s16 texHeight, s16 rectLeft,
                               s16 rectTop, s16 rectWidth, s16 rectHeight, s16 dsdx, s16 dtdy) {
@@ -641,7 +646,22 @@ void FileChoose_UpdateQuestMenu(GameState* thisx) {
 
     FileChoose_UpdateRandomizer();
 
-    if (ABS(this->stickRelX) > 30 || (dpad && CHECK_BTN_ANY(input->press.button, BTN_DLEFT | BTN_DRIGHT))) {
+    // SOH [Quest] The stick selects the arena, not the quest.
+    if (sArenaSelect) {
+        if (ABS(this->stickRelX) > 30 || (dpad && CHECK_BTN_ANY(input->press.button, BTN_DLEFT | BTN_DRIGHT))) {
+            bool next = this->stickRelX > 30 || (dpad && CHECK_BTN_ANY(input->press.button, BTN_DRIGHT));
+            Arena_SelectNextScene(next ? 1 : -1);
+            Audio_PlaySoundGeneral(NA_SE_SY_FSEL_CURSOR, &gSfxDefaultPos, 4, &gSfxDefaultFreqAndVolScale,
+                                   &gSfxDefaultFreqAndVolScale, &gSfxDefaultReverb);
+        }
+        if (CHECK_BTN_ALL(input->press.button, BTN_B)) {
+            sArenaSelect = false;
+            Audio_PlaySoundGeneral(NA_SE_SY_FSEL_CLOSE, &gSfxDefaultPos, 4, &gSfxDefaultFreqAndVolScale,
+                                   &gSfxDefaultFreqAndVolScale, &gSfxDefaultReverb);
+            return;
+        }
+    } else if (ABS(this->stickRelX) > 30 ||
+               (dpad && CHECK_BTN_ANY(input->press.button, BTN_DLEFT | BTN_DRIGHT))) {
         if (this->stickRelX > 30 || (dpad && CHECK_BTN_ANY(input->press.button, BTN_DRIGHT))) {
             this->questType[this->buttonIndex] += 1;
             while (this->questType[this->buttonIndex] == QUEST_MASTER && !ResourceMgr_GameHasMasterQuest()) {
@@ -681,6 +701,20 @@ void FileChoose_UpdateQuestMenu(GameState* thisx) {
                                    &gSfxDefaultFreqAndVolScale, &gSfxDefaultReverb);
             this->prevConfigMode = this->configMode;
             this->configMode = CM_ROTATE_TO_BOSS_RUSH_MENU;
+            return;
+        } else if (this->questType[this->buttonIndex] == QUEST_ARENA) {
+            // SOH [Quest] ARENA has no name. The first A opens the selection of the arena, and the second A starts
+            // the game. FileChoose_LoadGame makes the temporary file.
+            Audio_PlaySoundGeneral(NA_SE_SY_FSEL_DECIDE_L, &gSfxDefaultPos, 4, &gSfxDefaultFreqAndVolScale,
+                                   &gSfxDefaultFreqAndVolScale, &gSfxDefaultReverb);
+            if (!sArenaSelect) {
+                sArenaSelect = true;
+                return;
+            }
+            sArenaSelect = false;
+            this->prevConfigMode = this->configMode;
+            this->menuMode = FS_MENU_MODE_SELECT;
+            this->selectMode = SM_FADE_OUT;
             return;
         } else if (this->questType[this->buttonIndex] == QUEST_RANDOMIZER) {
             Audio_PlaySoundGeneral(NA_SE_SY_FSEL_DECIDE_L, &gSfxDefaultPos, 4, &gSfxDefaultFreqAndVolScale,
@@ -1667,6 +1701,20 @@ const char* FileChoose_GetSohOptionsTitleTexName(Language lang) {
     }
 }
 
+// SOH [Quest] The selected arena in large text below the ARENA subtitle, with arrows for the stick.
+static void FileChoose_DrawArenaSelection(FileChooseContext* this) {
+    const f32 scale = 1.5f;
+    char text[48];
+    f32 width = 0.0f;
+
+    snprintf(text, sizeof(text), "<  %s  >", Arena_GetSelectedSceneName());
+    for (const char* c = text; *c != '\0'; c++) {
+        width += Ship_GetCharFontWidth((u8)*c) * (R_TEXT_CHAR_SCALE / 100.0f) * scale;
+    }
+    Interface_DrawTextLine(this->state.gfxCtx, text, (s16)(SCREEN_WIDTH / 2 - width / 2), 125, 255, 200, 50,
+                           this->logoAlpha, scale, true);
+}
+
 /**
  * Draw most window contents including buttons, labels, and icons.
  * Does not include anything from the keyboard and settings windows.
@@ -1826,6 +1874,26 @@ void FileChoose_DrawWindowContents(GameState* thisx) {
                     this->state.gfxCtx, 160, 135,
                     ResourceMgr_GameHasOriginal() ? gTitleZeldaShieldLogoTex : gTitleZeldaShieldLogoMQTex, 160, 160);
                 FileChoose_DrawImageRGBA32(this->state.gfxCtx, 182, 180, gTitleExploreSubtitleTex, 128, 32);
+                break;
+
+            // SOH [Quest] ARENA: the logo of the available dungeons, and the ARENA subtitle.
+            case QUEST_ARENA:
+                // During the selection of the arena, the subtitle and the arena replace the logo.
+                if (sArenaSelect) {
+                    gDPSetPrimColor(POLY_OPA_DISP++, 0, 0, 255, 255, 255, this->logoAlpha);
+                    FileChoose_DrawImageRGBA32(this->state.gfxCtx, 147, 95, gTitleArenaSubtitleTex, 128, 32);
+                    FileChoose_DrawArenaSelection(this);
+                    break;
+                }
+                gDPSetPrimColor(POLY_OPA_DISP++, 0, 0, 255, 255, 255, this->logoAlpha);
+                FileChoose_DrawTextureI8(this->state.gfxCtx, gTitleTheLegendOfTextTex, 72, 8, 156, 108, 72, 8, 1024,
+                                         1024);
+                FileChoose_DrawTextureI8(this->state.gfxCtx, gTitleOcarinaOfTimeTMTextTex, 96, 8, 154, 163, 96, 8, 1024,
+                                         1024);
+                FileChoose_DrawImageRGBA32(
+                    this->state.gfxCtx, 160, 135,
+                    ResourceMgr_GameHasOriginal() ? gTitleZeldaShieldLogoTex : gTitleZeldaShieldLogoMQTex, 160, 160);
+                FileChoose_DrawImageRGBA32(this->state.gfxCtx, 182, 180, gTitleArenaSubtitleTex, 128, 32);
                 break;
         }
     } else if (this->configMode == CM_BOSS_RUSH_MENU) {
@@ -2527,8 +2595,16 @@ void FileChoose_LoadGame(GameState* thisx) {
     gSaveContext.fileNum = this->buttonIndex;
     gSaveContext.gameMode = GAMEMODE_NORMAL;
 
-    if ((this->buttonIndex == FS_BTN_SELECT_FILE_1 && CVarGetInteger(CVAR_DEVELOPER_TOOLS("DebugEnabled"), 0)) ||
-        this->buttonIndex == 0xFF) {
+    // SOH [Quest] ARENA uses a temporary file, as Boss Rush does. buttonIndex stays on the slot, because the draw
+    // functions of the quest menu read questType[buttonIndex].
+    bool arena = this->buttonIndex <= FS_BTN_SELECT_FILE_3 && this->questType[this->buttonIndex] == QUEST_ARENA;
+    if (arena) {
+        gSaveContext.fileNum = 0xFE;
+    }
+
+    if (!arena &&
+        ((this->buttonIndex == FS_BTN_SELECT_FILE_1 && CVarGetInteger(CVAR_DEVELOPER_TOOLS("DebugEnabled"), 0)) ||
+         this->buttonIndex == 0xFF)) {
         if (this->buttonIndex == 0xFF) {
             Sram_InitDebugSave();
         } else {
@@ -2538,6 +2614,8 @@ void FileChoose_LoadGame(GameState* thisx) {
     } else {
         if (this->buttonIndex == 0xFE) {
             Sram_InitBossRushSave();
+        } else if (arena) { // SOH [Quest]
+            Sram_InitArenaSave();
         } else {
             Sram_OpenSave();
         }

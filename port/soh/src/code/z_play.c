@@ -13,6 +13,7 @@
 #include "soh/ResourceManagerHelpers.h"
 #include "soh/SaveManager.h"
 #include "soh/framebuffer_effects.h"
+#include "soh/Enhancements/arena/Arena.h" // SOH [Quest]
 
 #include <vr_interface.h>
 
@@ -1823,6 +1824,7 @@ Play_Draw_skip:
     CLOSE_DISPS(gfxCtx);
 
     Interface_DrawTotalGameplayTimer(play);
+    Arena_Draw(play); // SOH [Quest]
 }
 
 time_t Play_GetRealTime() {

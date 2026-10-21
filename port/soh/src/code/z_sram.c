@@ -9,6 +9,7 @@
 #include "soh/SaveManager.h"
 #include "soh/ResourceManagerHelpers.h"
 #include "soh/Enhancements/explore/Explore.h" // SOH [Quest]
+#include "soh/Enhancements/arena/Arena.h"     // SOH [Quest]
 
 #define NUM_DUNGEONS 8
 #define NUM_COWS 10
@@ -41,6 +42,12 @@ void Sram_InitDebugSave(void) {
 void Sram_InitBossRushSave(void) {
     Save_InitFile(false);
     BossRush_InitSave();
+}
+
+// SOH [Quest] The temporary save of ARENA. The game never saves it.
+void Sram_InitArenaSave(void) {
+    Save_InitFile(false);
+    Arena_InitSave();
 }
 
 static s16 sDungeonEntrances[] = {

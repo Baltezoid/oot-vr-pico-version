@@ -220,6 +220,18 @@ static void ExporterProgramEnd()
 
             if (extension == "png" && (format == "rgba32" || format == "rgb5a1" || format == "i4" || format == "i8" || format == "ia4" || format == "ia8" || format == "ia16" || format == "ci4" || format == "ci8"))
             {
+                // SOH [Quest] An HD texture: "<name>.<N>x.<format>.png" is N times the size that the game draws. It
+                // becomes the resource "<name>", a Texture V1 with the scale N (as the textures of HD mods).
+                float hdScale = 0.0f;
+                size_t scaleSepAt = afterPath.find_last_of(".");
+                if (scaleSepAt != std::string::npos && scaleSepAt > filenameSepAt && afterPath.back() == 'x') {
+                    const std::string scale = afterPath.substr(scaleSepAt + 1, afterPath.size() - scaleSepAt - 2);
+                    if (!scale.empty() && scale.find_first_not_of("0123456789") == std::string::npos) {
+                        hdScale = std::stof(scale);
+                        afterPath = afterPath.substr(0, scaleSepAt);
+                    }
+                }
+
                 ZTexture tex(nullptr);
                 Globals::Instance->buildRawTexture = true;
                 tex.FromPNG(item, ZTexture::GetTextureTypeFromString(format));
@@ -230,7 +242,11 @@ static void ExporterProgramEnd()
                 MemoryStream* stream = new MemoryStream();
                 BinaryWriter writer(stream);
 
-                exporter.Save(&tex, "", &writer);
+                if (hdScale > 0.0f) {
+                    exporter.SaveHdHeader(&tex, hdScale, &writer);
+                } else {
+                    exporter.Save(&tex, "", &writer);
+                }
 
                 std::string src = tex.GetBodySourceCode();
                 writer.Write((char *)src.c_str(), src.size());

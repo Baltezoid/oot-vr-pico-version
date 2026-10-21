@@ -30,13 +30,14 @@ static void DebugSaveIsPlay() {
     EXPECT(InPlay(true, kDebugSaveFileNum, false));
 }
 
-static void BossRushIsPlay() {
-    EXPECT(InPlay(true, kBossRushFileNum, true));
+// Boss Rush and ARENA use the temporary file.
+static void TemporaryQuestIsPlay() {
+    EXPECT(InPlay(true, kTemporaryFileNum, true));
 }
 
-// Warping.cpp also uses 0xFE for a temporary file, outside Boss Rush.
-static void TemporaryFileOutsideBossRushIsNotPlay() {
-    EXPECT(!InPlay(true, kBossRushFileNum, false));
+// Warping.cpp also uses 0xFE for a temporary file, outside Boss Rush and ARENA.
+static void TemporaryFileOutsideTemporaryQuestIsNotPlay() {
+    EXPECT(!InPlay(true, kTemporaryFileNum, false));
 }
 
 // The title screen runs a demo with the debug save; the file select keeps the quest id of the
@@ -44,7 +45,7 @@ static void TemporaryFileOutsideBossRushIsNotPlay() {
 static void OtherGameModesAreNotPlay() {
     EXPECT(!InPlay(false, 0, false));
     EXPECT(!InPlay(false, kDebugSaveFileNum, false));
-    EXPECT(!InPlay(false, kBossRushFileNum, true));
+    EXPECT(!InPlay(false, kTemporaryFileNum, true));
 }
 
 static void UnknownFileNumIsNotPlay() {
@@ -56,8 +57,8 @@ static void UnknownFileNumIsNotPlay() {
 int main() {
     SaveSlotsArePlay();
     DebugSaveIsPlay();
-    BossRushIsPlay();
-    TemporaryFileOutsideBossRushIsNotPlay();
+    TemporaryQuestIsPlay();
+    TemporaryFileOutsideTemporaryQuestIsNotPlay();
     OtherGameModesAreNotPlay();
     UnknownFileNumIsNotPlay();
     if (sFailures == 0) {

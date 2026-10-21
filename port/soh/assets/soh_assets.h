@@ -84,6 +84,10 @@ static const ALIGN_ASSET(2) char gTitleBossRushSubtitleTex[] = dgTitleBossRushSu
 #define dgTitleExploreSubtitleTex "__OTR__objects/object_mag/gTitleExploreSubtitleTex"
 static const ALIGN_ASSET(2) char gTitleExploreSubtitleTex[] = dgTitleExploreSubtitleTex;
 
+// SOH [Quest] The subtitle of the ARENA option in the quest selector.
+#define dgTitleArenaSubtitleTex "__OTR__objects/object_mag/gTitleArenaSubtitleTex"
+static const ALIGN_ASSET(2) char gTitleArenaSubtitleTex[] = dgTitleArenaSubtitleTex;
+
 #define dgOcarinaAButtonDL "__OTR__objects/object_ocarina_a_button/gOcarinaAButtonDL"
 static const ALIGN_ASSET(2) char gOcarinaAButtonDL[] = dgOcarinaAButtonDL;
 

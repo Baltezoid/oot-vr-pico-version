@@ -82,6 +82,8 @@ The game does not contain mods.
 - EXPLORE: a new file starts as adult Link in the Temple of Time, with all the
   items, songs, and medallions.
 - Boss Rush.
+- ARENA: adult Link fights waves of enemies. Each wave is larger and stronger.
+  The game shows the wave and the time when Link dies.
 - Update on the headset: the game finds a new release and installs it.
 
 ## Install
