@@ -79,10 +79,12 @@ static int DrainSpawns(Director& director, int alive, int counts[kLevels], int h
 
 static void SkipPause(Director& director) {
     SpawnRequest request;
-    for (int i = 0; i < kPauseFrames; i++) {
-        EXPECT(director.InPause());
+    int frames = 0;
+    while (director.InPause() && frames <= kStartPauseFrames) {
         EXPECT(!director.Tick(0, &request));
+        frames++;
     }
+    EXPECT(!director.InPause());
 }
 
 static void FirstWaveStartsAfterThePause() {
@@ -100,11 +102,25 @@ static void PauseShowsTheSecondsLeft() {
     EXPECT(director.PauseSecondsLeft() == 10);
     SpawnRequest request;
     director.Tick(0, &request);
-    EXPECT(director.PauseSecondsLeft() == kPauseFrames / kFramesPerSecond);
-    for (int i = 1; i < kPauseFrames - 1; i++) {
+    EXPECT(director.PauseSecondsLeft() == 10);
+    for (int i = 1; i < kStartPauseFrames - 1; i++) {
         director.Tick(0, &request);
     }
     EXPECT(director.PauseSecondsLeft() == 1);
+}
+
+// Between waves the player is ready, so the pause is shorter (headset test of issue #115).
+static void PauseBetweenWavesIsFiveSeconds() {
+    Director director;
+    director.Start();
+    SkipPause(director);
+    int counts[kLevels] = {};
+    int hyper[kLevels] = {};
+    DrainSpawns(director, 0, counts, hyper);
+    SpawnRequest request;
+    EXPECT(!director.Tick(0, &request));
+    EXPECT(director.Wave() == 2);
+    EXPECT(director.PauseSecondsLeft() == 5);
 }
 
 static void DirectorSpawnsTheWaveOfTheCurve() {
@@ -256,7 +272,8 @@ static void RestartWaveSpawnsTheWholeWaveAgain() {
     EXPECT(director.Tick(1, &request));
     director.RestartWave();
     EXPECT(director.Wave() == 3);
-    EXPECT(director.InPause());
+    // The scene loaded again, so the player needs the time to get ready.
+    EXPECT(director.PauseSecondsLeft() == 10);
     SkipPause(director);
     int counts[kLevels] = {};
     int hyper[kLevels] = {};
@@ -292,6 +309,7 @@ int main() {
     WavesAfter22AreWave22();
     FirstWaveStartsAfterThePause();
     PauseShowsTheSecondsLeft();
+    PauseBetweenWavesIsFiveSeconds();
     DirectorSpawnsTheWaveOfTheCurve();
     DirectorKeepsTheMaximumAlive();
     DirectorSpawnsAllLevelsAndHyperOfTheWave();

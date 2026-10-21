@@ -11,7 +11,9 @@ constexpr int kLevels = 4;
 constexpr int kMaxAlive = 10;
 // The game logic runs 20 times each second (R_UPDATE_RATE 3).
 constexpr int kFramesPerSecond = 20;
-constexpr int kPauseFrames = 10 * kFramesPerSecond;
+// At the start, and when the scene loads again, the player needs time to get ready. Between waves the player is ready.
+constexpr int kStartPauseFrames = 10 * kFramesPerSecond;
+constexpr int kWavePauseFrames = 5 * kFramesPerSecond;
 
 // The enemies of a wave: the number of each level, and how many of them are Hyper. Index 0 is level 1.
 struct WaveSpec {
@@ -72,12 +74,12 @@ class Director {
     // Starts at a later wave. For the tests.
     void StartAt(int wave) {
         mWave = wave;
-        BeginPause();
+        BeginPause(kStartPauseFrames);
     }
 
     // The scene loaded again, and the enemies of the wave are gone. The wave starts again after a pause.
     void RestartWave() {
-        BeginPause();
+        BeginPause(kStartPauseFrames);
     }
 
     int Wave() const {
@@ -112,7 +114,7 @@ class Director {
         if (Remaining() == 0) {
             if (alive == 0) {
                 mWave++;
-                BeginPause();
+                BeginPause(kWavePauseFrames);
             }
             return false;
         }
@@ -134,8 +136,8 @@ class Director {
     }
 
   private:
-    void BeginPause() {
-        mPauseFramesLeft = kPauseFrames;
+    void BeginPause(int frames) {
+        mPauseFramesLeft = frames;
         for (int level = 0; level < kLevels; level++) {
             mPending[level] = 0;
             mPendingHyper[level] = 0;
