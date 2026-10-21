@@ -22,6 +22,7 @@ extern "C" {
 #include "variables.h"
 #include "src/overlays/actors/ovl_Demo_Gj/z_demo_gj.h"
 #include "src/overlays/actors/ovl_Door_Shutter/z_door_shutter.h"
+#include "src/overlays/actors/ovl_En_GeldB/z_en_geldb.h"
 #include "overlays/ovl_Boss_Ganon2/ovl_Boss_Ganon2.h"
 #include "textures/icon_item_nes_static/icon_item_nes_static.h"
 #include "textures/icon_item_ger_static/icon_item_ger_static.h"
@@ -200,9 +201,22 @@ static f32 FloorBelow(PlayState* play, f32 x, f32 z) {
     return BgCheck_AnyRaycastFloor1(&play->colCtx, &poly, &pos);
 }
 
+// Baby Dodongos and Tailpasarans stay in the floor until Link comes near. The Ganon arena is large, so the player must
+// walk all of it to find them. They do not come in that arena.
+static bool IsInArena(const ArenaEnemy& enemy) {
+    return sArena->sceneNum != SCENE_GANON_BOSS || (enemy.id != ACTOR_EN_DODOJR && enemy.id != ACTOR_EN_TP);
+}
+
 static bool SpawnEnemy(PlayState* play, const ArenaRules::SpawnRequest& request) {
     const EnemyLevel& level = sLevels[request.level];
-    const ArenaEnemy& enemy = level.enemies[static_cast<int>(Rand_ZeroOne() * level.count) % level.count];
+    std::array<const ArenaEnemy*, 16> choices;
+    int count = 0;
+    for (int i = 0; i < level.count && count < static_cast<int>(choices.size()); i++) {
+        if (IsInArena(level.enemies[i])) {
+            choices[count++] = &level.enemies[i];
+        }
+    }
+    const ArenaEnemy& enemy = *choices[static_cast<int>(Rand_ZeroOne() * count) % count];
     Player* player = GET_PLAYER(play);
 
     auto random = []() { return Rand_ZeroOne(); };
@@ -297,6 +311,15 @@ static void OnPlayerUpdate() {
 
     if (sDead || gSaveContext.health <= 0) {
         return;
+    }
+    // The spin attack of a Gerudo fighter catches Link (EnGeldB_SpinAttack), and the draw of the fighter then sends him
+    // to the jail. ARENA blocks the jail (EnemyRandomizer.cpp), and the game does not draw a fighter out of the view, so
+    // Link stays caught. Release Link and let the fighter attack again: the catch only knocks Link down.
+    if (player->csAction == PLAYER_CSACTION_24 && player->csActor != NULL && player->csActor->id == ACTOR_EN_GELDB) {
+        reinterpret_cast<EnGeldB*>(player->csActor)->spinAttackState = 0;
+        Player_SetCsAction(play, NULL, PLAYER_CSACTION_7);
+        Message_CloseTextbox(play);
+        SPDLOG_INFO("[ARENA] Link released from a Gerudo fighter");
     }
     if (Player_InBlockingCsMode(play, player)) {
         if (play->gameplayFrames % 40 == 0) {
@@ -594,8 +617,8 @@ extern "C" void Arena_InitSave(void) {
     // Without this flag, the first entrance to the scene of Ganon plays the collapse of the castle.
     Flags_SetEventChkInf(EVENTCHKINF_WATCHED_GANONS_CASTLE_COLLAPSE_CAUGHT_BY_GERUDO);
 
-    // 20 hearts and double magic.
-    gSaveContext.healthCapacity = gSaveContext.health = 20 * 16;
+    // 10 hearts and double magic. With 20 hearts, the first waves were too easy on the headset.
+    gSaveContext.healthCapacity = gSaveContext.health = 10 * 16;
     gSaveContext.isMagicAcquired = true;
     gSaveContext.isDoubleMagicAcquired = true;
     gSaveContext.magicLevel = 2;
@@ -672,17 +695,18 @@ extern "C" void Arena_Draw(PlayState* play) {
 
     SetupTextDraw(play->state.gfxCtx);
 
-    // Below the gameplay timer (Interface_DrawTotalGameplayTimer).
-    snprintf(line, sizeof(line), "%s %d", waveText, sDirector.Wave());
-    DrawTextLine(play->state.gfxCtx, line, OTRGetRectDimensionFromLeftEdge(24), 92, 1.0f, 255, 255, 255);
-    if (!sDirector.InPause()) {
-        char left[32];
-        snprintf(left, sizeof(left), "%s: %d", sEnemiesLeftText[TextLanguage()],
+    // One line below the gameplay timer (Interface_DrawTotalGameplayTimer, y 73). The wrist HUD shows only y 0 to 100
+    // of this area (kWristHudStatusTop in vr_openxr.cpp), so a second line is not visible.
+    if (sDirector.InPause()) {
+        snprintf(line, sizeof(line), "%s %d", waveText, sDirector.Wave());
+    } else {
+        snprintf(line, sizeof(line), "%s %d   %s: %d", waveText, sDirector.Wave(), sEnemiesLeftText[TextLanguage()],
                  sDirector.EnemiesLeft(CountAliveEnemies()));
-        DrawTextLine(play->state.gfxCtx, left, OTRGetRectDimensionFromLeftEdge(24), 108, 1.0f, 255, 255, 255);
     }
+    DrawTextLine(play->state.gfxCtx, line, OTRGetRectDimensionFromLeftEdge(24), 87, 0.9f, 255, 255, 255);
 
     if (sDirector.InPause()) {
+        snprintf(line, sizeof(line), "%s %d", waveText, sDirector.Wave());
         DrawCenteredLine(play->state.gfxCtx, line, 70, 2.5f, 255, 200, 50);
         snprintf(line, sizeof(line), "%d", sDirector.PauseSecondsLeft());
         DrawCenteredLine(play->state.gfxCtx, line, 115, 2.0f, 255, 255, 255);
