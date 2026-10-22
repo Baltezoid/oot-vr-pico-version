@@ -81,6 +81,17 @@ inline int NextTier(int tier, float tipSpeed, float handSpeed, const Speeds& s) 
     return tier;
 }
 
+// The player->meleeWeaponState value for a tier, as a vanilla attack sets it.
+inline int MeleeWeaponState(int tier) {
+    return (tier == kHot) ? 1 : (tier == kArmed) ? -1 : 0;
+}
+
+// A swing ends when the player puts the weapon away. An item change and a burned stick also put
+// the weapon away.
+inline int TierWhenCovered(int tier, bool covered) {
+    return covered ? tier : kIdle;
+}
+
 // The vanilla game breaks the Deku Stick when an attack hits, bounces, or strikes a wall
 // (func_80842DF4). Physical combat uses the same three events.
 inline bool StickStrikeBreaks(bool quadHit, bool quadBounced, bool hotWallContact) {

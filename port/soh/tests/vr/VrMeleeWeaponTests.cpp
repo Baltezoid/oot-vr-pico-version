@@ -84,6 +84,24 @@ static void HotStaysHotUntilTheSwingDecays() {
     EXPECT(NextTier(kArmed, 0.5f, 0.0f, kDefaults) == kIdle);
 }
 
+static void TierSetsTheVanillaMeleeState() {
+    EXPECT(MeleeWeaponState(kIdle) == 0);
+    EXPECT(MeleeWeaponState(kArmed) == -1);
+    EXPECT(MeleeWeaponState(kHot) == 1);
+}
+
+// #125: vanilla stops Link at a ledge while meleeWeaponState is not 0.
+static void PutAwayWeaponEndsTheSwing() {
+    EXPECT(TierWhenCovered(kArmed, false) == kIdle);
+    EXPECT(TierWhenCovered(kHot, false) == kIdle);
+}
+
+static void HeldWeaponKeepsTheSwing() {
+    EXPECT(TierWhenCovered(kArmed, true) == kArmed);
+    EXPECT(TierWhenCovered(kHot, true) == kHot);
+    EXPECT(TierWhenCovered(kIdle, true) == kIdle);
+}
+
 static void StickBreaksOnEveryVanillaStrike() {
     EXPECT(StickStrikeBreaks(true, false, false));
     EXPECT(StickStrikeBreaks(false, true, false));
@@ -114,6 +132,9 @@ int main() {
     FastSwingHits();
     WristFlickDoesNotHit();
     HotStaysHotUntilTheSwingDecays();
+    TierSetsTheVanillaMeleeState();
+    PutAwayWeaponEndsTheSwing();
+    HeldWeaponKeepsTheSwing();
     StickBreaksOnEveryVanillaStrike();
     StickDoesNotBreakWithoutAStrike();
     OnlyWallsCountAsWalls();

@@ -970,6 +970,13 @@ void PushContactPrims(PlayState* play, Player* player, const Vec3f& base, const 
     sDebugPrimCount = n;
 }
 
+// Turns off the three vanilla weapon colliders, as func_80832318 does.
+void ClearMeleeWeaponInfo(Player* player) {
+    player->meleeWeaponInfo[0].active = 0;
+    player->meleeWeaponInfo[1].active = 0;
+    player->meleeWeaponInfo[2].active = 0;
+}
+
 void EnsureQuads(PlayState* play, Player* player) {
     if (sQuadsPlay == play) {
         return;
@@ -1269,7 +1276,7 @@ extern "C" void VrCombat_FeedMelee(PlayState* play, Player* player) {
     if (sTier == VrMeleeWeapon::kIdle) {
         player->meleeWeaponState = 0;
     } else {
-        VrCombat_SetMeleeWeaponState(player, (sTier == VrMeleeWeapon::kHot) ? 1 : -1);
+        VrCombat_SetMeleeWeaponState(player, VrMeleeWeapon::MeleeWeaponState(sTier));
     }
 
     // ---- 4. Sword trail ----
@@ -1281,9 +1288,7 @@ extern "C" void VrCombat_FeedMelee(PlayState* play, Player* player) {
                                   &player->meleeWeaponInfo[0].tip, &player->meleeWeaponInfo[0].base);
         }
     } else {
-        player->meleeWeaponInfo[0].active = 0;
-        player->meleeWeaponInfo[1].active = 0;
-        player->meleeWeaponInfo[2].active = 0;
+        ClearMeleeWeaponInfo(player);
     }
 
     // ---- 5. Swept damage quads while HOT ----
@@ -1462,9 +1467,19 @@ void Swing_OnPlayerUpdate(PlayState* play, Player* player) {
 
     // Weapon switched to something physical combat doesn't cover: release the sim slot so the
     // hand pose reverts to the raw controller (the draw-time feed only runs for covered weapons).
-    if (!VrCombat_MeleeCovered(player)) {
+    // The draw-time feed sets meleeWeaponState only while Link holds a covered weapon. Thus end
+    // the swing here when the player puts the weapon away. A state of -1 stops Link at each
+    // ledge (#125).
+    const bool covered = VrCombat_MeleeCovered(player);
+    if (!covered) {
         VR_PhysSetObject(VR_PHYS_SLOT_WEAPON, NULL);
         VR_PhysSetContactPrims(NULL, 0);
+    }
+    const int tier = VrMeleeWeapon::TierWhenCovered(sTier, covered);
+    if (tier != sTier) {
+        sTier = tier;
+        player->meleeWeaponState = VrMeleeWeapon::MeleeWeaponState(sTier);
+        ClearMeleeWeaponInfo(player);
     }
 
     // Contact events from the sim: impact SFX + sparks at the contact point (the matching
@@ -1673,9 +1688,7 @@ void Swing_Deactivate(PlayState* play, Player* player) {
     memset(sPuppets, 0, sizeof(sPuppets));
     sImpulseCount = 0;
     player->meleeWeaponState = 0;
-    player->meleeWeaponInfo[0].active = 0;
-    player->meleeWeaponInfo[1].active = 0;
-    player->meleeWeaponInfo[2].active = 0;
+    ClearMeleeWeaponInfo(player);
     if (sQuadsPlay == play) {
         for (int i = 0; i < kMaxQuads; i++) {
             Collider_ResetQuadAT(play, &sQuads[i].base);
