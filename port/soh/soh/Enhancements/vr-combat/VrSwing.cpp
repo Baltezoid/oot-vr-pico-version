@@ -1032,6 +1032,10 @@ extern "C" bool VrCombat_MeleeCovered(Player* player) {
     return VrMeleeWeapon::Covered(Player_GetMeleeWeaponHeld(player));
 }
 
+extern "C" bool VrCombat_SwingIgnoresLedges(Player* player) {
+    return VrCombat_Active() && VrCombat_MeleeCovered(player);
+}
+
 extern "C" bool VrCombat_MeleeQuadsHit(void) {
     if (sQuadsPlay == nullptr) {
         return false;
