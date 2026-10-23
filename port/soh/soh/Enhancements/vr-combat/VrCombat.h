@@ -39,6 +39,11 @@ bool VrCombat_MeleeCovered(struct Player* player);
 // gated swept sub-quads as AT colliders.
 void VrCombat_FeedMelee(struct PlayState* play, struct Player* player);
 
+// True while physical combat drives meleeWeaponState. Vanilla stops Link at a ledge during an
+// attack, because the attack moves Link forward. A physical swing does not move Link. Thus the
+// ledge stop in func_8083AA10 does not use the state then (#125).
+bool VrCombat_SwingIgnoresLedges(struct Player* player);
+
 // True while any physical-melee quad has an AT hit recorded this tick. OR'd into the vanilla
 // "landing an attack cancels incoming damage this frame" check, which only knows about the
 // player's own two quads.
