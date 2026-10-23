@@ -28,6 +28,7 @@
 #include "soh/Enhancements/game-interactor/GameInteractor.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
 #include "soh/Enhancements/vr-combat/VrCombat.h"
+#include "soh/Enhancements/vr-combat/VrClimb.h" // SOH [VR]
 #include "soh/Enhancements/randomizer/randomizer_entrance.h"
 #include "soh/Enhancements/randomizer/randomizer_grotto.h"
 #include "soh/frame_interpolation.h"
@@ -11597,6 +11598,14 @@ void Player_ProcessSceneCollision(PlayState* play, Player* this) {
         s32 wallBgId;
         s16 yawDiff;
         s32 pad;
+        // SOH [VR] While Link walks, the wall and ledge checks use the stick direction, not the
+        // direction of the headset (#136). The block puts the body direction back at its end.
+        s16 vrBodyYaw = this->actor.shape.rot.y;
+
+        this->actor.shape.rot.y =
+            VrClimb_WallCheckYaw(Player_VrDirectMovement(this), sVrLockOnActive,
+                                 Player_VrIsNeutralLocomotion(this) && (this->linearVelocity != 0.0f), vrBodyYaw,
+                                 this->yaw);
 
         sInteractWallCheckOffset.y = 18.0f;
         sInteractWallCheckOffset.z = this->ageProperties->wallCheckRadius + 10.0f;
@@ -11701,6 +11710,8 @@ void Player_ProcessSceneCollision(PlayState* play, Player* this) {
                 }
             }
         }
+
+        this->actor.shape.rot.y = vrBodyYaw; // SOH [VR]
     } else {
         this->unk_880 = R_RUN_SPEED_LIMIT / 100.0f;
         this->ledgeClimbDelayTimer = 0;
@@ -13676,6 +13687,18 @@ void Player_Action_8084BF1C(Player* this, PlayState* play) {
 
     sp84 = sControlInput->rel.stick_y;
     sp80 = sControlInput->rel.stick_x;
+
+    // SOH [VR] The stick moves Link relative to the headset. Toward the wall climbs up, away from
+    // the wall climbs down, along the wall moves sideways (#136). The body faces the wall.
+    if (VR_IsInitialized() && VR_GetFirstPerson()) {
+        s32 vrMirror = CVarGetInteger(CVAR_ENHANCEMENT("MirroredWorld"), 0) ? -1 : 1;
+        s32 vrWallX;
+        s32 vrWallY;
+
+        VrClimb_StickToWall(VR_GetHeadingYaw(), this->actor.shape.rot.y, vrMirror * sp80, sp84, &vrWallX, &vrWallY);
+        sp80 = vrMirror * vrWallX;
+        sp84 = vrWallY;
+    }
 
     this->fallStartHeight = this->actor.world.pos.y;
     this->stateFlags2 |= PLAYER_STATE2_DISABLE_ROTATION_ALWAYS;
