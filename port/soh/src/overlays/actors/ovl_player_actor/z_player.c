@@ -13686,6 +13686,18 @@ void Player_Action_8084BF1C(Player* this, PlayState* play) {
     sp84 = sControlInput->rel.stick_y;
     sp80 = sControlInput->rel.stick_x;
 
+    // SOH [VR] The stick moves Link relative to the headset. Toward the wall climbs up, away from
+    // the wall climbs down, along the wall moves sideways (#136). The body faces the wall.
+    if (VR_IsInitialized() && VR_GetFirstPerson()) {
+        s32 vrMirror = CVarGetInteger(CVAR_ENHANCEMENT("MirroredWorld"), 0) ? -1 : 1;
+        s32 vrWallX;
+        s32 vrWallY;
+
+        VrClimb_StickToWall(VR_GetHeadingYaw(), this->actor.shape.rot.y, vrMirror * sp80, sp84, &vrWallX, &vrWallY);
+        sp80 = vrMirror * vrWallX;
+        sp84 = vrWallY;
+    }
+
     this->fallStartHeight = this->actor.world.pos.y;
     this->stateFlags2 |= PLAYER_STATE2_DISABLE_ROTATION_ALWAYS;
 
