@@ -120,10 +120,10 @@ static void OnlyWallsCountAsWalls() {
     EXPECT(!IsWallNormal(0.8f));  // slope
 }
 
-static void FastSwingDoesNormalSlashDamageByDefault() {
+static void DefaultHeavySpeedGivesSlashDamage() {
     // Issue #131: a fast swing is easy in VR. With the jump slash flags, bosses took double damage.
-    EXPECT(!IsHeavySwing(20.0f, kHeavySpeedOff));
-    EXPECT(DmgFlags(kMaster, false, IsHeavySwing(20.0f, kHeavySpeedOff)) == 0x00000200);
+    EXPECT(!IsHeavySwing(20.0f, kDefaultHeavySpeed));
+    EXPECT(DmgFlags(kMaster, false, IsHeavySwing(20.0f, kDefaultHeavySpeed)) == 0x00000200);
 }
 
 static void HeavySwingNeedsTheSetSpeed() {
@@ -149,7 +149,7 @@ int main() {
     StickBreaksOnEveryVanillaStrike();
     StickDoesNotBreakWithoutAStrike();
     OnlyWallsCountAsWalls();
-    FastSwingDoesNormalSlashDamageByDefault();
+    DefaultHeavySpeedGivesSlashDamage();
     HeavySwingNeedsTheSetSpeed();
 
     if (sFailures != 0) {

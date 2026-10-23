@@ -43,7 +43,7 @@ inline uint32_t DmgFlags(int held, bool brokenKnife, bool heavy) {
 // A heavy swing needs a tip speed of heavySpeed or more. heavySpeed 0 turns heavy swings off. Off
 // is the default: a fast swing is easy in VR, and the jump slash flags doubled the damage to
 // bosses (issue #131). A vanilla slash does the normal damage, and only a jump attack does more.
-constexpr float kHeavySpeedOff = 0.0f;
+constexpr float kDefaultHeavySpeed = 0.0f;
 inline bool IsHeavySwing(float tipSpeed, float heavySpeed) {
     return heavySpeed > 0.0f && tipSpeed >= heavySpeed;
 }
