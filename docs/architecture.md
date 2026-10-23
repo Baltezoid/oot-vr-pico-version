@@ -149,10 +149,19 @@ does the block.
   `PLAYER_STATE1_SHIELDING`. The physical shield does not set this flag.
   These actors also call `VrCombat_ShieldFacesPoint`. Thus, a shield that
   points at the beam reflects it.
+- **Melee weapon before shield.** The shield is an attack in each frame while
+  it is in the hand. The collision check keeps only the last hit on a target,
+  and the shield registers after the melee weapon. Thus, when a melee weapon
+  and the shield hit the same target in one frame, `CollisionCheck_SetATvsAC`
+  ignores the shield hit (`VrCombat_ShieldYieldsToMeleeWeapon`). The sword then
+  sends the balls of Phantom Ganon and Ganondorf back. A ball that only the
+  shield touches breaks, as in the vanilla game.
 
 The pure geometry is in `VrShieldGeometry.h`. The host unit tests are in
 `port/soh/tests/vr/VrShieldGeometryTests.cpp`. The first lines of the file
-show how to run them.
+show how to run them. The rule for the melee weapon and the shield is in
+`VrShieldHit.h`. Its host unit tests are in
+`port/soh/tests/vr/VrShieldHitTests.cpp`, and they run in the same way.
 
 ## Item selector
 

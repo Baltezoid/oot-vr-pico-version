@@ -1048,6 +1048,18 @@ extern "C" bool VrCombat_MeleeQuadsHit(void) {
     return false;
 }
 
+extern "C" bool VrCombat_IsMeleeQuad(const void* collider) {
+    if (collider == nullptr || sQuadsPlay == nullptr) {
+        return false;
+    }
+    for (int i = 0; i < sQuadsUsed; i++) {
+        if (collider == (const void*)&sQuads[i].base) {
+            return true;
+        }
+    }
+    return false;
+}
+
 extern "C" void VrCombat_FeedMelee(PlayState* play, Player* player) {
     EnsureQuads(play, player);
 

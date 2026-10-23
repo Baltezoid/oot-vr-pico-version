@@ -49,6 +49,9 @@ bool VrCombat_SwingIgnoresLedges(struct Player* player);
 // player's own two quads.
 bool VrCombat_MeleeQuadsHit(void);
 
+// True if the collider is one of the physical-melee quads (VrSwing.cpp).
+bool VrCombat_IsMeleeQuad(const void* collider);
+
 // Implemented in z_player.c (// SOH [VR]): forwards to the file-internal melee-weapon-state
 // setter func_80833A20, which plays the swing SFX / voice and counts the swing stat on the
 // 0 -> nonzero edge. The vr-combat module drives the state from real hand motion.
@@ -98,6 +101,10 @@ void VrCombat_FlinchWarpEnd(void);
 // center of the block collider.
 bool VrCombat_ShieldHeld(struct Player* player);
 bool VrCombat_ShieldFacingVeto(void* acCollider, void* atCollider);
+// ShieldYieldsToMeleeWeapon: called from CollisionCheck_SetATvsAC. True when the attack is the
+// physical shield quad and a melee weapon quad already hit the same AC element in this frame.
+// The caller then ignores the shield hit, so the melee weapon hit stays (VrShieldHit.h, #132).
+bool VrCombat_ShieldYieldsToMeleeWeapon(void* atCollider, void* acInfo);
 int32_t VrCombat_ShieldBlockJudge(struct Player* player);
 bool VrCombat_ShieldFacesPoint(struct Player* player, const float* pointXyz, float* outCenterXyz);
 
