@@ -3,6 +3,7 @@
 #include "global.h"
 #include "soh/OTRGlobals.h"
 #include "soh/Enhancements/audio/AudioEditor.h"
+#include "soh/Enhancements/audio/OcarinaNoteTimer.h" // SOH [Quest]
 #include "soh/Enhancements/game-interactor/GameInteractor.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
 #include "soh/Enhancements/savestate_serialize.h"
@@ -2089,7 +2090,8 @@ void AudioOcarina_PlaybackSong(void) {
                 }
                 return;
             } else {
-                sPlaybackNoteTimer -= nextNoteTimerStep;
+                // SOH [Quest] Do not let the timer go below zero. Read OcarinaNoteTimer.h.
+                sPlaybackNoteTimer = OcarinaNoteTimer_Next(sPlaybackNoteTimer, nextNoteTimerStep);
             }
 
             // Update volume
