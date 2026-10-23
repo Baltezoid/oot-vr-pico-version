@@ -120,6 +120,17 @@ static void OnlyWallsCountAsWalls() {
     EXPECT(!IsWallNormal(0.8f));  // slope
 }
 
+static void FastSwingDoesNormalSlashDamageByDefault() {
+    // Issue #131: a fast swing is easy in VR. With the jump slash flags, bosses took double damage.
+    EXPECT(!IsHeavySwing(20.0f, kHeavySpeedOff));
+    EXPECT(DmgFlags(kMaster, false, IsHeavySwing(20.0f, kHeavySpeedOff)) == 0x00000200);
+}
+
+static void HeavySwingNeedsTheSetSpeed() {
+    EXPECT(!IsHeavySwing(7.9f, 8.0f));
+    EXPECT(IsHeavySwing(8.0f, 8.0f));
+}
+
 int main() {
     AllMeleeWeaponsAreCovered();
     EmptyHandsAreNotCovered();
@@ -138,6 +149,8 @@ int main() {
     StickBreaksOnEveryVanillaStrike();
     StickDoesNotBreakWithoutAStrike();
     OnlyWallsCountAsWalls();
+    FastSwingDoesNormalSlashDamageByDefault();
+    HeavySwingNeedsTheSetSpeed();
 
     if (sFailures != 0) {
         std::printf("%d failure(s)\n", sFailures);

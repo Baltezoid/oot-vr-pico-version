@@ -28,9 +28,9 @@ MtxF* Matrix_GetCurrent(void);
 //     construction the vanilla game uses (quad = line at t0 -> line at t1, two skewed edge lines
 //     so even a straight stab has quad area), but sub-sampled up to 3 time segments per tick so
 //     a fast arc keeps its shape instead of cutting the corner.
-//  4. Damage class: normal HOT swings carry the weapon's slash dmgFlags; swings past
-//     gVrPhysHeavySpeed carry its jump-slash dmgFlags (~2x in enemy damage tables) — every
-//     enemy's authored damage table and vulnerability set keeps working untouched.
+//  4. Damage class: HOT swings carry the weapon's slash dmgFlags. If gVrPhysHeavySpeed is set
+//     (off by default, issue #131), swings past it carry its jump-slash dmgFlags (~2x in enemy
+//     damage tables) — every enemy's authored damage table and vulnerability set keeps working.
 //  5. On a recorded hit the tier drops back to ARMED: one strike per swing, re-cross the hit
 //     speed to strike again (enemy i-frames additionally gate repeats on their side).
 //
@@ -1154,7 +1154,7 @@ extern "C" void VrCombat_FeedMelee(PlayState* play, Player* player) {
     // ---- 2. Tier hysteresis ----
     // Damage additionally requires the HAND itself to move: a stationary-wrist flick can spin
     // the blade fast but never hurts anything (it still arms — trail/SFX/AI windup feedback).
-    const float heavySpeed = CVarGetFloat("gVrPhysHeavySpeed", 8.0f);
+    const float heavySpeed = CVarGetFloat("gVrPhysHeavySpeed", VrMeleeWeapon::kHeavySpeedOff);
     const VrMeleeWeapon::Speeds speeds = {
         CVarGetFloat("gVrPhysArmSpeed", 2.0f),
         CVarGetFloat("gVrPhysHitSpeed", 5.0f),
@@ -1324,7 +1324,7 @@ extern "C" void VrCombat_FeedMelee(PlayState* play, Player* player) {
     VrBladeSample bladePath[16];
     const int bladeN = inertiaOn ? VR_PhysGetBladePath(VR_PHYS_SLOT_WEAPON, bladePath, 16) : 0;
     if (sTier == VrMeleeWeapon::kHot) {
-        const uint32_t dmgFlags = WeaponDmgFlags(player, sTickTipSpeed >= heavySpeed);
+        const uint32_t dmgFlags = WeaponDmgFlags(player, VrMeleeWeapon::IsHeavySwing(sTickTipSpeed, heavySpeed));
 
         if (bladeN >= 2) {
             // Sweep quads between consecutive sim blade lines (evenly picked, max 5)...
@@ -1530,11 +1530,11 @@ void Swing_OnPlayerUpdate(PlayState* play, Player* player) {
         // A damaging swing that physically struck something: queue a strike for the next draw.
         // Damage class from the swing that carried the impact.
         if (sTier == VrMeleeWeapon::kHot && sPendingStrikeCount < 4) {
-            const float heavySpeed = CVarGetFloat("gVrPhysHeavySpeed", 8.0f);
+            const float heavySpeed = CVarGetFloat("gVrPhysHeavySpeed", VrMeleeWeapon::kHeavySpeedOff);
             PendingStrike& st = sPendingStrikes[sPendingStrikeCount++];
             st.pos = pos;
             st.normal = { events[i].normal[0], events[i].normal[1], events[i].normal[2] };
-            st.dmgFlags = WeaponDmgFlags(player, sTickTipSpeed >= heavySpeed);
+            st.dmgFlags = WeaponDmgFlags(player, VrMeleeWeapon::IsHeavySwing(sTickTipSpeed, heavySpeed));
             st.cross = Player_GetMeleeWeaponHeld(player) == VrMeleeWeapon::kHammer;
         }
     }

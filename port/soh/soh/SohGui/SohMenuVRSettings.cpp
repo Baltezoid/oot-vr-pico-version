@@ -1427,9 +1427,10 @@ void SohMenu::AddMenuVRSettings() {
             "at the weapon's normal slash strength."));
     AddWidget(devPath, "Strong Hit At: %.1f m/s", WIDGET_CVAR_SLIDER_FLOAT)
         .CVar("gVrPhysHeavySpeed")
-        .Options(FloatSliderOptions().Min(1.0f).Max(16.0f).DefaultValue(8.0f).Step(0.1f).Format("%.1f").Tooltip(
+        .Options(FloatSliderOptions().Min(0.0f).Max(16.0f).DefaultValue(0.0f).Step(0.1f).Format("%.1f").Tooltip(
             "Tip speed for a committed swing: damage steps up to the weapon's "
-            "jump-slash class (double against most enemies)."));
+            "jump-slash class (double against most enemies). 0 turns it off, "
+            "so every swing does normal slash damage, as in the original game."));
     AddWidget(devPath, "Re-Arm Below: %.1f m/s", WIDGET_CVAR_SLIDER_FLOAT)
         .CVar("gVrPhysReArmSpeed")
         .Options(FloatSliderOptions().Min(0.1f).Max(4.0f).DefaultValue(0.8f).Step(0.1f).Format("%.1f").Tooltip(
@@ -1775,7 +1776,7 @@ void SohMenu::AddMenuVRSettings() {
                      "gVrPhysShieldFacingDeg=%.0f\n"
                      "gVrPhysShieldFitMesh=%d\n",
                      CVarGetFloat("gVrPhysArmSpeed", 2.0f), CVarGetFloat("gVrPhysHitSpeed", 5.0f),
-                     CVarGetFloat("gVrPhysHeavySpeed", 8.0f), CVarGetFloat("gVrPhysReArmSpeed", 0.8f),
+                     CVarGetFloat("gVrPhysHeavySpeed", 0.0f), CVarGetFloat("gVrPhysReArmSpeed", 0.8f),
                      CVarGetFloat("gVrPhysMinHandSpeed", 1.2f), CVarGetFloat("gVrPhysBladeLenKokiri", 18.0f),
                      CVarGetFloat("gVrPhysBladeLenMaster", 35.0f), CVarGetFloat("gVrPhysBladeLenBiggoron", 55.0f),
                      CVarGetFloat("gVrPhysBladeLenHammer", 25.0f), CVarGetFloat("gVrPhysHammerSlamSpeed", 4.0f),
