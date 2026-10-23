@@ -162,12 +162,16 @@ change the vanilla path:
 
 1. No button changes the held item (`VB_CHANGE_HELD_ITEM_AND_USE_ITEM`).
 2. The off-hand trigger is the button of the held item. The sword-hand trigger
-   is Z-target (`VrItemSelect_TriggerItemMask`).
+   is Z-target in first person and in third person
+   (`VrItemSelect_TriggerItemMask`).
 3. The item selector takes a throwable item out and does not use it
    (`SelectorOnlyTakesOut`, `VrItemSelect_BlocksUse`).
 
 `Player_UseItem` in `z_player.c` uses an instant item immediately.
 `HeldItemVrHand` tells which hand holds the item.
+
+The rule for the role of each trigger is in `VrTriggerRole.h`. The host unit
+tests are in `port/soh/tests/vr/VrTriggerRoleTests.cpp`.
 
 ## Bomb belt
 

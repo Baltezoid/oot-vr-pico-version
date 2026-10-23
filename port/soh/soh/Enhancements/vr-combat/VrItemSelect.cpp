@@ -10,6 +10,7 @@ s8 Player_ItemToItemAction(s32 item);
 }
 
 #include "VrCombat.h"
+#include "VrTriggerRole.h"
 
 #include "soh/Enhancements/game-interactor/GameInteractor.h"
 #include "soh/ShipInit.hpp"
@@ -36,8 +37,8 @@ s8 Player_ItemToItemAction(s32 item);
 // and padmgr skips the held input's normal button binding via VrItemSelect_ConsumesInput.
 //
 // SELECTOR MODE also changes how items are USED. The selector equips; the OFF-HAND TRIGGER fires
-// the held item, in either hand, and the sword-hand trigger is always Z-target. That is three
-// rules, all below:
+// the held item, in either hand, and the sword-hand trigger is always Z-target, also in third
+// person (VrTriggerRole.h). That is three rules, all below:
 //
 //  1. No button may CHANGE the held item (VB_CHANGE_HELD_ITEM_AND_USE_ITEM below). One rule
 //     covers "C buttons no longer pull out items" AND "B no longer draws the sword" — drawing
@@ -625,25 +626,32 @@ extern "C" bool VrItemSelect_SwapChordHeld(void) {
 }
 
 extern "C" uint16_t VrItemSelect_TriggerItemMask(int32_t vrHand) {
-    if (!SelectorModeInPlay() || gPlayState == NULL) {
+    if (gPlayState == NULL) {
         return 0;
     }
-    // While the ocarina is up its own binding set rules: without this, the off-hand
-    // trigger would keep mirroring the ocarina's equip C button and blare that note.
-    if (OcarinaInPlay()) {
+    // Fixed roles, whatever is in the hands (VrTriggerRole.h). The sword-hand trigger is
+    // Z-target in first person and in third person (#79). The off-hand trigger uses the held
+    // item, in either hand, in first person only. An input that keeps one meaning is easier in
+    // VR than one that follows the held item. During ocarina play, the ocarina binding set
+    // controls the triggers. Without that, the off-hand trigger plays the note of the ocarina's
+    // C button.
+    VrTriggerRole::View view = {};
+    view.selectorOn = CVarGetInteger("gVrItemSelect", 1) != 0;
+    view.vrInitialized = VR_IsInitialized();
+    if (view.vrInitialized) {
+        view.firstPerson = VR_GetFirstPerson();
+        view.flatScreen = VR_IsFlatScreen();
+    }
+    view.ocarinaInPlay = OcarinaInPlay();
+    const VrTriggerRole::Role role = VrTriggerRole::For(view, vrHand == SwordHand());
+    if (role == VrTriggerRole::Role::ZTarget) {
+        return BTN_Z;
+    }
+    if (role != VrTriggerRole::Role::HeldItem) {
         return 0;
     }
     Player* player = GET_PLAYER(gPlayState);
-    if (player == NULL) {
-        return 0;
-    }
-    // Fixed roles, whatever is in the hands: the sword-hand trigger is always Z-target, and the
-    // off-hand trigger always uses the held item — in either hand. An input that never changes
-    // meaning is easier in VR than one that follows the held item.
-    if (vrHand == SwordHand()) {
-        return BTN_Z;
-    }
-    if (HeldItemVrHand(player) < 0) {
+    if (player == NULL || HeldItemVrHand(player) < 0) {
         return 0;
     }
     // Physical combat owns the weapons it covers: the swing IS the attack, so the trigger stays
