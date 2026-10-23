@@ -113,10 +113,11 @@ bool VrItemSelect_ConsumesInput(int32_t vrHand, uint16_t vrBtnMask);
 // TriggerItemMask: the N64 button this hand's trigger answers to, or 0 — padmgr ORs it into
 // the pad while that hand's trigger is DOWN, as button state rather than a one-frame press, so
 // press/hold/release all come out of the vanilla item path (that is what makes draw-and-hold and
-// release-to-fire work with nothing re-implemented). The sword-hand trigger always answers BTN_Z
-// (Z-target); the off-hand trigger answers the held item's button, or 0 for empty hands and for
-// weapons physical combat covers, where the swing is the attack. TriggerConsumed: both triggers are reserved in selector mode, so
-// padmgr skips their normal bindings.
+// release-to-fire work with nothing re-implemented). The sword-hand trigger is BTN_Z (Z-target)
+// in first person and in third person (#79, VrTriggerRole.h). The off-hand trigger is the held
+// item's button in first person only. It is 0 for empty hands and for weapons that physical
+// combat covers: the swing is the attack. TriggerConsumed: while gVrItemSelect is on, both
+// triggers are reserved in every view, so padmgr skips their normal bindings.
 bool VrItemSelect_ModeActive(void);
 uint16_t VrItemSelect_TriggerItemMask(int32_t vrHand);
 bool VrItemSelect_TriggerConsumed(int32_t vrHand, uint16_t vrBtnMask);
