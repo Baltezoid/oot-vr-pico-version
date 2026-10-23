@@ -28,6 +28,7 @@
 #include "soh/Enhancements/game-interactor/GameInteractor.h"
 #include "soh/Enhancements/game-interactor/GameInteractor_Hooks.h"
 #include "soh/Enhancements/vr-combat/VrCombat.h"
+#include "soh/Enhancements/vr-combat/VrClimb.h" // SOH [VR]
 #include "soh/Enhancements/randomizer/randomizer_entrance.h"
 #include "soh/Enhancements/randomizer/randomizer_grotto.h"
 #include "soh/frame_interpolation.h"
@@ -11595,6 +11596,14 @@ void Player_ProcessSceneCollision(PlayState* play, Player* this) {
         s32 wallBgId;
         s16 yawDiff;
         s32 pad;
+        // SOH [VR] While Link walks, the wall and ledge checks use the stick direction, not the
+        // direction of the headset (#136). The block puts the body direction back at its end.
+        s16 vrBodyYaw = this->actor.shape.rot.y;
+
+        this->actor.shape.rot.y =
+            VrClimb_WallCheckYaw(Player_VrDirectMovement(this), sVrLockOnActive,
+                                 Player_VrIsNeutralLocomotion(this) && (this->linearVelocity != 0.0f), vrBodyYaw,
+                                 this->yaw);
 
         sInteractWallCheckOffset.y = 18.0f;
         sInteractWallCheckOffset.z = this->ageProperties->wallCheckRadius + 10.0f;
@@ -11699,6 +11708,8 @@ void Player_ProcessSceneCollision(PlayState* play, Player* this) {
                 }
             }
         }
+
+        this->actor.shape.rot.y = vrBodyYaw; // SOH [VR]
     } else {
         this->unk_880 = R_RUN_SPEED_LIMIT / 100.0f;
         this->ledgeClimbDelayTimer = 0;
