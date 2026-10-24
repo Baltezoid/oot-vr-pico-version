@@ -368,8 +368,7 @@ extern "C" bool VrCombat_ShieldHitIgnored(void* atCollider, void* acCollider, vo
         return false;
     }
     const ColliderInfo* info = (const ColliderInfo*)acInfo;
-    // The AC collider registers again in each frame, and the registration clears BUMP_HIT and
-    // acHit. Thus a set BUMP_HIT is a hit in this collision pass.
+    // SetAC clears BUMP_HIT in each frame, so BUMP_HIT is a hit in this frame.
     const bool hitByMeleeWeapon = (info->bumperFlags & BUMP_HIT) && VrCombat_IsMeleeQuad(info->acHit);
 
     const Actor* target = ((const Collider*)acCollider)->actor;
@@ -382,7 +381,6 @@ extern "C" bool VrCombat_ShieldHitIgnored(void* atCollider, void* acCollider, vo
         for (int i = 0; i < 4; i++) {
             quad[i] = { shield->dim.quad[i].x, shield->dim.quad[i].y, shield->dim.quad[i].z };
         }
-        // The ball is drawn at world.pos, and its hit cylinder has its center there.
         const VrShieldGeometry::Vec3 center = { target->world.pos.x, target->world.pos.y, target->world.pos.z };
         touchesVisibleBall = VrShieldGeometry::QuadTouchesSphere(quad, center, VrShieldHit::kEnergyBallVisibleRadius);
     }

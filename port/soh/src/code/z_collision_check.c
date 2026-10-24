@@ -1732,10 +1732,7 @@ s32 CollisionCheck_SetATvsAC(PlayState* play, Collider* at, ColliderInfo* atInfo
     if (VrCombat_ShieldFacingVeto(ac, at)) {
         return 0;
     }
-    // SOH [VR] Physical shield: the shield attacks while it is in the hand, also during a swing.
-    // Ignore the shield hit when a melee weapon already hit this AC element in this frame, or
-    // when the shield does not touch the visible energy ball of Phantom Ganon. The melee weapon
-    // hit stays, so the ball goes back and does not break (#132).
+    // SOH [VR] Physical shield: keep the melee weapon hit on Phantom Ganon's ball (#132).
     if (VrCombat_ShieldHitIgnored(at, ac, acInfo)) {
         return 0;
     }

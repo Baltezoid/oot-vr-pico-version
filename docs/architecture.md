@@ -149,26 +149,15 @@ does the block.
   `PLAYER_STATE1_SHIELDING`. The physical shield does not set this flag.
   These actors also call `VrCombat_ShieldFacesPoint`. Thus, a shield that
   points at the beam reflects it.
-- **Melee weapon before shield.** The shield is an attack in each frame while
-  it is in the hand. The collision check keeps only the last hit on a target,
-  and the shield registers after the melee weapon. Thus, when a melee weapon
-  and the shield hit the same target in one frame, `CollisionCheck_SetATvsAC`
-  ignores the shield hit (`VrCombat_ShieldHitIgnored`). The sword then sends
-  the balls of Phantom Ganon and Ganondorf back. A ball that only the shield
-  touches breaks, as in the vanilla game.
-- **Visible energy ball.** The hit cylinder of the Phantom Ganon energy ball
-  has a radius of 40. This is larger than the visible ball. The melee weapon
-  uses the large cylinder, as in the vanilla game. The shield breaks the ball
-  only when it touches a sphere of radius 20 at the center of the ball. The
-  radius 20 is an estimate of the visible ball. The Ganondorf ball has a hit
-  cylinder of radius 20. Thus, a shield near the ball does not break the
-  ball before the sword arrives.
+- **Shield and melee weapon** (`VrCombat_ShieldHitIgnored`). The game ignores
+  a shield hit in two cases:
+  - A melee weapon hit the same target in the same frame.
+  - The target is the Phantom Ganon energy ball, and the shield does not touch
+    the visible ball (radius 20, an estimate).
 
-The pure geometry is in `VrShieldGeometry.h`. The host unit tests are in
-`port/soh/tests/vr/VrShieldGeometryTests.cpp`. The first lines of the file
-show how to run them. The rule for the melee weapon and the shield is in
-`VrShieldHit.h`. Its host unit tests are in
-`port/soh/tests/vr/VrShieldHitTests.cpp`, and they run in the same way.
+The geometry is in `VrShieldGeometry.h` and the shield rule is in
+`VrShieldHit.h`. Their host tests are in `port/soh/tests/vr/`. The first lines
+of each test file show how to run it.
 
 ## Item selector
 
