@@ -33,6 +33,11 @@
     <uses-feature android:name="oculus.software.handtracking" android:required="false"/>
     <uses-permission android:name="com.oculus.permission.HAND_TRACKING"/>
 
+    <!-- SOH [Quest] Optional. Horizon OS shows the system keyboard over the immersive app when a
+         text field in the menu calls showSoftInput (SDL_StartTextInput). Without this feature, the
+         keyboard does not show in VR. -->
+    <uses-feature android:name="oculus.software.overlay_keyboard" android:required="false"/>
+
     <!-- SOH [Quest] Optional. For the player folder /sdcard/oot-vr. Read PlayerFolder.java. -->
     <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE"/>
     <uses-permission android:name="android.permission.VIBRATE"/>
