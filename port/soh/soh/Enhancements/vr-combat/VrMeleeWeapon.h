@@ -40,6 +40,14 @@ inline uint32_t DmgFlags(int held, bool brokenKnife, bool heavy) {
     return kDmgFlags[row][heavy ? 1 : 0];
 }
 
+// A heavy swing needs a tip speed of heavySpeed or more. heavySpeed 0 turns heavy swings off. Off
+// is the default: a fast swing is easy in VR, and the jump slash flags doubled the damage to
+// bosses (issue #131). A vanilla slash does the normal damage, and only a jump attack does more.
+constexpr float kDefaultHeavySpeed = 0.0f;
+inline bool IsHeavySwing(float tipSpeed, float heavySpeed) {
+    return heavySpeed > 0.0f && tipSpeed >= heavySpeed;
+}
+
 // The stick length in hand model units is unk_85C * 5000, as in Player_PostLimbDrawGameplay.
 // unk_85C is 1 for a full stick. It decreases to 0 while the stick burns. The minimum length
 // prevents a weapon with zero length in the last frame.
