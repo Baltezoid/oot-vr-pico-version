@@ -149,10 +149,15 @@ does the block.
   `PLAYER_STATE1_SHIELDING`. The physical shield does not set this flag.
   These actors also call `VrCombat_ShieldFacesPoint`. Thus, a shield that
   points at the beam reflects it.
+- **Shield and melee weapon** (`VrCombat_ShieldHitIgnored`). The game ignores
+  a shield hit in two cases:
+  - A melee weapon hit the same target in the same frame.
+  - The target is the Phantom Ganon energy ball, and the shield does not touch
+    the visible ball (radius 20, an estimate).
 
-The pure geometry is in `VrShieldGeometry.h`. The host unit tests are in
-`port/soh/tests/vr/VrShieldGeometryTests.cpp`. The first lines of the file
-show how to run them.
+The geometry is in `VrShieldGeometry.h` and the shield rule is in
+`VrShieldHit.h`. Their host tests are in `port/soh/tests/vr/`. The first lines
+of each test file show how to run it.
 
 ## Item selector
 

@@ -1732,6 +1732,10 @@ s32 CollisionCheck_SetATvsAC(PlayState* play, Collider* at, ColliderInfo* atInfo
     if (VrCombat_ShieldFacingVeto(ac, at)) {
         return 0;
     }
+    // SOH [VR] Physical shield: keep the melee weapon hit on Phantom Ganon's ball (#132).
+    if (VrCombat_ShieldHitIgnored(at, ac, acInfo)) {
+        return 0;
+    }
     if (ac->acFlags & AC_HARD && at->actor != NULL && ac->actor != NULL) {
         CollisionCheck_SetBounce(at, ac);
     }

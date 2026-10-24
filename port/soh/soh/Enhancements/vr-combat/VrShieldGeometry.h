@@ -119,4 +119,51 @@ inline bool FacesPoint(const Vec3& center, const Vec3& normal, const Vec3& point
     return Dot(normal, d) / len >= std::cos(maxDeg * (3.14159265f / 180.0f));
 }
 
+// Squared distance from `p` to the triangle abc (closest point by region, as in Ericson,
+// "Real-Time Collision Detection" 5.1.5).
+inline float TriangleDistanceSq(const Vec3& p, const Vec3& a, const Vec3& b, const Vec3& c) {
+    auto sub = [](const Vec3& u, const Vec3& v) { return Vec3{ u.x - v.x, u.y - v.y, u.z - v.z }; };
+    auto distSq = [&](const Vec3& q) { const Vec3 d = sub(p, q); return Dot(d, d); };
+    const Vec3 ab = sub(b, a), ac = sub(c, a), ap = sub(p, a);
+    const float d1 = Dot(ab, ap), d2 = Dot(ac, ap);
+    if (d1 <= 0.0f && d2 <= 0.0f) {
+        return distSq(a);
+    }
+    const Vec3 bp = sub(p, b);
+    const float d3 = Dot(ab, bp), d4 = Dot(ac, bp);
+    if (d3 >= 0.0f && d4 <= d3) {
+        return distSq(b);
+    }
+    const float vc = d1 * d4 - d3 * d2;
+    if (vc <= 0.0f && d1 >= 0.0f && d3 <= 0.0f) {
+        const float v = d1 / (d1 - d3);
+        return distSq({ a.x + ab.x * v, a.y + ab.y * v, a.z + ab.z * v });
+    }
+    const Vec3 cp = sub(p, c);
+    const float d5 = Dot(ab, cp), d6 = Dot(ac, cp);
+    if (d6 >= 0.0f && d5 <= d6) {
+        return distSq(c);
+    }
+    const float vb = d5 * d2 - d1 * d6;
+    if (vb <= 0.0f && d2 >= 0.0f && d6 <= 0.0f) {
+        const float w = d2 / (d2 - d6);
+        return distSq({ a.x + ac.x * w, a.y + ac.y * w, a.z + ac.z * w });
+    }
+    const float va = d3 * d6 - d5 * d4;
+    if (va <= 0.0f && (d4 - d3) >= 0.0f && (d5 - d6) >= 0.0f) {
+        const float w = (d4 - d3) / ((d4 - d3) + (d5 - d6));
+        return distSq({ b.x + (c.x - b.x) * w, b.y + (c.y - b.y) * w, b.z + (c.z - b.z) * w });
+    }
+    const float denom = 1.0f / (va + vb + vc);
+    const float v = vb * denom, w = vc * denom;
+    return distSq({ a.x + ab.x * v + ac.x * w, a.y + ab.y * v + ac.y * w, a.z + ab.z * v + ac.z * w });
+}
+
+// True when the collider quad (vanilla zigzag order, as in QuadFrame) touches the sphere.
+inline bool QuadTouchesSphere(const Vec3 quad[4], const Vec3& center, float radius) {
+    const float r2 = radius * radius;
+    return TriangleDistanceSq(center, quad[0], quad[1], quad[2]) <= r2 ||
+           TriangleDistanceSq(center, quad[1], quad[3], quad[2]) <= r2;
+}
+
 } // namespace VrShieldGeometry

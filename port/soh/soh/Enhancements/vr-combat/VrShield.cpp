@@ -8,6 +8,8 @@ extern SaveContext gSaveContext;
 
 #include "VrCombat.h"
 #include "VrShieldGeometry.h"
+#include "VrShieldHit.h"
+#include "overlays/actors/ovl_En_Fhg_Fire/z_en_fhg_fire.h"
 
 #include "soh/cvar_prefixes.h"
 #include "soh/ResourceManagerHelpers.h"
@@ -261,6 +263,15 @@ extern "C" bool VrCombat_ShieldHeld(Player* player) {
     return true;
 }
 
+// The collider is the quad of the physical shield in the hand of the player.
+static bool IsPhysicalShieldQuad(const void* collider) {
+    if (gPlayState == NULL || collider == NULL) {
+        return false;
+    }
+    Player* player = GET_PLAYER(gPlayState);
+    return player != NULL && collider == (const void*)&player->shieldQuad.base && VrCombat_ShieldHeld(player);
+}
+
 extern "C" void VrCombat_ShieldQuadModelVerts(Player* player, float* outXyz4) {
     // The block collider, built in R_HAND limb MODEL space (game units x100 — the same
     // convention as the blade sliders), replacing the vanilla stance quad wholesale: that one
@@ -330,16 +341,10 @@ extern "C" void VrCombat_ShieldQuadModelVerts(Player* player, float* outXyz4) {
 extern "C" bool VrCombat_ShieldFacingVeto(void* acCollider, void* atCollider) {
     // Called from CollisionCheck_SetATvsAC for EVERY confirmed AT-vs-AC hit: everything that
     // isn't the physical shield quad exits on the first pointer compare.
-    if (gPlayState == NULL) {
-        return false;
+    if (!IsPhysicalShieldQuad(acCollider)) {
+        return false; // not the shield, or vanilla stance blocking (not judged)
     }
     Player* player = GET_PLAYER(gPlayState);
-    if (player == NULL || acCollider != (void*)&player->shieldQuad.base) {
-        return false;
-    }
-    if (!VrCombat_ShieldHeld(player)) {
-        return false; // vanilla stance blocking is not judged
-    }
     const float maxDeg = FacingDeg();
     if (maxDeg >= 179.0f) {
         return false;
@@ -356,6 +361,30 @@ extern "C" bool VrCombat_ShieldFacingVeto(void* acCollider, void* atCollider) {
     // projectile itself for rocks and arrows).
     const Vec3 atk = { attacker->focus.pos.x, attacker->focus.pos.y, attacker->focus.pos.z };
     return !VrShieldGeometry::FacesPoint(center, normal, atk, maxDeg);
+}
+
+extern "C" bool VrCombat_ShieldHitIgnored(void* atCollider, void* acCollider, void* acInfo) {
+    if (acCollider == NULL || acInfo == NULL || !IsPhysicalShieldQuad(atCollider)) {
+        return false;
+    }
+    const ColliderInfo* info = (const ColliderInfo*)acInfo;
+    // SetAC clears BUMP_HIT in each frame, so BUMP_HIT is a hit in this frame.
+    const bool hitByMeleeWeapon = (info->bumperFlags & BUMP_HIT) && VrCombat_IsMeleeQuad(info->acHit);
+
+    const Actor* target = ((const Collider*)acCollider)->actor;
+    const bool isEnergyBall =
+        target != NULL && target->id == ACTOR_EN_FHG_FIRE && target->params == FHGFIRE_ENERGY_BALL;
+    bool touchesVisibleBall = false;
+    if (isEnergyBall) {
+        const ColliderQuad* shield = (const ColliderQuad*)atCollider;
+        VrShieldGeometry::Vec3 quad[4];
+        for (int i = 0; i < 4; i++) {
+            quad[i] = { shield->dim.quad[i].x, shield->dim.quad[i].y, shield->dim.quad[i].z };
+        }
+        const VrShieldGeometry::Vec3 center = { target->world.pos.x, target->world.pos.y, target->world.pos.z };
+        touchesVisibleBall = VrShieldGeometry::QuadTouchesSphere(quad, center, VrShieldHit::kEnergyBallVisibleRadius);
+    }
+    return VrShieldHit::ShieldHitIgnored(true, hitByMeleeWeapon, isEnergyBall, touchesVisibleBall);
 }
 
 extern "C" bool VrCombat_ShieldFacesPoint(Player* player, const float* pointXyz, float* outCenterXyz) {
