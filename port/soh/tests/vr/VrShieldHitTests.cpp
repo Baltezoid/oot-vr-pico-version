@@ -23,24 +23,39 @@ static int sFailures = 0;
 // Phantom Ganon's ball: a melee weapon hits it, then the shield hits it in the same frame. The
 // melee weapon hit stays, so the ball goes back.
 static void ShieldAfterMeleeWeaponIsIgnored() {
-    EXPECT(ShieldYieldsToMeleeWeapon(true, true));
+    EXPECT(ShieldHitIgnored(true, true, true, true));
+    EXPECT(ShieldHitIgnored(true, true, false, false));
 }
 
-// The shield alone touches the ball. The shield hit counts, as in the vanilla game.
-static void ShieldAloneCounts() {
-    EXPECT(!ShieldYieldsToMeleeWeapon(true, false));
+// The shield alone touches the visible ball. The shield hit counts, as in the vanilla game.
+static void ShieldOnVisibleBallCounts() {
+    EXPECT(!ShieldHitIgnored(true, false, true, true));
+}
+
+// The shield is in the hit cylinder of the ball, but it does not touch the visible ball. The
+// shield hit does not count, so the melee weapon can still send the ball back.
+static void ShieldOutsideVisibleBallIsIgnored() {
+    EXPECT(ShieldHitIgnored(true, false, true, false));
+}
+
+// Other targets keep the vanilla shield hit.
+static void ShieldOnOtherTargetCounts() {
+    EXPECT(!ShieldHitIgnored(true, false, false, false));
 }
 
 // The rule applies only to the physical shield. Other attacks, the melee weapon included, keep
 // the vanilla rule: the last hit replaces the earlier hit.
 static void OtherAttacksAreNotChanged() {
-    EXPECT(!ShieldYieldsToMeleeWeapon(false, true));
-    EXPECT(!ShieldYieldsToMeleeWeapon(false, false));
+    EXPECT(!ShieldHitIgnored(false, true, true, false));
+    EXPECT(!ShieldHitIgnored(false, false, true, false));
+    EXPECT(!ShieldHitIgnored(false, false, false, false));
 }
 
 int main() {
     ShieldAfterMeleeWeaponIsIgnored();
-    ShieldAloneCounts();
+    ShieldOnVisibleBallCounts();
+    ShieldOutsideVisibleBallIsIgnored();
+    ShieldOnOtherTargetCounts();
     OtherAttacksAreNotChanged();
 
     if (sFailures == 0) {

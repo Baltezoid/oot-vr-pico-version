@@ -153,9 +153,16 @@ does the block.
   it is in the hand. The collision check keeps only the last hit on a target,
   and the shield registers after the melee weapon. Thus, when a melee weapon
   and the shield hit the same target in one frame, `CollisionCheck_SetATvsAC`
-  ignores the shield hit (`VrCombat_ShieldYieldsToMeleeWeapon`). The sword then
-  sends the balls of Phantom Ganon and Ganondorf back. A ball that only the
-  shield touches breaks, as in the vanilla game.
+  ignores the shield hit (`VrCombat_ShieldHitIgnored`). The sword then sends
+  the balls of Phantom Ganon and Ganondorf back. A ball that only the shield
+  touches breaks, as in the vanilla game.
+- **Visible energy ball.** The hit cylinder of the Phantom Ganon energy ball
+  has a radius of 40. This is larger than the visible ball. The melee weapon
+  uses the large cylinder, as in the vanilla game. The shield breaks the ball
+  only when it touches a sphere of radius 20 at the center of the ball. The
+  radius 20 is an estimate of the visible ball. The Ganondorf ball has a hit
+  cylinder of radius 20. Thus, a shield near the ball does not break the
+  ball before the sword arrives.
 
 The pure geometry is in `VrShieldGeometry.h`. The host unit tests are in
 `port/soh/tests/vr/VrShieldGeometryTests.cpp`. The first lines of the file

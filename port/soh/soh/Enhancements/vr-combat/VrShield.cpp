@@ -9,6 +9,7 @@ extern SaveContext gSaveContext;
 #include "VrCombat.h"
 #include "VrShieldGeometry.h"
 #include "VrShieldHit.h"
+#include "overlays/actors/ovl_En_Fhg_Fire/z_en_fhg_fire.h"
 
 #include "soh/cvar_prefixes.h"
 #include "soh/ResourceManagerHelpers.h"
@@ -362,15 +363,30 @@ extern "C" bool VrCombat_ShieldFacingVeto(void* acCollider, void* atCollider) {
     return !VrShieldGeometry::FacesPoint(center, normal, atk, maxDeg);
 }
 
-extern "C" bool VrCombat_ShieldYieldsToMeleeWeapon(void* atCollider, void* acInfo) {
-    if (acInfo == NULL || !IsPhysicalShieldQuad(atCollider)) {
+extern "C" bool VrCombat_ShieldHitIgnored(void* atCollider, void* acCollider, void* acInfo) {
+    if (acCollider == NULL || acInfo == NULL || !IsPhysicalShieldQuad(atCollider)) {
         return false;
     }
     const ColliderInfo* info = (const ColliderInfo*)acInfo;
     // The AC collider registers again in each frame, and the registration clears BUMP_HIT and
     // acHit. Thus a set BUMP_HIT is a hit in this collision pass.
     const bool hitByMeleeWeapon = (info->bumperFlags & BUMP_HIT) && VrCombat_IsMeleeQuad(info->acHit);
-    return VrShieldHit::ShieldYieldsToMeleeWeapon(true, hitByMeleeWeapon);
+
+    const Actor* target = ((const Collider*)acCollider)->actor;
+    const bool isEnergyBall =
+        target != NULL && target->id == ACTOR_EN_FHG_FIRE && target->params == FHGFIRE_ENERGY_BALL;
+    bool touchesVisibleBall = false;
+    if (isEnergyBall) {
+        const ColliderQuad* shield = (const ColliderQuad*)atCollider;
+        VrShieldGeometry::Vec3 quad[4];
+        for (int i = 0; i < 4; i++) {
+            quad[i] = { shield->dim.quad[i].x, shield->dim.quad[i].y, shield->dim.quad[i].z };
+        }
+        // The ball is drawn at world.pos, and its hit cylinder has its center there.
+        const VrShieldGeometry::Vec3 center = { target->world.pos.x, target->world.pos.y, target->world.pos.z };
+        touchesVisibleBall = VrShieldGeometry::QuadTouchesSphere(quad, center, VrShieldHit::kEnergyBallVisibleRadius);
+    }
+    return VrShieldHit::ShieldHitIgnored(true, hitByMeleeWeapon, isEnergyBall, touchesVisibleBall);
 }
 
 extern "C" bool VrCombat_ShieldFacesPoint(Player* player, const float* pointXyz, float* outCenterXyz) {

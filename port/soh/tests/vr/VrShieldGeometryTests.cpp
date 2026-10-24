@@ -125,6 +125,29 @@ static void TestFacesPointCone() {
     EXPECT(FacesPoint(center, normal, { 0, 0, -100 }, 180.0f)); // 180 = any direction
 }
 
+// A 20 x 30 shield quad in the plane z = 0, in the vanilla zigzag order.
+static const Vec3 kShield[4] = { { -10, 0, 0 }, { 10, 0, 0 }, { -10, 30, 0 }, { 10, 30, 0 } };
+
+static void TestQuadTouchesSphereInFront() {
+    EXPECT(QuadTouchesSphere(kShield, { 0, 15, 19 }, 20.0f));  // in front of the face
+    EXPECT(!QuadTouchesSphere(kShield, { 0, 15, 21 }, 20.0f)); // just out of reach
+    EXPECT(QuadTouchesSphere(kShield, { 0, 15, -19 }, 20.0f)); // behind the face also touches
+}
+
+static void TestQuadTouchesSphereAtEdgeAndCorner() {
+    EXPECT(QuadTouchesSphere(kShield, { 29, 15, 0 }, 20.0f));   // 19 past the right edge
+    EXPECT(!QuadTouchesSphere(kShield, { 31, 15, 0 }, 20.0f));  // 21 past the right edge
+    EXPECT(QuadTouchesSphere(kShield, { 20, 40, 10 }, 20.0f));  // corner at ~17.3
+    EXPECT(!QuadTouchesSphere(kShield, { 23, 43, 10 }, 20.0f)); // corner at ~20.9
+}
+
+// Phantom Ganon's ball has a hit cylinder of radius 40. The shield is 30 from the center: it
+// touches the cylinder, but not the visible ball (radius 20).
+static void TestShieldInCylinderButOutsideVisibleBall() {
+    EXPECT(!QuadTouchesSphere(kShield, { 0, 15, 30 }, 20.0f));
+    EXPECT(QuadTouchesSphere(kShield, { 0, 15, 30 }, 40.0f));
+}
+
 int main() {
     TestFitRectangle();
     TestFitTaperedKeepsTaper();
@@ -133,6 +156,9 @@ int main() {
     TestFitRejectsDegenerateInput();
     TestQuadFrameNormalPointsAwayFromChest();
     TestFacesPointCone();
+    TestQuadTouchesSphereInFront();
+    TestQuadTouchesSphereAtEdgeAndCorner();
+    TestShieldInCylinderButOutsideVisibleBall();
     if (sFailures == 0) {
         std::printf("All VrShieldGeometry tests passed.\n");
     }

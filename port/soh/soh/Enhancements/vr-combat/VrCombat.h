@@ -101,10 +101,11 @@ void VrCombat_FlinchWarpEnd(void);
 // center of the block collider.
 bool VrCombat_ShieldHeld(struct Player* player);
 bool VrCombat_ShieldFacingVeto(void* acCollider, void* atCollider);
-// ShieldYieldsToMeleeWeapon: called from CollisionCheck_SetATvsAC. True when the attack is the
-// physical shield quad and a melee weapon quad already hit the same AC element in this frame.
-// The caller then ignores the shield hit, so the melee weapon hit stays (VrShieldHit.h, #132).
-bool VrCombat_ShieldYieldsToMeleeWeapon(void* atCollider, void* acInfo);
+// ShieldHitIgnored: called from CollisionCheck_SetATvsAC. True when the attack is the physical
+// shield quad and the caller must ignore the hit: a melee weapon quad already hit the same AC
+// element in this frame, or the shield does not touch the visible energy ball of Phantom Ganon
+// (VrShieldHit.h, #132).
+bool VrCombat_ShieldHitIgnored(void* atCollider, void* acCollider, void* acInfo);
 int32_t VrCombat_ShieldBlockJudge(struct Player* player);
 bool VrCombat_ShieldFacesPoint(struct Player* player, const float* pointXyz, float* outCenterXyz);
 
