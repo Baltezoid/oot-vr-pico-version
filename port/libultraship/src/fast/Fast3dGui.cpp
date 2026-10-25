@@ -337,6 +337,13 @@ bool Fast3dGui::UpdateVrMenu(bool vr) {
     }
     mVrMenuOpen = open;
     vr_set_menu_panel(open);
+#if defined(__ANDROID__) || defined(__IOS__)
+    // SOH [Quest] The laser pointer clicks through ImGui, not SDL events, so HandleWindowEvents does
+    // not see a text field get focus. Check every frame to show or hide the system keyboard.
+    if (vr) {
+        Ship::Mobile::ImGuiProcessEvent(open && io.WantTextInput);
+    }
+#endif
     return open;
 }
 
