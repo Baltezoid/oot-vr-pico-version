@@ -4,15 +4,13 @@
 
 #include <imgui_internal.h>
 
-static bool isShowingVirtualKeyboard = true;
+// SOH [Quest] Starts false: the first call with a text field active must show the keyboard. The
+// field keeps its text (no ClearText), so the player can edit a name or a room ID.
+static bool isShowingVirtualKeyboard = false;
 
 void Ship::Mobile::ImGuiProcessEvent(bool wantsTextInput) {
-    ImGuiInputTextState* state = ImGui::GetInputTextState(ImGui::GetActiveID());
-
     if (wantsTextInput) {
         if (!isShowingVirtualKeyboard) {
-            state->ClearText();
-
             isShowingVirtualKeyboard = true;
             SDL_StartTextInput();
         }
