@@ -127,12 +127,18 @@ them.
   The torches light the stick at its tip.
 - A hammer hit on a surface also makes a collider across the surface. The
   rusted switch has a flat collider on its top.
+- A hammer hit on the geometry of an object goes to the nearest point of its AC
+  colliders (`VrHammerTarget.h`). Thus a hit on the front of a Fire Temple
+  pillar hits the square on its top. A line from the last head position finds
+  the object, also when a fast swing goes through it.
+- The hammer sets the vanilla hammer swing animation. The Fire Temple totem
+  breaks only for it.
 - A hammer ground hit occurs when the head moves down fast and touches a floor
   near the feet of Link. `VrCombat_HammerGroundHit` in `z_player.c` then starts
   the effects of the vanilla game.
 
-The rules are in `VrMeleeWeapon.h` and `VrHammerSlam.h`. The host unit tests
-are in `port/soh/tests/vr/`.
+The rules are in `VrMeleeWeapon.h`, `VrHammerSlam.h`, and `VrHammerTarget.h`.
+The host unit tests are in `port/soh/tests/vr/`.
 
 ## Physical shield
 
