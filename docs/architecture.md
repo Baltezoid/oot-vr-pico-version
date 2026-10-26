@@ -279,6 +279,9 @@ The host unit tests are in `port/soh/tests/vr/VrAimMarkTests.cpp`,
   `port/soh/src/overlays/actors/ovl_player_actor/z_player.c` gives the speed and
   the direction for all locomotion actions. The VR layer changes the direction
   at this one point.
+- **Dark Link.** Dark Link (`EnTorch2`) also runs the Player update, with its
+  own input. The VR movement hooks in `z_player.c` check `Player_VrIsLink`.
+  Thus, the headset and the stick move only Link.
 - **Cutscenes.** Cutscenes use a different sub-camera (`z_demo.c`). Thus, the
   code can find a cutscene with one check.
 - **World scale.** Link has two heights: 68.0 for adult and 44.0 for child. The

@@ -2042,6 +2042,17 @@ void Player_AnimReplaceNormalPlayLoopAdjusted(PlayState* play, Player* this, Lin
     Player_AnimReplacePlayLoopAdjusted(play, this, anim, 0x1C);
 }
 
+// SOH [VR] Dark Link (EnTorch2) also runs the Player update, with its own input. The VR controls
+// and the headset move only Link (#129). Dark Link is never in ACTORCAT_PLAYER.
+static s32 Player_VrIsLink(Player* this) {
+    return this->actor.category == ACTORCAT_PLAYER;
+}
+
+// SOH [VR] The control stick of Link from his last Player_ProcessControlStick. The stick statics
+// below keep the stick of the last Player update, and Dark Link updates after Link.
+static f32 sVrLinkStickMagnitude = 0.0f;
+static s16 sVrLinkStickAngle = 0;
+
 // SOH [VR] Legaiaflame's Lock On (gVrLegaiaLockOn, off by default): while locked onto something,
 // hand Link's facing back to the vanilla lock-on rule instead of pinning it to the headset. His
 // body turns to the target and STAYS there, and the control stick is read in that frame, so
@@ -2073,22 +2084,22 @@ static s32 Player_VrLockOnBody(Player* this, PlayState* play) {
 
 // SOH [VR] Returns the yaw that control-stick input is interpreted relative to. In VR first-person
 // this is the HMD heading (so movement is head-relative); otherwise the active camera's yaw as normal.
-static s16 Player_GetSteeringYaw(PlayState* play) {
-    if (VR_IsInitialized() && VR_GetFirstPerson()) {
-        Player* vrPlayer = GET_PLAYER(play);
+// Dark Link makes his stick from the camera, so his stick keeps the camera yaw.
+static s16 Player_GetSteeringYaw(PlayState* play, Player* this) {
+    if (VR_IsInitialized() && VR_GetFirstPerson() && Player_VrIsLink(this)) {
         // Crawlspaces: the stick must map to the TUNNEL axis (Link's body), not the head — you
         // can only crawl forward or backward, and looking around inside the tunnel must not
         // change which way "forward" is (it made the exit unreachable when the head was off-axis).
         // Grabbing a block/wall is the same rule: the stick maps to LINK'S body axis (forward =
         // push, back = pull) no matter where the head looks — head-relative steering misread the
         // stick against the block axis and let "pushing" wander wherever the player gazed.
-        if (vrPlayer->stateFlags2 & (PLAYER_STATE2_CRAWLING | PLAYER_STATE2_GRABBING_DYNAPOLY)) {
-            return vrPlayer->actor.shape.rot.y;
+        if (this->stateFlags2 & (PLAYER_STATE2_CRAWLING | PLAYER_STATE2_GRABBING_DYNAPOLY)) {
+            return this->actor.shape.rot.y;
         }
         // Locked on: the stick is read in the BODY's frame, which vanilla keeps aimed at the
         // target — forward closes on it, left/right circle it. Looking around no longer steers.
         if (sVrLockOnActive) {
-            return vrPlayer->actor.shape.rot.y;
+            return this->actor.shape.rot.y;
         }
         return VR_GetHeadingYaw();
     }
@@ -2099,7 +2110,8 @@ static s16 Player_GetSteeringYaw(PlayState* play) {
 // the stick is a movement VECTOR in that frame — exact direction, no turn easing, no pivot brake.
 // The action state machine stays authoritative for everything else.
 static s32 Player_VrDirectMovement(Player* this) {
-    return VR_IsInitialized() && VR_GetFirstPerson() && CVarGetInteger("gVrBodyFollowsHead", 1);
+    return VR_IsInitialized() && VR_GetFirstPerson() && CVarGetInteger("gVrBodyFollowsHead", 1) &&
+           Player_VrIsLink(this);
 }
 
 // SOH [VR] The neutral ground-locomotion actions (idle, walk, run, strafes, turn-around). ONLY in
@@ -2121,7 +2133,13 @@ void Player_ProcessControlStick(PlayState* play, Player* this) {
 
     func_80077D10(&sControlStickMagnitude, &sControlStickAngle, sControlInput);
 
-    sControlStickWorldYaw = Player_GetSteeringYaw(play) + sControlStickAngle;
+    sControlStickWorldYaw = Player_GetSteeringYaw(play, this) + sControlStickAngle;
+
+    // SOH [VR] Keep the stick of Link for the kinematic stick movement.
+    if (Player_VrIsLink(this)) {
+        sVrLinkStickMagnitude = sControlStickMagnitude;
+        sVrLinkStickAngle = sControlStickAngle;
+    }
 
     this->controlStickDataIndex = (this->controlStickDataIndex + 1) % 4;
 
@@ -4270,7 +4288,7 @@ s32 Player_GetMovementSpeedAndYaw(Player* this, f32* outSpeedTarget, s16* outYaw
 
         return false;
     } else {
-        *outYawTarget += Player_GetSteeringYaw(play);
+        *outYawTarget += Player_GetSteeringYaw(play, this); // SOH [VR]
         return true;
     }
 }
@@ -6742,7 +6760,8 @@ s32 Player_ActionHandler_11(Player* this, PlayState* play) {
     // its entry clears the melee state mid-swing). The grip button doubles as R on the default
     // bindings, so every firm squeeze during a swing was crouching Link. Physical shield
     // blocking arrives with its own milestone; the Z-target upper-body shield path still works.
-    if (VrCombat_Active()) {
+    // Dark Link keeps the vanilla shield stance.
+    if (VrCombat_Active() && Player_VrIsLink(this)) {
         return 0;
     }
 
@@ -12279,6 +12298,10 @@ void Player_UpdateCommon(Player* this, PlayState* play, Input* input) {
                 f32 vrSpeedTarget;
                 s16 vrYawTarget;
 
+                // This runs before Player_ProcessControlStick. Without this, Link reads the stick
+                // of Dark Link from the last frame.
+                sControlStickMagnitude = sVrLinkStickMagnitude;
+                sControlStickAngle = sVrLinkStickAngle;
                 Player_GetMovementSpeedAndYaw(this, &vrSpeedTarget, &vrYawTarget, SPEED_MODE_LINEAR, play);
                 this->linearVelocity = vrSpeedTarget;
                 this->yaw = vrYawTarget;
@@ -12305,11 +12328,11 @@ void Player_UpdateCommon(Player* this, PlayState* play, Input* input) {
             // head-lean ("head leans, body holds"). Gated to grounded + free locomotion. Rendering is
             // untouched — this only changes Link's position.
             if (VR_IsInitialized() && VR_GetFirstPerson() && CVarGetInteger("gVrRoomscale", 1) &&
-                (this->actor.bgCheckFlags & BGCHECKFLAG_GROUND) && !Player_InBlockingCsMode(play, this) &&
-                !(this->stateFlags1 &
-                  (PLAYER_STATE1_TALKING | PLAYER_STATE1_HANGING_OFF_LEDGE | PLAYER_STATE1_CLIMBING_LEDGE |
-                   PLAYER_STATE1_CLIMBING_LADDER | PLAYER_STATE1_ON_HORSE | PLAYER_STATE1_JUMPING |
-                   PLAYER_STATE1_FREEFALL)) &&
+                Player_VrIsLink(this) && (this->actor.bgCheckFlags & BGCHECKFLAG_GROUND) &&
+                !Player_InBlockingCsMode(play, this) &&
+                !(this->stateFlags1 & (PLAYER_STATE1_TALKING | PLAYER_STATE1_HANGING_OFF_LEDGE |
+                                       PLAYER_STATE1_CLIMBING_LEDGE | PLAYER_STATE1_CLIMBING_LADDER |
+                                       PLAYER_STATE1_ON_HORSE | PLAYER_STATE1_JUMPING | PLAYER_STATE1_FREEFALL)) &&
                 // Hands on a block: the body is anchored to it — physical walking becomes head
                 // lean ("head leans, body holds") instead of dragging Link off the grab.
                 !(this->stateFlags2 & (PLAYER_STATE2_DIVING | PLAYER_STATE2_GRABBING_DYNAPOLY))) {
@@ -12511,7 +12534,10 @@ void Player_UpdateCommon(Player* this, PlayState* play, Input* input) {
         // that lock let the push direction wander with the player's gaze.
         // Legaiaflame's Lock On keeps vanilla facing for the same reason: while locked on, the
         // body belongs to the TARGET (Player_UpdateShapeYaw just aimed it there), not to the head.
-        sVrLockOnActive = Player_VrLockOnBody(this, play);
+        // Dark Link must not change the lock-on state of Link.
+        if (Player_VrIsLink(this)) {
+            sVrLockOnActive = Player_VrLockOnBody(this, play);
+        }
 
         if (Player_VrDirectMovement(this) && !Player_InBlockingCsMode(play, this) && !sVrLockOnActive &&
             !(this->stateFlags1 & (PLAYER_STATE1_ON_HORSE | PLAYER_STATE1_CLIMBING_LADDER |
@@ -12527,9 +12553,10 @@ void Player_UpdateCommon(Player* this, PlayState* play, Input* input) {
         // can't be driven, so the world turns instead). Pushed every tick — including the "not
         // locked on" case, which clears it — and it expires on its own if this update ever stops
         // running. Same direction vanilla aims Link's body at, so body and view agree.
-        VR_SetLockOnYaw(
-            sVrLockOnActive ? Math_Vec3f_Yaw(&this->actor.world.pos, &this->focusActor->focus.pos) : 0,
-            sVrLockOnActive);
+        if (Player_VrIsLink(this)) {
+            VR_SetLockOnYaw(sVrLockOnActive ? Math_Vec3f_Yaw(&this->actor.world.pos, &this->focusActor->focus.pos) : 0,
+                            sVrLockOnActive);
+        }
 
         if (CHECK_FLAG_ALL(this->actor.flags, ACTOR_FLAG_TALK)) {
             this->talkActorDistance = 0.0f;
