@@ -43,9 +43,19 @@ static void HitOnTheFrontFaceGoesToTheTopEdge() {
     // The front face of the pillar is at z = 40. The hammer hits it 20 units below the top.
     const Aim a = NearestOnTris(kTop, 2, { 5.0f, -20.0f, 41.0f });
     EXPECT(a.valid);
-    EXPECT(Near(a.point.x, 5.0f));
     EXPECT(Near(a.point.y, 3.0f));
-    EXPECT(Near(a.point.z, 40.0f));
+    EXPECT(a.point.z < 40.0f - 1.0f);
+    EXPECT(a.point.z > 40.0f - 5.0f);
+}
+
+static void HitBesideTheSideEdgeGoesInside() {
+    // The hit is beside the edge at x = 40. The strike line runs along that edge. On the edge, the
+    // collision check of the game can miss it. Thus the point moves a little inside.
+    const Aim a = NearestOnTris(kTop, 2, { 50.0f, -20.0f, 0.0f });
+    EXPECT(a.valid);
+    EXPECT(a.point.x < 40.0f - 1.0f);
+    EXPECT(a.point.x > 40.0f - 5.0f);
+    EXPECT(Near(a.point.y, 3.0f));
 }
 
 static void NormalIsUnitAndFacesTheHit() {
@@ -86,6 +96,7 @@ static void SkipsADegenerateTri() {
 int main() {
     HitOnTheTopGoesToTheColliderAboveIt();
     HitOnTheFrontFaceGoesToTheTopEdge();
+    HitBesideTheSideEdgeGoesInside();
     NormalIsUnitAndFacesTheHit();
     PicksTheNearestSide();
     NoTrisIsInvalid();

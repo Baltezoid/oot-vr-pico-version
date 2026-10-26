@@ -79,6 +79,10 @@ inline Vec3 ClosestOnTri(const Vec3& p, const Vec3& a, const Vec3& b, const Vec3
     return Add(a, Add(Scale(ab, vb * denom), Scale(ac, vc * denom)));
 }
 
+// How far a point on the edge of a triangle moves to the inside, game units. The strike line can
+// run along the edge, and the collision check of the game can miss a line on the edge.
+constexpr float kEdgeInset = 3.0f;
+
 // The point of the collider triangles that is nearest to the hit. A triangle without an area
 // does not count. Invalid when no triangle counts.
 inline Aim NearestOnTris(const Tri* tris, int count, const Vec3& hit) {
@@ -96,9 +100,21 @@ inline Aim NearestOnTris(const Tri* tris, int count, const Vec3& hit) {
         const Vec3 d = Sub(hit, q);
         const float d2 = Dot(d, d);
         if (!best.valid || d2 < bestD2) {
+            // The hit is outside the triangle when d is not along the normal. Then q is on an
+            // edge, and it moves to the center of the triangle.
+            const float along = Dot(d, n);
+            Vec3 point = q;
+            if (d2 - along * along > 1e-4f) {
+                const Vec3 toCenter = Sub(Scale(Add(Add(t.a, t.b), t.c), 1.0f / 3.0f), q);
+                const float centerDist = std::sqrt(Dot(toCenter, toCenter));
+                const float step = centerDist < kEdgeInset ? centerDist : kEdgeInset;
+                if (centerDist > 1e-4f) {
+                    point = Add(q, Scale(toCenter, step / centerDist));
+                }
+            }
             best.valid = true;
-            best.point = q;
-            best.normal = Dot(d, n) < 0.0f ? Scale(n, -1.0f) : n;
+            best.point = point;
+            best.normal = along < 0.0f ? Scale(n, -1.0f) : n;
             bestD2 = d2;
         }
     }
