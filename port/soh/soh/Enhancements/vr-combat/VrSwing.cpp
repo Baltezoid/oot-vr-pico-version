@@ -10,6 +10,7 @@ MtxF* Matrix_GetCurrent(void);
 #include "VrCombat.h"
 #include "VrMeleeWeapon.h"
 #include "VrHammerSlam.h"
+#include "VrHammerTarget.h"
 
 #include "soh/cvar_prefixes.h"
 #include <libultraship/bridge/consolevariablebridge.h>
@@ -62,6 +63,12 @@ VrHammerSlam::Detector sSlam;
 bool sHeadValid = false;
 Vec3f sHeadPos;
 float sTickHeadDownSpeed = 0.0f; // m/s
+
+// Hammer hit on an object (VrHammerTarget.h). HammerObjectHit keeps the head position of the
+// last update, and it lets each swing hit an object one time.
+bool sHavePrevHead = false;
+Vec3f sPrevHeadPos;
+bool sObjectStruck = false;
 
 // Mirror of the player melee quad init (D_80854650, z_player.c) with TOUCH_NEAREST from the
 // start: each quad damages only its nearest victim, like every vanilla sword quad.
@@ -139,8 +146,18 @@ struct PendingStrike {
     // quad parallel to the top does not touch it.
     bool cross;
 };
-PendingStrike sPendingStrikes[4];
+constexpr int kMaxPendingStrikes = 4;
+PendingStrike sPendingStrikes[kMaxPendingStrikes];
 int sPendingStrikeCount = 0;
+
+// Queue a strike for the next draw. False when the queue is full.
+bool QueueStrike(const Vec3f& pos, const Vec3f& normal, uint32_t dmgFlags, bool cross) {
+    if (sPendingStrikeCount >= kMaxPendingStrikes) {
+        return false;
+    }
+    sPendingStrikes[sPendingStrikeCount++] = { pos, normal, dmgFlags, cross };
+    return true;
+}
 
 // Contact-prim id tags: what kind of thing a prim is (echoed back in contact events, so impact
 // sounds/effects can match the material exactly like the vanilla sword-recoil path does).
@@ -1287,8 +1304,11 @@ extern "C" void VrCombat_FeedMelee(PlayState* play, Player* player) {
     // Enemy AI reacts to windups via meleeWeaponState (Stalfos/Gerudo/Wolfos/Dark Link...), and
     // the Ganondorf final blow requires it nonzero. The animation id is pinned to a plain slash
     // so spin-only AI branches stay cold. The setter shim plays the swing SFX on the 0->nonzero
-    // edge, exactly like a vanilla attack.
-    player->meleeWeaponAnimation = PLAYER_MWA_FORWARD_SLASH_1H;
+    // edge, exactly like a vanilla attack. The hammer uses the vanilla hammer swing: the totem
+    // breaks only for it (issue #130).
+    player->meleeWeaponAnimation = Player_GetMeleeWeaponHeld(player) == VrMeleeWeapon::kHammer
+                                       ? PLAYER_MWA_HAMMER_FORWARD
+                                       : PLAYER_MWA_FORWARD_SLASH_1H;
     if (sTier == VrMeleeWeapon::kIdle) {
         player->meleeWeaponState = 0;
     } else {
@@ -1406,6 +1426,75 @@ extern "C" void VrCombat_FeedMelee(PlayState* play, Player* player) {
 
 namespace VrCombat {
 
+// Hammer hit on an object, from the head that the last draw recorded (issue #130). A line from
+// the head of the last update goes through the head, a little farther. When it touches the
+// geometry of an object, the strike goes to the nearest point of the AC colliders of the object
+// (VrHammerTarget.h). Thus a hit on the front of a Fire Temple pillar hits the square on its top.
+// A fast swing goes through the geometry without a contact event, and this line still finds it.
+static void HammerObjectHit(PlayState* play, Player* player) {
+    if (!sHeadValid || Player_GetMeleeWeaponHeld(player) != VrMeleeWeapon::kHammer) {
+        sHavePrevHead = false;
+        sObjectStruck = false;
+        return;
+    }
+    const bool havePrev = sHavePrevHead;
+    const Vec3f prev = sPrevHeadPos;
+    sPrevHeadPos = sHeadPos;
+    sHavePrevHead = true;
+    if (sTier != VrMeleeWeapon::kHot) {
+        sObjectStruck = false;
+        return;
+    }
+    if (!havePrev || sObjectStruck) {
+        return;
+    }
+
+    const Vec3f move = vsub(sHeadPos, prev);
+    const float len = sqrtf(move.x * move.x + move.y * move.y + move.z * move.z);
+    if (len < 1e-3f) {
+        return;
+    }
+    // The sim can stop the head at the surface. The extra reach then still touches it.
+    const float reach = CVarGetFloat("gVrPhysHammerSlamReach", 8.0f);
+    Vec3f from = prev;
+    Vec3f to = vadd(sHeadPos, vscale(move, reach / len));
+    Vec3f hitPos;
+    CollisionPoly* poly = NULL;
+    s32 bgId;
+    if (!BgCheck_EntityLineTest1(&play->colCtx, &from, &to, &hitPos, &poly, true, true, true, false, &bgId) ||
+        bgId == BGCHECK_SCENE) {
+        return;
+    }
+    DynaPolyActor* dyna = DynaPoly_GetActor(&play->colCtx, bgId);
+    if (dyna == NULL) {
+        return;
+    }
+
+    // The objects update before Link, so their AC colliders of this frame are in the list.
+    VrHammerTarget::Tri tris[8];
+    int n = 0;
+    CollisionCheckContext* colChk = &play->colChkCtx;
+    for (int i = 0; i < colChk->colACCount && n < 8; i++) {
+        Collider* col = colChk->colAC[i];
+        if (col == NULL || col->actor != &dyna->actor || col->shape != COLSHAPE_TRIS) {
+            continue;
+        }
+        ColliderTris* colTris = (ColliderTris*)col;
+        for (int e = 0; e < colTris->count && n < 8; e++) {
+            const Vec3f* v = colTris->elements[e].dim.vtx;
+            tris[n++] = { { v[0].x, v[0].y, v[0].z }, { v[1].x, v[1].y, v[1].z }, { v[2].x, v[2].y, v[2].z } };
+        }
+    }
+    const VrHammerTarget::Aim aim = VrHammerTarget::NearestOnTris(tris, n, { hitPos.x, hitPos.y, hitPos.z });
+    if (!aim.valid) {
+        return;
+    }
+
+    const float heavySpeed = CVarGetFloat("gVrPhysHeavySpeed", VrMeleeWeapon::kDefaultHeavySpeed);
+    sObjectStruck = QueueStrike({ aim.point.x, aim.point.y, aim.point.z }, { aim.normal.x, aim.normal.y, aim.normal.z },
+                                WeaponDmgFlags(player, VrMeleeWeapon::IsHeavySwing(sTickTipSpeed, heavySpeed)), true);
+}
+
 // Hammer ground hit, from the head that the last draw recorded. The line test goes down through
 // the head.
 static void HammerGroundHit(PlayState* play, Player* player) {
@@ -1441,14 +1530,10 @@ static void HammerGroundHit(PlayState* play, Player* player) {
         // Also hit the actor under the head (a rusted switch). The sim can miss this contact.
         // The vanilla hammer swing flags: rusted switches and hammer rocks accept them, and a
         // stunned boss on the floor takes the normal hammer damage (issue #131).
-        if (sPendingStrikeCount < 4) {
-            PendingStrike& st = sPendingStrikes[sPendingStrikeCount++];
-            st.pos = hitPos;
-            st.normal = { COLPOLY_GET_NORMAL(poly->normal.x), COLPOLY_GET_NORMAL(poly->normal.y),
-                          COLPOLY_GET_NORMAL(poly->normal.z) };
-            st.dmgFlags = WeaponDmgFlags(player, false);
-            st.cross = true;
-        }
+        QueueStrike(hitPos,
+                    { COLPOLY_GET_NORMAL(poly->normal.x), COLPOLY_GET_NORMAL(poly->normal.y),
+                      COLPOLY_GET_NORMAL(poly->normal.z) },
+                    WeaponDmgFlags(player, false), true);
     }
 }
 
@@ -1543,16 +1628,16 @@ void Swing_OnPlayerUpdate(PlayState* play, Player* player) {
 
         // A damaging swing that physically struck something: queue a strike for the next draw.
         // Damage class from the swing that carried the impact.
-        if (sTier == VrMeleeWeapon::kHot && sPendingStrikeCount < 4) {
+        if (sTier == VrMeleeWeapon::kHot) {
             const float heavySpeed = CVarGetFloat("gVrPhysHeavySpeed", VrMeleeWeapon::kDefaultHeavySpeed);
-            PendingStrike& st = sPendingStrikes[sPendingStrikeCount++];
-            st.pos = pos;
-            st.normal = { events[i].normal[0], events[i].normal[1], events[i].normal[2] };
-            st.dmgFlags = WeaponDmgFlags(player, VrMeleeWeapon::IsHeavySwing(sTickTipSpeed, heavySpeed));
-            st.cross = Player_GetMeleeWeaponHeld(player) == VrMeleeWeapon::kHammer;
+            QueueStrike(pos, { events[i].normal[0], events[i].normal[1], events[i].normal[2] },
+                        WeaponDmgFlags(player, VrMeleeWeapon::IsHeavySwing(sTickTipSpeed, heavySpeed)),
+                        Player_GetMeleeWeaponHeld(player) == VrMeleeWeapon::kHammer);
         }
     }
 
+    // HammerGroundHit clears sHeadValid. Thus HammerObjectHit must run first.
+    HammerObjectHit(play, player);
     HammerGroundHit(play, player);
 
     if (sQuadsPlay != play) {
