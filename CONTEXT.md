@@ -69,6 +69,22 @@ leaves the belt. A bombchu does not fly: it starts on the floor below the hand.
 
 A point on the surface where a shot will hit. It shows while the player aims.
 
+## Charge pose
+
+The pose of Link before a spin attack. The sword hand is below the chest, at
+the side of the hip. The tip of the blade points back. While the player holds
+the charge pose, the spin attack charges.
+
+## Spin attack
+
+A sword attack that hits all around Link. In VR first person, the player holds
+the charge pose, then swings the sword. The view does not turn.
+
+## Magic spin
+
+A spin attack that uses magic. Link must have magic. A full charge hits a
+larger area.
+
 ## Port assets and game assets
 
 Two different sets of files. They go to the headset in different ways.
