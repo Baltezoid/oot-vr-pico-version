@@ -1741,8 +1741,8 @@ void Swing_OnPlayerUpdate(PlayState* play, Player* player) {
             sample.handForwardM = vdot(sSpinHandRel, bodyFwd);
             sample.bladeForward = vdot(sSpinBladeDir, bodyFwd);
         }
-        sample.eligible =
-            covered && VrSpinGesture::CanSpin(Player_GetMeleeWeaponHeld(player), Player_HoldsBrokenKnife(player));
+        sample.eligible = covered && !VrCombat_PlayerSpinAttacking(player) &&
+                          VrSpinGesture::CanSpin(Player_GetMeleeWeaponHeld(player), Player_HoldsBrokenKnife(player));
         sample.tracked = sSpinPoseValid;
         sample.handSpeedMps = sTickHandSpeed;
         sample.tier = sTier;

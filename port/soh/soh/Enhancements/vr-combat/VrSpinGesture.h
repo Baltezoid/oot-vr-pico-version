@@ -25,7 +25,7 @@ struct Params {
 
 // One game tick. The positions are relative to the eyes, in the yaw frame of the head, in meters.
 struct Sample {
-    bool eligible = false;  // VR combat is active and Link holds a weapon for a spin attack
+    bool eligible = false;  // VR combat is active, Link holds a weapon for a spin attack, no spin runs
     bool tracked = true;    // the pose is known. The headset can lose a hand behind the body.
     float handSideM = 0.0f; // positive toward the side of the sword hand
     float handUpM = 0.0f;
@@ -127,7 +127,9 @@ class Detector {
             mReleaseSwing = false;
         }
         if (!mCharging) {
-            if (s.eligible && s.tracked && InChargePose(p, s) && s.handSpeedMps <= p.maxStartHandSpeedMps) {
+            // The end of a swing can be in the pose: a charge starts only from a sword at rest.
+            if (s.eligible && s.tracked && s.tier == VrMeleeWeapon::kIdle && InChargePose(p, s) &&
+                s.handSpeedMps <= p.maxStartHandSpeedMps) {
                 mCharging = true;
                 mCancelled = false;
                 mReleaseSwing = false;

@@ -101,6 +101,21 @@ static void FastHandThroughPoseDoesNotCharge() {
     EXPECT(!d.ChargeHeld());
 }
 
+// On the headset, the end of a release swing was in the charge pose, and a new charge started.
+static void SwingThroughPoseDoesNotCharge() {
+    Detector d;
+    Sample s = InPose();
+    s.handSpeedMps = 0.4f;
+    s.tier = VrMeleeWeapon::kHot;
+    d.Update(kParams, s);
+    s.tier = VrMeleeWeapon::kArmed;
+    d.Update(kParams, s);
+    EXPECT(!d.ChargeHeld());
+    s.tier = VrMeleeWeapon::kIdle;
+    d.Update(kParams, s);
+    EXPECT(d.ChargeHeld());
+}
+
 static void IneligibleWeaponDoesNotCharge() {
     Detector d;
     Sample s = InPose();
@@ -335,6 +350,7 @@ int main() {
     HandFarInFrontIsNotChargePose();
     StillHandInPoseChargesAtOnce();
     FastHandThroughPoseDoesNotCharge();
+    SwingThroughPoseDoesNotCharge();
     IneligibleWeaponDoesNotCharge();
     HandMayMoveInsidePoseWhileCharging();
     FastSwingOutOfPoseReleases();
