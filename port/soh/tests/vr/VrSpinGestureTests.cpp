@@ -52,17 +52,17 @@ static void BladeStraightDownIsNotChargePose() {
     EXPECT(!InChargePose(kParams, s));
 }
 
-// On the headset, the charges started with the blade at 120 to 125 degrees from the front. A blade
-// at 110 degrees also starts a charge.
+// On the headset, the charges started with the blade at 105 to 120 degrees from the front. A blade
+// at 100 degrees also starts a charge.
 static void BladeLessFarBackIsChargePose() {
     Sample s = InPose();
-    s.bladeForward = -0.34f;
+    s.bladeForward = -0.17f;
     EXPECT(InChargePose(kParams, s));
 }
 
 static void HandAtChestHeightIsNotChargePose() {
     Sample s = InPose();
-    s.handUpM = -0.20f;
+    s.handUpM = -0.15f;
     EXPECT(!InChargePose(kParams, s));
 }
 
@@ -80,7 +80,7 @@ static void HandFarInFrontIsNotChargePose() {
 
 static Sample OutOfPose(int tier, float handSpeedMps) {
     Sample s = InPose();
-    s.handForwardM = 0.50f;
+    s.handForwardM = 0.70f;
     s.bladeForward = 0.5f;
     s.tier = tier;
     s.handSpeedMps = handSpeedMps;
@@ -143,18 +143,20 @@ static void SlowExitFromPoseCancels() {
 // of the height of the hand does not cancel the charge.
 static void HoldPoseIsWiderThanChargePose() {
     Sample s = InPose();
-    s.bladeForward = -0.15f;
-    s.handUpM = -0.27f;
-    s.handSideM = -0.15f;
+    s.bladeForward = 0.8f;
+    s.handUpM = -0.10f;
+    s.handSideM = -0.30f;
+    s.handForwardM = 0.50f;
     EXPECT(!InChargePose(kParams, s));
     EXPECT(InHoldPose(kParams, s));
 }
 
+// The player can move the charged sword: the blade can point to the front.
 static void ChargeStaysInHoldPose() {
     Detector d;
     d.Update(kParams, InPose());
     Sample s = InPose();
-    s.bladeForward = -0.3f;
+    s.bladeForward = 0.9f;
     for (int i = 0; i < 3 * kParams.maxOutTicks; i++) {
         d.Update(kParams, s);
     }
@@ -164,7 +166,7 @@ static void ChargeStaysInHoldPose() {
 static void HoldPoseDoesNotStartACharge() {
     Detector d;
     Sample s = InPose();
-    s.bladeForward = -0.15f;
+    s.bladeForward = 0.0f;
     d.Update(kParams, s);
     EXPECT(!d.ChargeHeld());
 }

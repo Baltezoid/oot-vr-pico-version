@@ -16,17 +16,17 @@
 namespace VrSpinGesture {
 
 struct Params {
-    float maxHandUpM = -0.30f;         // the hand is this far below the eyes, or more
-    float minHandSideM = -0.10f;       // toward the sword side; a small value on the other side is good
-    float maxHandForwardM = 0.30f;     // the hand is not far in front of the head
-    float maxBladeForward = -0.25f;    // the blade points back: 105 degrees or more from the front
+    float maxHandUpM = -0.25f;         // the hand is this far below the eyes, or more
+    float minHandSideM = -0.15f;       // toward the sword side; a small value on the other side is good
+    float maxHandForwardM = 0.35f;     // the hand is not far in front of the head
+    float maxBladeForward = -0.1f;     // the blade points back: 96 degrees or more from the front
     float maxStartHandSpeedMps = 1.0f; // a fast hand that moves through the pose does not charge
-    // The hold pose: the limits while the charge runs.
-    float holdMaxHandUpM = -0.25f;
-    float holdMinHandSideM = -0.20f;
-    float holdMaxHandForwardM = 0.40f;
-    float holdMaxBladeForward = -0.1f; // the blade points back, or to the side
-    int maxOutTicks = 8;               // ticks out of the hold pose before a cancel
+    // The hold pose: the limits while the charge runs. The blade can point in all directions: the
+    // player can move the charged sword. The hand stays below the shoulders.
+    float holdMaxHandUpM = -0.05f;
+    float holdMinHandSideM = -0.35f;
+    float holdMaxHandForwardM = 0.55f;
+    int maxOutTicks = 8; // ticks out of the hold pose before a cancel
 };
 
 // One game tick. The positions are relative to the eyes, in the yaw frame of the head, in meters.
@@ -49,7 +49,7 @@ inline bool InChargePose(const Params& p, const Sample& s) {
 
 inline bool InHoldPose(const Params& p, const Sample& s) {
     return s.handUpM <= p.holdMaxHandUpM && s.handSideM >= p.holdMinHandSideM &&
-           s.handForwardM <= p.holdMaxHandForwardM && s.bladeForward <= p.holdMaxBladeForward;
+           s.handForwardM <= p.holdMaxHandForwardM;
 }
 
 // The yaw of the body, from the yaw of the head. A look to the side does not turn the body. The body
