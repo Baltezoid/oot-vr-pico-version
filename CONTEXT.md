@@ -78,7 +78,8 @@ the charge pose, the spin attack charges.
 ## Spin attack
 
 A sword attack that hits all around Link. In VR first person, the player holds
-the charge pose, then swings the sword. The view does not turn.
+the charge pose, then swings the sword. This swing is the release swing. The
+view does not turn.
 
 ## Magic spin
 

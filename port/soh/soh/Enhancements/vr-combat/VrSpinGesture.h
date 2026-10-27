@@ -13,7 +13,7 @@ namespace VrSpinGesture {
 
 struct Params {
     float maxHandUpM = -0.40f;         // the hand is this far below the eyes, or more
-    float minHandSideM = -0.05f;       // toward the sword side; a small value on the other side is OK
+    float minHandSideM = -0.05f;       // toward the sword side; a small value on the other side is good
     float maxHandForwardM = 0.25f;     // the hand is not far in front of the head
     float maxBladeForward = -0.5f;     // the blade points back: 120 degrees or more from the view
     float maxStartHandSpeedMps = 1.0f; // a fast hand that moves through the pose does not charge
@@ -22,7 +22,7 @@ struct Params {
 
 // One game tick. The positions are relative to the eyes, in the yaw frame of the head, in meters.
 struct Sample {
-    bool eligible = false;  // VR combat is active and Link holds a weapon that can spin
+    bool eligible = false;  // VR combat is active and Link holds a weapon for a spin attack
     float handSideM = 0.0f; // positive toward the side of the sword hand
     float handUpM = 0.0f;
     float handForwardM = 0.0f;
@@ -37,14 +37,15 @@ inline bool InChargePose(const Params& p, const Sample& s) {
            s.bladeForward <= p.maxBladeForward;
 }
 
-// The vanilla rules (Player_ActionHandler_8, Player_CanSpinAttack): the swords spin. The Deku
-// Stick, the hammer, and the broken Giant's Knife do not.
+// The vanilla rules (Player_ActionHandler_8, Player_CanSpinAttack): the swords can do a spin
+// attack. The Deku Stick, the hammer, and the broken Giant's Knife cannot.
 inline bool CanSpin(int held, bool brokenKnife) {
     return (held == VrMeleeWeapon::kKokiri || held == VrMeleeWeapon::kMaster || held == VrMeleeWeapon::kBiggoron) &&
            !brokenKnife;
 }
 
-// The vanilla charge levels (Player_Action_80844E68, EnMThunder): a spin at 0.1, a big spin at 0.85.
+// The vanilla charge levels (Player_Action_80844E68, EnMThunder): a spin attack from 0.1, and a
+// full charge from 0.85. A full charge hits a larger area.
 constexpr float kSpinCharge = 0.1f;
 constexpr float kFullCharge = 0.85f;
 
@@ -61,11 +62,9 @@ inline bool ReachedFullCharge(float prevCharge, float charge) {
     return prevCharge < kFullCharge && charge >= kFullCharge;
 }
 
-// EnMThunder (the vanilla spin effect) hits only with a charge above this value.
-constexpr float kChargeThatHits = 0.15f;
-
-// The virtual B button of the vanilla charge. ChargeHeld is true while the player holds the charge.
-// When the charge ends, Cancelled tells a slow exit from the pose (no spin) from a release.
+// The virtual B button of the vanilla charge. ChargeHeld is true while the player holds the charge
+// pose. When the charge ends, Cancelled is true after a slow exit from the charge pose, and false
+// after a release swing.
 class Detector {
   public:
     void Update(const Params& p, const Sample& s) {
@@ -107,9 +106,9 @@ class Detector {
     }
 
     // The spin attack does the damage of this swing: the physical swing must not hit too. True
-    // while the charge can hit, and for the release swing until it ends.
+    // while the charge can start a spin attack, and for the release swing until it ends.
     bool SpinOwnsSwing() const {
-        return (mCharging || mReleaseSwing) && mCharge > kChargeThatHits;
+        return (mCharging || mReleaseSwing) && mCharge >= kSpinCharge;
     }
 
     void Reset() {

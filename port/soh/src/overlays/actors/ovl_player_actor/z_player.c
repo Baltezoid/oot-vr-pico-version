@@ -6840,7 +6840,7 @@ void func_8083C50C(Player* this) {
 
 s32 Player_ActionHandler_8(Player* this, PlayState* play) {
     // SOH [VR] Physical combat: the charge pose replaces the held B button for covered weapons
-    // (#133). The charge starts at once, as in the original game. VrSpinGesture.h has the rules.
+    // (#133). The charge starts at once, as in the vanilla game. VrSpinGesture.h has the rules.
     if (VrCombat_Active() && VrCombat_MeleeCovered(this)) {
         if (VrCombat_SpinChargeHeld()) {
             func_808377DC(play, this);
@@ -10242,10 +10242,11 @@ void Player_Action_80844AF4(Player* this, PlayState* play) {
     }
 }
 
+// SOH [VR] Physical combat: the charge pose holds the spin charge in place of B (#133). The
+// declaration lets func_80844BE4 cancel the charge.
 void func_80844D68(Player* this, PlayState* play);
 
-// SOH [VR] Physical combat: the charge pose holds the spin charge in place of B (#133).
-static s32 Player_SpinChargeHeld(Player* this) {
+static s32 Player_ChargeInputHeld(Player* this) {
     if (VrCombat_Active() && VrCombat_MeleeCovered(this)) {
         return VrCombat_SpinChargeHeld();
     }
@@ -10258,7 +10259,7 @@ s32 func_80844BE4(Player* this, PlayState* play) {
     if (Player_StartCsAction(play, this)) {
         this->stateFlags2 |= PLAYER_STATE2_SPIN_ATTACKING;
     } else {
-        if (!Player_SpinChargeHeld(this)) {
+        if (!Player_ChargeInputHeld(this)) {
             // SOH [VR] A slow exit from the charge pose ends the charge without a spin attack.
             if (VrCombat_Active() && VrCombat_MeleeCovered(this) && VrCombat_SpinCancelled()) {
                 func_80844D68(this, play);
@@ -10335,7 +10336,7 @@ void Player_Action_80844E68(Player* this, PlayState* play) {
             if (this->unk_858 >= 0.1f) {
                 this->unk_845 = 0;
                 this->av2.actionVar2 = 1;
-            } else if (!Player_SpinChargeHeld(this)) { // SOH [VR]
+            } else if (!Player_ChargeInputHeld(this)) { // SOH [VR]
                 func_80844D68(this, play);
             }
         } else if (!func_80844BE4(this, play)) {
@@ -15639,6 +15640,21 @@ static Vec3f D_80854A40 = { 0.0f, 40.0f, 45.0f };
 bool VrCombat_PlayerSpinAttacking(Player* this) {
     return (this->actionFunc == Player_Action_808502D0) && (this->meleeWeaponAnimation >= PLAYER_MWA_SPIN_ATTACK_1H) &&
            (this->meleeWeaponAnimation <= PLAYER_MWA_BIG_SPIN_2H);
+}
+
+// SOH [VR] The part of the hit frames of the vanilla spin attack that Link did: 0 at the start, 1 at
+// the end. -1 out of the hit frames. func_8084285C uses the same frames for meleeWeaponState.
+float VrCombat_PlayerSpinProgress(Player* this) {
+    f32 lastFrame;
+
+    if (!VrCombat_PlayerSpinAttacking(this)) {
+        return -1.0f;
+    }
+    lastFrame = D_80854190[this->meleeWeaponAnimation].unk_0D;
+    if ((lastFrame <= 0.0f) || (this->skelAnime.curFrame > lastFrame)) {
+        return -1.0f;
+    }
+    return this->skelAnime.curFrame / lastFrame;
 }
 
 void Player_Action_808502D0(Player* this, PlayState* play) {

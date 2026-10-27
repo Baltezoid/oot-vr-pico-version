@@ -70,7 +70,6 @@ static void HandFarInFrontIsNotChargePose() {
     EXPECT(!InChargePose(kParams, s));
 }
 
-
 static Sample OutOfPose(int tier, float handSpeedMps) {
     Sample s = InPose();
     s.handForwardM = 0.50f;
@@ -174,12 +173,12 @@ static Sample Charged(float charge) {
     return s;
 }
 
-// The vanilla spin collider hits only above a charge of 0.15 (EnMThunder). Then it replaces the
-// damage of the physical swing.
-static void ChargeThatHitsOwnsTheSwing() {
+// From a charge of 0.1, the vanilla spin attack does the damage. It replaces the damage of the
+// physical swing, with magic and without magic.
+static void SpinChargeOwnsTheSwing() {
     Detector d;
     d.Update(kParams, Charged(0.0f));
-    d.Update(kParams, Charged(0.5f));
+    d.Update(kParams, Charged(0.12f));
     EXPECT(d.SpinOwnsSwing());
 }
 
@@ -212,7 +211,8 @@ static void CancelledChargeDoesNotOwnTheNextSwing() {
     EXPECT(!d.SpinOwnsSwing());
 }
 
-// The vanilla rules: the swords spin. The Deku Stick, the hammer, and the broken knife do not.
+// The vanilla rules: the swords can do a spin attack. The Deku Stick, the hammer, and the broken
+// knife cannot.
 static void SwordsCanSpin() {
     EXPECT(CanSpin(VrMeleeWeapon::kKokiri, false));
     EXPECT(CanSpin(VrMeleeWeapon::kMaster, false));
@@ -226,7 +226,7 @@ static void OtherWeaponsCannotSpin() {
     EXPECT(!CanSpin(VrMeleeWeapon::kBiggoron, true));
 }
 
-// The vanilla spin starts at a charge of 0.1. The vibration starts there and gets stronger.
+// The vanilla spin attack starts at a charge of 0.1. The vibration starts there and gets stronger.
 static void NoVibrationBeforeTheSpinCharge() {
     EXPECT(ChargeHapticAmplitude(0.05f) == 0.0f);
 }
@@ -236,7 +236,7 @@ static void VibrationGrowsWithTheCharge() {
     EXPECT(ChargeHapticAmplitude(0.8f) > ChargeHapticAmplitude(0.2f));
 }
 
-// The vanilla big spin starts at a charge of 0.85. One pulse tells the player.
+// The vanilla full charge starts at 0.85. One pulse tells the player.
 static void PulseOnceWhenTheChargeIsFull() {
     EXPECT(!ReachedFullCharge(0.80f, 0.84f));
     EXPECT(ReachedFullCharge(0.84f, 0.86f));
@@ -260,7 +260,7 @@ int main() {
     ArmedExitThatStaysSlowCancels();
     WeaponChangeWhileChargingCancels();
     NewChargeClearsCancel();
-    ChargeThatHitsOwnsTheSwing();
+    SpinChargeOwnsTheSwing();
     ShortChargeLeavesTheSwingItsDamage();
     ReleaseSwingStaysOwnedUntilItEnds();
     CancelledChargeDoesNotOwnTheNextSwing();
