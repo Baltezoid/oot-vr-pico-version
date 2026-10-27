@@ -1733,8 +1733,9 @@ void Swing_OnPlayerUpdate(PlayState* play, Player* player) {
         const bool charging = (player->stateFlags1 & PLAYER_STATE1_CHARGING_SPIN_ATTACK) != 0;
         const float charge = charging ? player->unk_858 : 0.0f;
         VrSpinGesture::Sample sample = sSpinPose;
-        sample.eligible = covered && sSpinPoseValid &&
-                          VrSpinGesture::CanSpin(Player_GetMeleeWeaponHeld(player), Player_HoldsBrokenKnife(player));
+        sample.eligible =
+            covered && VrSpinGesture::CanSpin(Player_GetMeleeWeaponHeld(player), Player_HoldsBrokenKnife(player));
+        sample.tracked = sSpinPoseValid;
         sample.handSpeedMps = sTickHandSpeed;
         sample.tier = sTier;
         sample.charge = charge;
@@ -1742,10 +1743,10 @@ void Swing_OnPlayerUpdate(PlayState* play, Player* player) {
         if (sSpin.ChargeHeld() != sSpinLogCharging) {
             sSpinLogCharging = sSpin.ChargeHeld();
             SPDLOG_INFO("[VrSpin] {}: charge {:.2f}, hand side {:.2f} up {:.2f} fwd {:.2f} m, blade fwd {:.2f}, "
-                        "speed {:.1f} m/s, tier {}",
+                        "speed {:.1f} m/s, tier {}, tracked {}",
                         sSpinLogCharging ? "charge start" : (sSpin.Cancelled() ? "cancel" : "release"), charge,
                         sample.handSideM, sample.handUpM, sample.handForwardM, sample.bladeForward, sample.handSpeedMps,
-                        sample.tier);
+                        sample.tier, sample.tracked);
         }
 
         const float amplitude = VrSpinGesture::ChargeHapticAmplitude(charge);

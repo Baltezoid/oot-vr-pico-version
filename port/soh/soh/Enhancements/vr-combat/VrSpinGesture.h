@@ -4,8 +4,8 @@
 // in port/soh/tests/vr/VrSpinGestureTests.cpp build it alone.
 //
 // The player holds the charge pose: the sword hand below the chest, at the side of the hip, and
-// the blade points back. The vanilla spin charge then runs. A fast swing out of the pose releases
-// the spin attack. A slow exit from the pose cancels the charge.
+// the blade points back. The vanilla spin charge then runs. A swing out of the pose at the arm
+// speed releases the spin attack. A slow exit from the pose cancels the charge.
 //
 // While the charge runs, the player can move the head: the caller keeps the yaw frame of the head
 // from the start of the charge, and the hold pose has wider limits than the start pose.
@@ -31,6 +31,7 @@ struct Params {
 // One game tick. The positions are relative to the eyes, in the yaw frame of the head, in meters.
 struct Sample {
     bool eligible = false;  // VR combat is active and Link holds a weapon for a spin attack
+    bool tracked = true;    // the pose is known. The headset can lose a hand behind the body.
     float handSideM = 0.0f; // positive toward the side of the sword hand
     float handUpM = 0.0f;
     float handForwardM = 0.0f;
@@ -85,7 +86,7 @@ class Detector {
             mReleaseSwing = false;
         }
         if (!mCharging) {
-            if (s.eligible && InChargePose(p, s) && s.handSpeedMps <= p.maxStartHandSpeedMps) {
+            if (s.eligible && s.tracked && InChargePose(p, s) && s.handSpeedMps <= p.maxStartHandSpeedMps) {
                 mCharging = true;
                 mCancelled = false;
                 mReleaseSwing = false;
@@ -97,14 +98,17 @@ class Detector {
         // The charge of the release swing is the charge of the last tick of the charge.
         if (!s.eligible) {
             End(true);
-        } else if (s.tier == VrMeleeWeapon::kHot) {
+        } else if (!s.tracked) {
+            // A hand at the hip is often behind the body: keep the charge until the headset sees it.
+            mCharge = s.charge;
+        } else if (s.tier == VrMeleeWeapon::kHot || (s.tier == VrMeleeWeapon::kArmed && !InHoldPose(p, s))) {
             End(false);
             mReleaseSwing = true;
         } else if (InHoldPose(p, s)) {
             mOutTicks = 0;
             mCharge = s.charge;
         } else if (++mOutTicks <= p.maxOutTicks) {
-            // A short time out of the pose: the release swing can get to the hit speed.
+            // A short time out of the pose: the hand can go back, or swing.
             mCharge = s.charge;
         } else {
             End(true);

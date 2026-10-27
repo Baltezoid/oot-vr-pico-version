@@ -187,25 +187,37 @@ static void ReturnToPoseKeepsTheCharge() {
     EXPECT(d.ChargeHeld());
 }
 
-// The swing speeds up after the hand leaves the pose. A few armed ticks wait for the hit speed.
-static void ArmedExitThatGetsHotReleases() {
+// On the headset, release swings got to the arm speed but not to the hit speed. As the release of
+// B in the vanilla game, a swing at the arm speed out of the pose releases the spin attack.
+static void ArmedExitReleases() {
     Detector d;
     d.Update(kParams, InPose());
     d.Update(kParams, OutOfPose(VrMeleeWeapon::kArmed, 2.0f));
-    EXPECT(d.ChargeHeld());
-    d.Update(kParams, OutOfPose(VrMeleeWeapon::kHot, 6.0f));
     EXPECT(!d.ChargeHeld());
     EXPECT(!d.Cancelled());
 }
 
-static void ArmedExitThatStaysSlowCancels() {
+// The headset can lose the hand at the hip, behind the body. This does not cancel the charge.
+static void UntrackedHandKeepsTheCharge() {
     Detector d;
     d.Update(kParams, InPose());
-    for (int i = 0; i <= kParams.maxOutTicks; i++) {
-        d.Update(kParams, OutOfPose(VrMeleeWeapon::kArmed, 2.0f));
+    Sample s = OutOfPose(VrMeleeWeapon::kIdle, 0.0f);
+    s.tracked = false;
+    for (int i = 0; i < 3 * kParams.maxOutTicks; i++) {
+        d.Update(kParams, s);
     }
+    EXPECT(d.ChargeHeld());
+    d.Update(kParams, OutOfPose(VrMeleeWeapon::kArmed, 2.0f));
     EXPECT(!d.ChargeHeld());
-    EXPECT(d.Cancelled());
+    EXPECT(!d.Cancelled());
+}
+
+static void UntrackedHandDoesNotStartACharge() {
+    Detector d;
+    Sample s = InPose();
+    s.tracked = false;
+    d.Update(kParams, s);
+    EXPECT(!d.ChargeHeld());
 }
 
 static void WeaponChangeWhileChargingCancels() {
@@ -326,8 +338,9 @@ int main() {
     HoldPoseDoesNotStartACharge();
     ShortStopOutOfPoseThenSwingReleases();
     ReturnToPoseKeepsTheCharge();
-    ArmedExitThatGetsHotReleases();
-    ArmedExitThatStaysSlowCancels();
+    ArmedExitReleases();
+    UntrackedHandKeepsTheCharge();
+    UntrackedHandDoesNotStartACharge();
     WeaponChangeWhileChargingCancels();
     NewChargeClearsCancel();
     SpinChargeOwnsTheSwing();
