@@ -3,7 +3,6 @@ extern "C" {
 #include "macros.h"
 #include "functions.h"
 #include "sfx.h"
-#include "variables.h"
 extern PlayState* gPlayState;
 MtxF* Matrix_GetCurrent(void);
 }
@@ -16,7 +15,6 @@ MtxF* Matrix_GetCurrent(void);
 
 #include "soh/cvar_prefixes.h"
 #include <libultraship/bridge/consolevariablebridge.h>
-#include <spdlog/spdlog.h>
 #include <vr_interface.h>
 #include <cmath>
 
@@ -87,8 +85,6 @@ VrSpinGesture::BodyYaw sSpinBody;
 bool sSpinPoseValid = false;
 float sSpinPrevCharge = 0.0f;
 float sSpinSweepPrev = -1.0f; // spin attack progress at the last draw, -1 out of the hit frames
-// TODO(#133): remove the gesture log after the headset test.
-bool sSpinLogCharging = false;
 
 void ResetSpin() {
     sSpin.Reset();
@@ -96,7 +92,6 @@ void ResetSpin() {
     sSpinPoseValid = false;
     sSpinPrevCharge = 0.0f;
     sSpinSweepPrev = -1.0f;
-    sSpinLogCharging = false;
 }
 
 // Mirror of the player melee quad init (D_80854650, z_player.c) with TOUCH_NEAREST from the
@@ -1089,19 +1084,8 @@ void SpinSweep(PlayState* play, Player* player, float bladeLenUnits) {
         sSpinSweepPrev = -1.0f;
         return;
     }
-    if (sSpinSweepPrev < 0.0f) {
-        if (trail != nullptr) {
-            EffectBlure_AddSpace(trail);
-        }
-        float nearest = -1.0f;
-        for (Actor* enemy = play->actorCtx.actorLists[ACTORCAT_ENEMY].head; enemy != nullptr; enemy = enemy->next) {
-            const float d = Actor_WorldDistXZToActor(&player->actor, enemy);
-            if (nearest < 0.0f || d < nearest) {
-                nearest = d;
-            }
-        }
-        SPDLOG_INFO("[VrSpin] spin attack: animation {}, magic {}, reach {:.0f}, nearest enemy {:.0f} units",
-                    player->meleeWeaponAnimation, gSaveContext.magic, kArmUnits + bladeLenUnits, nearest);
+    if (sSpinSweepPrev < 0.0f && trail != nullptr) {
+        EffectBlure_AddSpace(trail);
     }
     float from = sSpinSweepPrev;
     if (from < 0.0f || from >= progress) {
@@ -1748,14 +1732,6 @@ void Swing_OnPlayerUpdate(PlayState* play, Player* player) {
         sample.tier = sTier;
         sample.charge = charge;
         sSpin.Update(VrSpinGesture::Params{}, sample);
-        if (sSpin.ChargeHeld() != sSpinLogCharging) {
-            sSpinLogCharging = sSpin.ChargeHeld();
-            SPDLOG_INFO("[VrSpin] {}: charge {:.2f}, hand side {:.2f} up {:.2f} fwd {:.2f} m, blade fwd {:.2f}, "
-                        "speed {:.1f} m/s, tier {}, tracked {}",
-                        sSpinLogCharging ? "charge start" : (sSpin.Cancelled() ? "cancel" : "release"), charge,
-                        sample.handSideM, sample.handUpM, sample.handForwardM, sample.bladeForward, sample.handSpeedMps,
-                        sample.tier, sample.tracked);
-        }
 
         const float amplitude = VrSpinGesture::ChargeHapticAmplitude(charge);
         if (VrSpinGesture::ReachedFullCharge(sSpinPrevCharge, charge)) {
@@ -1835,10 +1811,6 @@ void Swing_OnPlayerUpdate(PlayState* play, Player* player) {
             continue;
         }
         hit = true;
-        if (VrCombat_PlayerSpinAttacking(player)) {
-            Actor* spinVictim = sQuads[i].base.at;
-            SPDLOG_INFO("[VrSpin] spin hit: actor {:#x}", spinVictim != nullptr ? spinVictim->id : -1);
-        }
         // M3 hit feel. Vanilla colChkInfo.mass MOSTLY doesn't mean weight: it encodes "Link
         // can't shove me by walking into me" (a tiny Stalchild carries MASS_HEAVY), so sword
         // impacts scale by category instead — full effect on enemies/NPCs, none on bosses.
