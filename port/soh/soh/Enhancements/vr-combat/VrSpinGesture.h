@@ -7,18 +7,19 @@
 // the blade points back. The vanilla spin charge then runs. A swing out of the pose at the arm
 // speed releases the spin attack. A slow exit from the pose cancels the charge.
 //
-// While the charge runs, the player can move the head: the caller keeps the yaw frame of the head
-// from the start of the charge, and the hold pose has wider limits than the start pose.
+// The pose is in the yaw frame of the body (BodyYaw), not of the head: the player can look to the
+// side and start a charge. While the charge runs, the frame does not move, and the hold pose has
+// wider limits than the start pose.
 
 #include "VrMeleeWeapon.h"
 
 namespace VrSpinGesture {
 
 struct Params {
-    float maxHandUpM = -0.40f;         // the hand is this far below the eyes, or more
-    float minHandSideM = -0.05f;       // toward the sword side; a small value on the other side is good
-    float maxHandForwardM = 0.25f;     // the hand is not far in front of the head
-    float maxBladeForward = -0.5f;     // the blade points back: 120 degrees or more from the view
+    float maxHandUpM = -0.30f;         // the hand is this far below the eyes, or more
+    float minHandSideM = -0.10f;       // toward the sword side; a small value on the other side is good
+    float maxHandForwardM = 0.30f;     // the hand is not far in front of the head
+    float maxBladeForward = -0.25f;    // the blade points back: 105 degrees or more from the front
     float maxStartHandSpeedMps = 1.0f; // a fast hand that moves through the pose does not charge
     // The hold pose: the limits while the charge runs.
     float holdMaxHandUpM = -0.25f;
@@ -50,6 +51,60 @@ inline bool InHoldPose(const Params& p, const Sample& s) {
     return s.handUpM <= p.holdMaxHandUpM && s.handSideM >= p.holdMinHandSideM &&
            s.handForwardM <= p.holdMaxHandForwardM && s.bladeForward <= p.holdMaxBladeForward;
 }
+
+// The yaw of the body, from the yaw of the head. A look to the side does not turn the body. The body
+// follows the head when the head turns more than maxOffsetRad, and slowly when the player stays
+// turned. Angles in radians.
+struct BodyYawParams {
+    float maxOffsetRad = 0.79f;     // 45 degrees
+    float followPerTick = 0.033f;   // about 1.5 s at 20 ticks per second
+};
+
+inline float WrapAngle(float a) {
+    constexpr float kPi = 3.14159265f;
+    while (a > kPi) {
+        a -= 2.0f * kPi;
+    }
+    while (a < -kPi) {
+        a += 2.0f * kPi;
+    }
+    return a;
+}
+
+class BodyYaw {
+  public:
+    // One tick. A frozen body (for example while charging) does not follow the head.
+    void Update(const BodyYawParams& p, float headYawRad, bool frozen) {
+        if (!mValid) {
+            mYaw = headYawRad;
+            mValid = true;
+            return;
+        }
+        if (frozen) {
+            return;
+        }
+        float offset = WrapAngle(headYawRad - mYaw);
+        offset -= offset * p.followPerTick;
+        if (offset > p.maxOffsetRad) {
+            offset = p.maxOffsetRad;
+        } else if (offset < -p.maxOffsetRad) {
+            offset = -p.maxOffsetRad;
+        }
+        mYaw = WrapAngle(headYawRad - offset);
+    }
+
+    float Yaw() const {
+        return mYaw;
+    }
+
+    void Reset() {
+        mValid = false;
+    }
+
+  private:
+    float mYaw = 0.0f;
+    bool mValid = false;
+};
 
 // The vanilla rules (Player_ActionHandler_8, Player_CanSpinAttack): the swords can do a spin
 // attack. The Deku Stick, the hammer, and the broken Giant's Knife cannot.

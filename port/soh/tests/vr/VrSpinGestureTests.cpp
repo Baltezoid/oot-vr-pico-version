@@ -52,6 +52,14 @@ static void BladeStraightDownIsNotChargePose() {
     EXPECT(!InChargePose(kParams, s));
 }
 
+// On the headset, the charges started with the blade at 120 to 125 degrees from the front. A blade
+// at 110 degrees also starts a charge.
+static void BladeLessFarBackIsChargePose() {
+    Sample s = InPose();
+    s.bladeForward = -0.34f;
+    EXPECT(InChargePose(kParams, s));
+}
+
 static void HandAtChestHeightIsNotChargePose() {
     Sample s = InPose();
     s.handUpM = -0.20f;
@@ -135,9 +143,9 @@ static void SlowExitFromPoseCancels() {
 // of the height of the hand does not cancel the charge.
 static void HoldPoseIsWiderThanChargePose() {
     Sample s = InPose();
-    s.bladeForward = -0.3f;
-    s.handUpM = -0.30f;
-    s.handSideM = -0.10f;
+    s.bladeForward = -0.15f;
+    s.handUpM = -0.27f;
+    s.handSideM = -0.15f;
     EXPECT(!InChargePose(kParams, s));
     EXPECT(InHoldPose(kParams, s));
 }
@@ -156,7 +164,7 @@ static void ChargeStaysInHoldPose() {
 static void HoldPoseDoesNotStartACharge() {
     Detector d;
     Sample s = InPose();
-    s.bladeForward = -0.3f;
+    s.bladeForward = -0.15f;
     d.Update(kParams, s);
     EXPECT(!d.ChargeHeld());
 }
@@ -320,10 +328,66 @@ static void PulseOnceWhenTheChargeIsFull() {
     EXPECT(!ReachedFullCharge(0.86f, 0.88f));
 }
 
+static const BodyYawParams kBody = {};
+
+static void BodyStartsAtTheHead() {
+    BodyYaw b;
+    b.Update(kBody, 1.0f, false);
+    EXPECT(b.Yaw() == 1.0f);
+}
+
+// A look to the side does not turn the body at once.
+static void ShortLookToTheSideKeepsTheBody() {
+    BodyYaw b;
+    b.Update(kBody, 0.0f, false);
+    for (int i = 0; i < 5; i++) {
+        b.Update(kBody, 0.6f, false);
+    }
+    EXPECT(b.Yaw() < 0.15f);
+}
+
+// A large turn of the head pulls the body: the head is never more than 45 degrees from it.
+static void LargeTurnPullsTheBody() {
+    BodyYaw b;
+    b.Update(kBody, 0.0f, false);
+    b.Update(kBody, 1.5f, false);
+    EXPECT(b.Yaw() >= 1.5f - kBody.maxOffsetRad - 0.001f);
+}
+
+// The player stays turned: the body follows slowly.
+static void BodyFollowsAHeadThatStaysTurned() {
+    BodyYaw b;
+    b.Update(kBody, 0.0f, false);
+    for (int i = 0; i < 200; i++) {
+        b.Update(kBody, 0.6f, false);
+    }
+    EXPECT(b.Yaw() > 0.55f);
+}
+
+static void FrozenBodyDoesNotFollow() {
+    BodyYaw b;
+    b.Update(kBody, 0.0f, false);
+    for (int i = 0; i < 200; i++) {
+        b.Update(kBody, 1.5f, true);
+    }
+    EXPECT(b.Yaw() == 0.0f);
+}
+
+// From -170 to 170 degrees the head turns 20 degrees, not 340 degrees.
+static void BodyFollowsAcrossTheWrap() {
+    BodyYaw b;
+    b.Update(kBody, -2.97f, false);
+    for (int i = 0; i < 200; i++) {
+        b.Update(kBody, 2.97f, false);
+    }
+    EXPECT(b.Yaw() > 2.9f || b.Yaw() < -3.1f);
+}
+
 int main() {
     HipPoseWithBladeBackIsChargePose();
     BladeForwardIsNotChargePose();
     BladeStraightDownIsNotChargePose();
+    BladeLessFarBackIsChargePose();
     HandAtChestHeightIsNotChargePose();
     HandOnOtherSideIsNotChargePose();
     HandFarInFrontIsNotChargePose();
@@ -352,6 +416,12 @@ int main() {
     NoVibrationBeforeTheSpinCharge();
     VibrationGrowsWithTheCharge();
     PulseOnceWhenTheChargeIsFull();
+    BodyStartsAtTheHead();
+    ShortLookToTheSideKeepsTheBody();
+    LargeTurnPullsTheBody();
+    BodyFollowsAHeadThatStaysTurned();
+    FrozenBodyDoesNotFollow();
+    BodyFollowsAcrossTheWrap();
 
     if (sFailures == 0) {
         std::printf("VrSpinGesture: all tests passed\n");

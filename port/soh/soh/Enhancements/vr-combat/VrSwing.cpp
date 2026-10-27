@@ -76,17 +76,23 @@ bool sObjectStruck = false;
 // Spin attack gesture (VrSpinGesture.h, issue #133). The draw records the pose of the sword hand.
 // The next player update runs the rule. sSpinPrevCharge finds the tick of the full charge.
 VrSpinGesture::Detector sSpin;
-VrSpinGesture::Sample sSpinPose;
+// The pose of the sword hand at the last draw, in the world frame: the hand relative to the eyes
+// in meters, and the unit vector from the hilt to the tip. The player update puts it in the frame of
+// the body.
+Vec3f sSpinHandRel;
+Vec3f sSpinBladeDir;
+float sSpinHeadYaw = 0.0f;
+float sSpinSide = 1.0f;
+VrSpinGesture::BodyYaw sSpinBody;
 bool sSpinPoseValid = false;
 float sSpinPrevCharge = 0.0f;
 float sSpinSweepPrev = -1.0f; // spin attack progress at the last draw, -1 out of the hit frames
-// The yaw frame of the head at the start of the charge. The player can look around while charging.
-Vec3f sSpinRefFwd = { 0.0f, 0.0f, 1.0f };
 // TODO(#133): remove the gesture log after the headset test.
 bool sSpinLogCharging = false;
 
 void ResetSpin() {
     sSpin.Reset();
+    sSpinBody.Reset();
     sSpinPoseValid = false;
     sSpinPrevCharge = 0.0f;
     sSpinSweepPrev = -1.0f;
@@ -1279,9 +1285,8 @@ extern "C" void VrCombat_FeedMelee(PlayState* play, Player* player) {
         }
     }
 
-    // Pose of the sword hand for the spin attack gesture: relative to the eyes, in meters. Sword
-    // side is positive. The frame is the yaw of the head, kept from the start of the charge: a turn
-    // of the head while charging does not move the pose.
+    // Pose of the sword hand for the spin attack gesture. Swing_OnPlayerUpdate puts it in the frame
+    // of the body.
     sSpinPoseValid = false;
     if (haveEff) {
         float eye[3];
@@ -1290,17 +1295,10 @@ extern "C" void VrCombat_FeedMelee(PlayState* play, Player* player) {
         VR_GetCameraPose(eye, fwd, up);
         const float fwdLen = sqrtf(fwd[0] * fwd[0] + fwd[2] * fwd[2]);
         if (fwdLen > 0.001f) {
-            if (!sSpin.ChargeHeld()) {
-                sSpinRefFwd = { fwd[0] / fwdLen, 0.0f, fwd[2] / fwdLen };
-            }
-            const Vec3f headFwd = sSpinRefFwd;
-            const Vec3f headRight = { -headFwd.z, 0.0f, headFwd.x };
-            const float side = (hand == VR_HAND_RIGHT) ? 1.0f : -1.0f;
-            const Vec3f rel = vscale(vsub(effPos, { eye[0], eye[1], eye[2] }), 1.0f / worldScale);
-            sSpinPose.handSideM = vdot(rel, headRight) * side;
-            sSpinPose.handUpM = rel.y;
-            sSpinPose.handForwardM = vdot(rel, headFwd);
-            sSpinPose.bladeForward = vdot(vnorm(vsub(tip0, base0)), headFwd);
+            sSpinHeadYaw = atan2f(fwd[0], fwd[2]);
+            sSpinSide = (hand == VR_HAND_RIGHT) ? 1.0f : -1.0f;
+            sSpinHandRel = vscale(vsub(effPos, { eye[0], eye[1], eye[2] }), 1.0f / worldScale);
+            sSpinBladeDir = vnorm(vsub(tip0, base0));
             sSpinPoseValid = true;
         }
     }
@@ -1732,7 +1730,18 @@ void Swing_OnPlayerUpdate(PlayState* play, Player* player) {
     {
         const bool charging = (player->stateFlags1 & PLAYER_STATE1_CHARGING_SPIN_ATTACK) != 0;
         const float charge = charging ? player->unk_858 : 0.0f;
-        VrSpinGesture::Sample sample = sSpinPose;
+        // The frame of the body: a look to the side does not move it, and it does not move while
+        // charging. Sword side is positive.
+        VrSpinGesture::Sample sample;
+        if (sSpinPoseValid) {
+            sSpinBody.Update(VrSpinGesture::BodyYawParams{}, sSpinHeadYaw, sSpin.ChargeHeld());
+            const Vec3f bodyFwd = { sinf(sSpinBody.Yaw()), 0.0f, cosf(sSpinBody.Yaw()) };
+            const Vec3f bodyRight = { -bodyFwd.z, 0.0f, bodyFwd.x };
+            sample.handSideM = vdot(sSpinHandRel, bodyRight) * sSpinSide;
+            sample.handUpM = sSpinHandRel.y;
+            sample.handForwardM = vdot(sSpinHandRel, bodyFwd);
+            sample.bladeForward = vdot(sSpinBladeDir, bodyFwd);
+        }
         sample.eligible =
             covered && VrSpinGesture::CanSpin(Player_GetMeleeWeaponHeld(player), Player_HoldsBrokenKnife(player));
         sample.tracked = sSpinPoseValid;
