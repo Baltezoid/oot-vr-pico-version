@@ -10260,7 +10260,7 @@ s32 func_80844BE4(Player* this, PlayState* play) {
         this->stateFlags2 |= PLAYER_STATE2_SPIN_ATTACKING;
     } else {
         if (!Player_ChargeInputHeld(this)) {
-            // SOH [VR] A slow exit from the charge pose ends the charge without a spin attack.
+            // SOH [VR] A change of weapon ends the charge without a spin attack.
             if (VrCombat_Active() && VrCombat_MeleeCovered(this) && VrCombat_SpinCancelled()) {
                 func_80844D68(this, play);
                 return 1;

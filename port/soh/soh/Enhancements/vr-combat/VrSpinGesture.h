@@ -3,13 +3,13 @@
 // Rules for the spin attack gesture in VR first person (issue #133). No game types: the host tests
 // in port/soh/tests/vr/VrSpinGestureTests.cpp build it alone.
 //
-// The player holds the charge pose: the sword hand below the chest, at the side of the hip, and
-// the blade points back. The vanilla spin charge then runs. A swing out of the pose at the arm
-// speed releases the spin attack. A slow exit from the pose cancels the charge.
+// The player puts the sword in the charge pose: the sword hand below the chest, at the side of the
+// hip, and the blade points back. The vanilla spin charge then runs. The player can then move the
+// charged sword freely. A swing at the hit speed releases the spin attack. As in the vanilla game,
+// the player cannot stop a charge without a spin attack. Only a change of weapon stops it.
 //
 // The pose is in the yaw frame of the body (BodyYaw), not of the head: the player can look to the
-// side and start a charge. While the charge runs, the frame does not move, and the hold pose has
-// wider limits than the start pose.
+// side and start a charge.
 
 #include "VrMeleeWeapon.h"
 
@@ -21,12 +21,6 @@ struct Params {
     float maxHandForwardM = 0.35f;     // the hand is not far in front of the head
     float maxBladeForward = -0.1f;     // the blade points back: 96 degrees or more from the front
     float maxStartHandSpeedMps = 1.0f; // a fast hand that moves through the pose does not charge
-    // The hold pose: the limits while the charge runs. The blade can point in all directions: the
-    // player can move the charged sword. The hand stays below the shoulders.
-    float holdMaxHandUpM = -0.05f;
-    float holdMinHandSideM = -0.35f;
-    float holdMaxHandForwardM = 0.55f;
-    int maxOutTicks = 8; // ticks out of the hold pose before a cancel
 };
 
 // One game tick. The positions are relative to the eyes, in the yaw frame of the head, in meters.
@@ -45,11 +39,6 @@ struct Sample {
 inline bool InChargePose(const Params& p, const Sample& s) {
     return s.handUpM <= p.maxHandUpM && s.handSideM >= p.minHandSideM && s.handForwardM <= p.maxHandForwardM &&
            s.bladeForward <= p.maxBladeForward;
-}
-
-inline bool InHoldPose(const Params& p, const Sample& s) {
-    return s.handUpM <= p.holdMaxHandUpM && s.handSideM >= p.holdMinHandSideM &&
-           s.handForwardM <= p.holdMaxHandForwardM;
 }
 
 // The yaw of the body, from the yaw of the head. A look to the side does not turn the body. The body
@@ -73,14 +62,11 @@ inline float WrapAngle(float a) {
 
 class BodyYaw {
   public:
-    // One tick. A frozen body (for example while charging) does not follow the head.
-    void Update(const BodyYawParams& p, float headYawRad, bool frozen) {
+    // One tick.
+    void Update(const BodyYawParams& p, float headYawRad) {
         if (!mValid) {
             mYaw = headYawRad;
             mValid = true;
-            return;
-        }
-        if (frozen) {
             return;
         }
         float offset = WrapAngle(headYawRad - mYaw);
@@ -131,9 +117,9 @@ inline bool ReachedFullCharge(float prevCharge, float charge) {
     return prevCharge < kFullCharge && charge >= kFullCharge;
 }
 
-// The virtual B button of the vanilla charge. ChargeHeld is true while the player holds the hold
-// pose. When the charge ends, Cancelled is true after a slow exit from the hold pose, and false
-// after a release swing.
+// The virtual B button of the vanilla charge. ChargeHeld is true from the charge pose to the release
+// swing. When the charge ends, Cancelled is true after a change of weapon, and false after a release
+// swing.
 class Detector {
   public:
     void Update(const Params& p, const Sample& s) {
@@ -145,7 +131,6 @@ class Detector {
                 mCharging = true;
                 mCancelled = false;
                 mReleaseSwing = false;
-                mOutTicks = 0;
                 mCharge = s.charge;
             }
             return;
@@ -153,20 +138,11 @@ class Detector {
         // The charge of the release swing is the charge of the last tick of the charge.
         if (!s.eligible) {
             End(true);
-        } else if (!s.tracked) {
-            // A hand at the hip is often behind the body: keep the charge until the headset sees it.
-            mCharge = s.charge;
-        } else if (s.tier == VrMeleeWeapon::kHot || (s.tier == VrMeleeWeapon::kArmed && !InHoldPose(p, s))) {
+        } else if (s.tier == VrMeleeWeapon::kHot) {
             End(false);
             mReleaseSwing = true;
-        } else if (InHoldPose(p, s)) {
-            mOutTicks = 0;
-            mCharge = s.charge;
-        } else if (++mOutTicks <= p.maxOutTicks) {
-            // A short time out of the pose: the hand can go back, or swing.
-            mCharge = s.charge;
         } else {
-            End(true);
+            mCharge = s.charge;
         }
     }
 
@@ -197,7 +173,6 @@ class Detector {
     bool mCharging = false;
     bool mCancelled = false;
     bool mReleaseSwing = false;
-    int mOutTicks = 0;
     float mCharge = 0.0f;
 };
 

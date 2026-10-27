@@ -66,11 +66,11 @@ void VrCombat_HammerGroundHit(struct PlayState* play, struct Player* player, con
 
 // --- Spin attack gesture (VrSwing.cpp, rules in VrSpinGesture.h, issue #133) ---
 
-// True while the player holds the charge pose. It replaces the held B button of the vanilla spin
-// charge for Link.
+// True from the charge pose to the release swing. It replaces the held B button of the vanilla
+// spin charge for Link.
 bool VrCombat_SpinChargeHeld(void);
 
-// True when the last charge ended with a slow exit from the charge pose: no spin attack.
+// True when the last charge ended with a change of weapon: no spin attack.
 bool VrCombat_SpinCancelled(void);
 
 // In z_player.c. True while Link plays the vanilla spin attack.

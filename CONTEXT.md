@@ -72,14 +72,14 @@ A point on the surface where a shot will hit. It shows while the player aims.
 ## Charge pose
 
 The pose of Link before a spin attack. The sword hand is below the chest, at
-the side of the hip. The tip of the blade points back. While the player holds
-the charge pose, the spin attack charges.
+the side of the hip. The tip of the blade points back. The charge pose starts
+the charge. Then the player can move the charged sword freely.
 
 ## Spin attack
 
-A sword attack that hits all around Link. In VR first person, the player holds
-the charge pose, then swings the sword. This swing is the release swing. The
-view does not turn.
+A sword attack that hits all around Link. In VR first person, the player puts
+the sword in the charge pose, then swings the sword. This swing is the release
+swing. The view does not turn.
 
 ## Magic spin
 

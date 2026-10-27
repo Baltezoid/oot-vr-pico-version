@@ -1730,11 +1730,10 @@ void Swing_OnPlayerUpdate(PlayState* play, Player* player) {
     {
         const bool charging = (player->stateFlags1 & PLAYER_STATE1_CHARGING_SPIN_ATTACK) != 0;
         const float charge = charging ? player->unk_858 : 0.0f;
-        // The frame of the body: a look to the side does not move it, and it does not move while
-        // charging. Sword side is positive.
+        // The frame of the body: a look to the side does not move it. Sword side is positive.
         VrSpinGesture::Sample sample;
         if (sSpinPoseValid) {
-            sSpinBody.Update(VrSpinGesture::BodyYawParams{}, sSpinHeadYaw, sSpin.ChargeHeld());
+            sSpinBody.Update(VrSpinGesture::BodyYawParams{}, sSpinHeadYaw);
             const Vec3f bodyFwd = { sinf(sSpinBody.Yaw()), 0.0f, cosf(sSpinBody.Yaw()) };
             const Vec3f bodyRight = { -bodyFwd.z, 0.0f, bodyFwd.x };
             sample.handSideM = vdot(sSpinHandRel, bodyRight) * sSpinSide;

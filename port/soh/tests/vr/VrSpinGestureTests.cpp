@@ -127,82 +127,32 @@ static void FastSwingOutOfPoseReleases() {
     EXPECT(!d.Cancelled());
 }
 
-static void SlowExitFromPoseCancels() {
-    Detector d;
-    d.Update(kParams, InPose());
-    for (int i = 0; i < kParams.maxOutTicks; i++) {
-        d.Update(kParams, OutOfPose(VrMeleeWeapon::kIdle, 0.5f));
-    }
-    EXPECT(d.ChargeHeld());
-    d.Update(kParams, OutOfPose(VrMeleeWeapon::kIdle, 0.5f));
-    EXPECT(!d.ChargeHeld());
-    EXPECT(d.Cancelled());
-}
-
-// The hold pose has wider limits than the start pose. A small change of the angle of the blade or
-// of the height of the hand does not cancel the charge.
-static void HoldPoseIsWiderThanChargePose() {
-    Sample s = InPose();
-    s.bladeForward = 0.8f;
-    s.handUpM = -0.10f;
-    s.handSideM = -0.30f;
-    s.handForwardM = 0.50f;
-    EXPECT(!InChargePose(kParams, s));
-    EXPECT(InHoldPose(kParams, s));
-}
-
-// The player can move the charged sword: the blade can point to the front.
-static void ChargeStaysInHoldPose() {
+// The player can move the charged sword freely: the hand at the head, the blade to the front.
+// As in the vanilla game, the charge does not end without a spin attack.
+static void ChargeStaysAnywhere() {
     Detector d;
     d.Update(kParams, InPose());
     Sample s = InPose();
+    s.handUpM = 0.10f;
+    s.handSideM = -0.40f;
+    s.handForwardM = 0.70f;
     s.bladeForward = 0.9f;
-    for (int i = 0; i < 3 * kParams.maxOutTicks; i++) {
+    for (int i = 0; i < 100; i++) {
         d.Update(kParams, s);
     }
     EXPECT(d.ChargeHeld());
-}
-
-static void HoldPoseDoesNotStartACharge() {
-    Detector d;
-    Sample s = InPose();
-    s.bladeForward = 0.0f;
-    d.Update(kParams, s);
-    EXPECT(!d.ChargeHeld());
-}
-
-// The hand stops for a short time out of the pose, then swings fast: the spin attack.
-static void ShortStopOutOfPoseThenSwingReleases() {
-    Detector d;
-    d.Update(kParams, InPose());
-    d.Update(kParams, OutOfPose(VrMeleeWeapon::kIdle, 0.5f));
-    d.Update(kParams, OutOfPose(VrMeleeWeapon::kIdle, 0.5f));
-    EXPECT(d.ChargeHeld());
-    d.Update(kParams, OutOfPose(VrMeleeWeapon::kHot, 6.0f));
-    EXPECT(!d.ChargeHeld());
     EXPECT(!d.Cancelled());
 }
 
-// After a short time out of the pose, a return to the pose keeps the charge.
-static void ReturnToPoseKeepsTheCharge() {
+// A move of the charged sword at the arm speed does not release the spin attack.
+static void ArmedMoveKeepsTheCharge() {
     Detector d;
     d.Update(kParams, InPose());
-    for (int i = 0; i < kParams.maxOutTicks; i++) {
-        d.Update(kParams, OutOfPose(VrMeleeWeapon::kIdle, 0.5f));
-    }
-    d.Update(kParams, InPose());
-    for (int i = 0; i < kParams.maxOutTicks; i++) {
-        d.Update(kParams, OutOfPose(VrMeleeWeapon::kIdle, 0.5f));
+    for (int i = 0; i < 20; i++) {
+        d.Update(kParams, OutOfPose(VrMeleeWeapon::kArmed, 2.0f));
     }
     EXPECT(d.ChargeHeld());
-}
-
-// On the headset, release swings got to the arm speed but not to the hit speed. As the release of
-// B in the vanilla game, a swing at the arm speed out of the pose releases the spin attack.
-static void ArmedExitReleases() {
-    Detector d;
-    d.Update(kParams, InPose());
-    d.Update(kParams, OutOfPose(VrMeleeWeapon::kArmed, 2.0f));
+    d.Update(kParams, OutOfPose(VrMeleeWeapon::kHot, 6.0f));
     EXPECT(!d.ChargeHeld());
     EXPECT(!d.Cancelled());
 }
@@ -213,13 +163,10 @@ static void UntrackedHandKeepsTheCharge() {
     d.Update(kParams, InPose());
     Sample s = OutOfPose(VrMeleeWeapon::kIdle, 0.0f);
     s.tracked = false;
-    for (int i = 0; i < 3 * kParams.maxOutTicks; i++) {
+    for (int i = 0; i < 20; i++) {
         d.Update(kParams, s);
     }
     EXPECT(d.ChargeHeld());
-    d.Update(kParams, OutOfPose(VrMeleeWeapon::kArmed, 2.0f));
-    EXPECT(!d.ChargeHeld());
-    EXPECT(!d.Cancelled());
 }
 
 static void UntrackedHandDoesNotStartACharge() {
@@ -240,12 +187,16 @@ static void WeaponChangeWhileChargingCancels() {
     EXPECT(d.Cancelled());
 }
 
+static Sample Ineligible() {
+    Sample s = InPose();
+    s.eligible = false;
+    return s;
+}
+
 static void NewChargeClearsCancel() {
     Detector d;
     d.Update(kParams, InPose());
-    for (int i = 0; i <= kParams.maxOutTicks; i++) {
-        d.Update(kParams, OutOfPose(VrMeleeWeapon::kIdle, 0.5f));
-    }
+    d.Update(kParams, Ineligible());
     EXPECT(d.Cancelled());
     d.Update(kParams, InPose());
     EXPECT(d.ChargeHeld());
@@ -292,9 +243,7 @@ static void CancelledChargeDoesNotOwnTheNextSwing() {
     Detector d;
     d.Update(kParams, Charged(0.0f));
     d.Update(kParams, Charged(0.9f));
-    for (int i = 0; i <= kParams.maxOutTicks; i++) {
-        d.Update(kParams, OutOfPose(VrMeleeWeapon::kIdle, 0.5f));
-    }
+    d.Update(kParams, Ineligible());
     EXPECT(!d.SpinOwnsSwing());
 }
 
@@ -334,16 +283,16 @@ static const BodyYawParams kBody = {};
 
 static void BodyStartsAtTheHead() {
     BodyYaw b;
-    b.Update(kBody, 1.0f, false);
+    b.Update(kBody, 1.0f);
     EXPECT(b.Yaw() == 1.0f);
 }
 
 // A look to the side does not turn the body at once.
 static void ShortLookToTheSideKeepsTheBody() {
     BodyYaw b;
-    b.Update(kBody, 0.0f, false);
+    b.Update(kBody, 0.0f);
     for (int i = 0; i < 5; i++) {
-        b.Update(kBody, 0.6f, false);
+        b.Update(kBody, 0.6f);
     }
     EXPECT(b.Yaw() < 0.15f);
 }
@@ -351,36 +300,27 @@ static void ShortLookToTheSideKeepsTheBody() {
 // A large turn of the head pulls the body: the head is never more than 45 degrees from it.
 static void LargeTurnPullsTheBody() {
     BodyYaw b;
-    b.Update(kBody, 0.0f, false);
-    b.Update(kBody, 1.5f, false);
+    b.Update(kBody, 0.0f);
+    b.Update(kBody, 1.5f);
     EXPECT(b.Yaw() >= 1.5f - kBody.maxOffsetRad - 0.001f);
 }
 
 // The player stays turned: the body follows slowly.
 static void BodyFollowsAHeadThatStaysTurned() {
     BodyYaw b;
-    b.Update(kBody, 0.0f, false);
+    b.Update(kBody, 0.0f);
     for (int i = 0; i < 200; i++) {
-        b.Update(kBody, 0.6f, false);
+        b.Update(kBody, 0.6f);
     }
     EXPECT(b.Yaw() > 0.55f);
-}
-
-static void FrozenBodyDoesNotFollow() {
-    BodyYaw b;
-    b.Update(kBody, 0.0f, false);
-    for (int i = 0; i < 200; i++) {
-        b.Update(kBody, 1.5f, true);
-    }
-    EXPECT(b.Yaw() == 0.0f);
 }
 
 // From -170 to 170 degrees the head turns 20 degrees, not 340 degrees.
 static void BodyFollowsAcrossTheWrap() {
     BodyYaw b;
-    b.Update(kBody, -2.97f, false);
+    b.Update(kBody, -2.97f);
     for (int i = 0; i < 200; i++) {
-        b.Update(kBody, 2.97f, false);
+        b.Update(kBody, 2.97f);
     }
     EXPECT(b.Yaw() > 2.9f || b.Yaw() < -3.1f);
 }
@@ -398,13 +338,8 @@ int main() {
     IneligibleWeaponDoesNotCharge();
     HandMayMoveInsidePoseWhileCharging();
     FastSwingOutOfPoseReleases();
-    SlowExitFromPoseCancels();
-    HoldPoseIsWiderThanChargePose();
-    ChargeStaysInHoldPose();
-    HoldPoseDoesNotStartACharge();
-    ShortStopOutOfPoseThenSwingReleases();
-    ReturnToPoseKeepsTheCharge();
-    ArmedExitReleases();
+    ChargeStaysAnywhere();
+    ArmedMoveKeepsTheCharge();
     UntrackedHandKeepsTheCharge();
     UntrackedHandDoesNotStartACharge();
     WeaponChangeWhileChargingCancels();
@@ -422,7 +357,6 @@ int main() {
     ShortLookToTheSideKeepsTheBody();
     LargeTurnPullsTheBody();
     BodyFollowsAHeadThatStaysTurned();
-    FrozenBodyDoesNotFollow();
     BodyFollowsAcrossTheWrap();
 
     if (sFailures == 0) {
