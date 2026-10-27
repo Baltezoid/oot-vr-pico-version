@@ -64,6 +64,22 @@ void VrCombat_BreakDekuStick(struct PlayState* play, struct Player* player);
 // shake, enemy stun, rumble, sound, and shock wave.
 void VrCombat_HammerGroundHit(struct PlayState* play, struct Player* player, const float* posXyz);
 
+// --- Spin attack gesture (VrSwing.cpp, rules in VrSpinGesture.h, issue #133) ---
+
+// True from the charge pose to the release swing. It replaces the held B button of the vanilla
+// spin charge for Link.
+bool VrCombat_SpinChargeHeld(void);
+
+// True when the last charge ended with a change of weapon: no spin attack.
+bool VrCombat_SpinCancelled(void);
+
+// In z_player.c. True while Link plays the vanilla spin attack.
+bool VrCombat_PlayerSpinAttacking(struct Player* player);
+
+// In z_player.c. The part of the hit frames of the vanilla spin attack that Link did: 0 at the
+// start, 1 at the end. -1 out of the hit frames.
+float VrCombat_PlayerSpinProgress(struct Player* player);
+
 // Visual-mesh harvest exclusion: brackets a display-list section the physical blade must NOT
 // collide with (the player's own arms/weapon, the sword trail) by emitting mask marker
 // commands into the OPA and XLU buckets. No-ops while physical combat is inactive.

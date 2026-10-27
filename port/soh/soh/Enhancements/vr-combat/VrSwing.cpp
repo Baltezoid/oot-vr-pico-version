@@ -11,6 +11,7 @@ MtxF* Matrix_GetCurrent(void);
 #include "VrMeleeWeapon.h"
 #include "VrHammerSlam.h"
 #include "VrHammerTarget.h"
+#include "VrSpinGesture.h"
 
 #include "soh/cvar_prefixes.h"
 #include <libultraship/bridge/consolevariablebridge.h>
@@ -69,6 +70,29 @@ float sTickHeadDownSpeed = 0.0f; // m/s
 bool sHavePrevHead = false;
 Vec3f sPrevHeadPos;
 bool sObjectStruck = false;
+
+// Spin attack gesture (VrSpinGesture.h, issue #133). The draw records the pose of the sword hand.
+// The next player update runs the rule. sSpinPrevCharge finds the tick of the full charge.
+VrSpinGesture::Detector sSpin;
+// The pose of the sword hand at the last draw, in the world frame: the hand relative to the eyes
+// in meters, and the unit vector from the hilt to the tip. The player update puts it in the frame of
+// the body.
+Vec3f sSpinHandRel;
+Vec3f sSpinBladeDir;
+float sSpinHeadYaw = 0.0f;
+float sSpinSide = 1.0f;
+VrSpinGesture::BodyYaw sSpinBody;
+bool sSpinPoseValid = false;
+float sSpinPrevCharge = 0.0f;
+float sSpinSweepPrev = -1.0f; // spin attack progress at the last draw, -1 out of the hit frames
+
+void ResetSpin() {
+    sSpin.Reset();
+    sSpinBody.Reset();
+    sSpinPoseValid = false;
+    sSpinPrevCharge = 0.0f;
+    sSpinSweepPrev = -1.0f;
+}
 
 // Mirror of the player melee quad init (D_80854650, z_player.c) with TOUCH_NEAREST from the
 // start: each quad damages only its nearest victim, like every vanilla sword quad.
@@ -1008,6 +1032,7 @@ void EnsureQuads(PlayState* play, Player* player) {
     sHaveBladePrev = false;
     sHeadValid = false;
     sSlam.Reset();
+    ResetSpin();
     // New scene: puppet/impulse Actor* keys from the previous scene must not survive to match
     // recycled allocations in this one.
     memset(sPuppets, 0, sizeof(sPuppets));
@@ -1040,6 +1065,66 @@ void RegisterQuad(PlayState* play, uint32_t dmgFlags, const Vec3f& newBase, cons
     CollisionCheck_SetAT(play, &play->colChkCtx, &quad->base);
 }
 
+// The vanilla spin attack hits with the sword quads of Link, which turn one time around him in the
+// hit frames. In first person the sword is in the hand of the player, thus these quads do the same
+// turn around Link. EnMThunder adds the hit of the magic spin. Each draw adds the part of the turn
+// since the last draw.
+void SpinSweep(PlayState* play, Player* player, float bladeLenUnits) {
+    constexpr float kArmUnits = 15.0f; // from the center of Link to the hilt
+    // In first person the body of Link is not visible. The trail of the turn shows the spin attack.
+    // A space at the start and at the end keeps the trail of the hand out of the turn.
+    EffectBlure* trail = CVarGetInteger(CVAR_ENHANCEMENT("DisableLinkSwordTrail"), 0)
+                             ? nullptr
+                             : (EffectBlure*)Effect_GetByIndex(player->meleeWeaponEffectIndex);
+    const float progress = VrCombat_PlayerSpinProgress(player);
+    if (progress < 0.0f) {
+        if (sSpinSweepPrev >= 0.0f && trail != nullptr) {
+            EffectBlure_AddSpace(trail);
+        }
+        sSpinSweepPrev = -1.0f;
+        return;
+    }
+    if (sSpinSweepPrev < 0.0f && trail != nullptr) {
+        EffectBlure_AddSpace(trail);
+    }
+    float from = sSpinSweepPrev;
+    if (from < 0.0f || from >= progress) {
+        from = (progress > 0.1f) ? progress - 0.1f : 0.0f;
+    }
+    const float to = (progress > from) ? progress : from + 0.1f;
+    sSpinSweepPrev = progress;
+
+    constexpr float kTwoPi = 6.2831853f;
+    const float startRad = player->actor.shape.rot.y * (kTwoPi / 65536.0f);
+    const Vec3f center = { player->actor.world.pos.x, player->bodyPartsPos[PLAYER_BODYPART_WAIST].y,
+                           player->actor.world.pos.z };
+    const uint32_t dmgFlags = WeaponDmgFlags(player, false);
+
+    // A quad covers 45 degrees or less of the turn.
+    int segments = (int)ceilf((to - from) * 8.0f);
+    if (segments < 1) {
+        segments = 1;
+    }
+    Vec3f prevBase;
+    Vec3f prevTip;
+    for (int i = 0; i <= segments; i++) {
+        const float rad = startRad + (from + (to - from) * i / segments) * kTwoPi;
+        const Vec3f dir = { sinf(rad), 0.0f, cosf(rad) };
+        const Vec3f base = vadd(center, vscale(dir, kArmUnits));
+        const Vec3f tip = vadd(center, vscale(dir, kArmUnits + bladeLenUnits));
+        if (i > 0) {
+            RegisterQuad(play, dmgFlags, base, tip, prevBase, prevTip);
+        }
+        if (trail != nullptr) {
+            Vec3f trailTip = tip;
+            Vec3f trailBase = base;
+            EffectBlure_AddVertex(trail, &trailTip, &trailBase);
+        }
+        prevBase = base;
+        prevTip = tip;
+    }
+}
+
 } // namespace
 
 extern "C" bool VrCombat_MeleeCovered(Player* player) {
@@ -1047,6 +1132,14 @@ extern "C" bool VrCombat_MeleeCovered(Player* player) {
         return false; // co-op partner keeps vanilla behavior
     }
     return VrMeleeWeapon::Covered(Player_GetMeleeWeaponHeld(player));
+}
+
+extern "C" bool VrCombat_SpinChargeHeld(void) {
+    return sSpin.ChargeHeld();
+}
+
+extern "C" bool VrCombat_SpinCancelled(void) {
+    return sSpin.Cancelled();
 }
 
 extern "C" bool VrCombat_SwingIgnoresLedges(Player* player) {
@@ -1173,6 +1266,24 @@ extern "C" void VrCombat_FeedMelee(PlayState* play, Player* player) {
         if (VR_GetHandVelocity(hand, lin, ang)) {
             sTickHandSpeed = sTickTipSpeed = sqrtf(lin[0] * lin[0] + lin[1] * lin[1] + lin[2] * lin[2]);
             sTickHeadDownSpeed = -lin[1];
+        }
+    }
+
+    // Pose of the sword hand for the spin attack gesture. Swing_OnPlayerUpdate puts it in the frame
+    // of the body.
+    sSpinPoseValid = false;
+    if (haveEff) {
+        float eye[3];
+        float fwd[3];
+        float up[3];
+        VR_GetCameraPose(eye, fwd, up);
+        const float fwdLen = sqrtf(fwd[0] * fwd[0] + fwd[2] * fwd[2]);
+        if (fwdLen > 0.001f) {
+            sSpinHeadYaw = atan2f(fwd[0], fwd[2]);
+            sSpinSide = (hand == VR_HAND_RIGHT) ? 1.0f : -1.0f;
+            sSpinHandRel = vscale(vsub(effPos, { eye[0], eye[1], eye[2] }), 1.0f / worldScale);
+            sSpinBladeDir = vnorm(vsub(tip0, base0));
+            sSpinPoseValid = true;
         }
     }
 
@@ -1306,17 +1417,23 @@ extern "C" void VrCombat_FeedMelee(PlayState* play, Player* player) {
     // so spin-only AI branches stay cold. The setter shim plays the swing SFX on the 0->nonzero
     // edge, exactly like a vanilla attack. The hammer uses the vanilla hammer swing: the totem
     // breaks only for it (issue #130).
-    player->meleeWeaponAnimation = Player_GetMeleeWeaponHeld(player) == VrMeleeWeapon::kHammer
-                                       ? PLAYER_MWA_HAMMER_FORWARD
-                                       : PLAYER_MWA_FORWARD_SLASH_1H;
-    if (sTier == VrMeleeWeapon::kIdle) {
-        player->meleeWeaponState = 0;
-    } else {
-        VrCombat_SetMeleeWeaponState(player, VrMeleeWeapon::MeleeWeaponState(sTier));
+    // During the vanilla spin attack, the vanilla action sets both values. It reads the animation
+    // id every tick.
+    const bool spinAttacking = VrCombat_PlayerSpinAttacking(player);
+    if (!spinAttacking) {
+        player->meleeWeaponAnimation = Player_GetMeleeWeaponHeld(player) == VrMeleeWeapon::kHammer
+                                           ? PLAYER_MWA_HAMMER_FORWARD
+                                           : PLAYER_MWA_FORWARD_SLASH_1H;
+        if (sTier == VrMeleeWeapon::kIdle) {
+            player->meleeWeaponState = 0;
+        } else {
+            VrCombat_SetMeleeWeaponState(player, VrMeleeWeapon::MeleeWeaponState(sTier));
+        }
     }
 
     // ---- 4. Sword trail ----
-    if (sTier != VrMeleeWeapon::kIdle) {
+    // During the spin attack, SpinSweep makes the trail around Link.
+    if (sTier != VrMeleeWeapon::kIdle && !spinAttacking) {
         if (func_80090480(play, NULL, &player->meleeWeaponInfo[0], &tip0, &base0) &&
             !(player->stateFlags1 & PLAYER_STATE1_SHIELDING) &&
             !CVarGetInteger(CVAR_ENHANCEMENT("DisableLinkSwordTrail"), 0)) {
@@ -1332,6 +1449,13 @@ extern "C" void VrCombat_FeedMelee(PlayState* play, Player* player) {
     // wall registers nothing along the hand's ghost trajectory. Without the sim (inertia off),
     // the intent blade is reconstructed along the raw hand path as before.
     sQuadsUsed = 0;
+
+    // The spin attack does the damage of the release swing. The swing does not also hit.
+    const bool spinOwnsSwing = spinAttacking || sSpin.SpinOwnsSwing();
+    if (spinOwnsSwing) {
+        sPendingStrikeCount = 0;
+    }
+    SpinSweep(play, player, lenModel / 100.0f);
 
     // Physical strikes recorded last tick become damage now: a small quad poked through the
     // surface at each impact point, hitting exactly the struck target via TOUCH_NEAREST.
@@ -1355,7 +1479,7 @@ extern "C" void VrCombat_FeedMelee(PlayState* play, Player* player) {
 
     VrBladeSample bladePath[16];
     const int bladeN = inertiaOn ? VR_PhysGetBladePath(VR_PHYS_SLOT_WEAPON, bladePath, 16) : 0;
-    if (sTier == VrMeleeWeapon::kHot) {
+    if (sTier == VrMeleeWeapon::kHot && !spinOwnsSwing) {
         const uint32_t dmgFlags = WeaponDmgFlags(player, VrMeleeWeapon::IsHeavySwing(sTickTipSpeed, heavySpeed));
 
         if (bladeN >= 2) {
@@ -1585,6 +1709,39 @@ void Swing_OnPlayerUpdate(PlayState* play, Player* player) {
         ClearMeleeWeaponInfo(player);
     }
 
+    // Spin attack gesture: the pose from the last draw and the swing tier. The vanilla charge
+    // reads the result in the next player update.
+    {
+        const bool charging = (player->stateFlags1 & PLAYER_STATE1_CHARGING_SPIN_ATTACK) != 0;
+        const float charge = charging ? player->unk_858 : 0.0f;
+        // The frame of the body: a look to the side does not move it. Sword side is positive.
+        VrSpinGesture::Sample sample;
+        if (sSpinPoseValid) {
+            sSpinBody.Update(VrSpinGesture::BodyYawParams{}, sSpinHeadYaw);
+            const Vec3f bodyFwd = { sinf(sSpinBody.Yaw()), 0.0f, cosf(sSpinBody.Yaw()) };
+            const Vec3f bodyRight = { -bodyFwd.z, 0.0f, bodyFwd.x };
+            sample.handSideM = vdot(sSpinHandRel, bodyRight) * sSpinSide;
+            sample.handUpM = sSpinHandRel.y;
+            sample.handForwardM = vdot(sSpinHandRel, bodyFwd);
+            sample.bladeForward = vdot(sSpinBladeDir, bodyFwd);
+        }
+        sample.eligible = covered && !VrCombat_PlayerSpinAttacking(player) &&
+                          VrSpinGesture::CanSpin(Player_GetMeleeWeaponHeld(player), Player_HoldsBrokenKnife(player));
+        sample.tracked = sSpinPoseValid;
+        sample.handSpeedMps = sTickHandSpeed;
+        sample.tier = sTier;
+        sample.charge = charge;
+        sSpin.Update(VrSpinGesture::Params{}, sample);
+
+        const float amplitude = VrSpinGesture::ChargeHapticAmplitude(charge);
+        if (VrSpinGesture::ReachedFullCharge(sSpinPrevCharge, charge)) {
+            VR_TriggerHaptic(SwordHand(), 0.9f, 0.0f, 80.0f);
+        } else if (amplitude > 0.0f) {
+            VR_TriggerHaptic(SwordHand(), amplitude, 0.0f, 50.0f);
+        }
+        sSpinPrevCharge = charge;
+    }
+
     // Contact events from the sim: impact SFX + sparks at the contact point (the matching
     // haptics already fired VR-side with zero latency).
     VrContactEvent events[8];
@@ -1785,6 +1942,7 @@ void Swing_Deactivate(PlayState* play, Player* player) {
     sDebugBladeValid = false;
     sHeadValid = false;
     sSlam.Reset();
+    ResetSpin();
     // Drop the puppets: the skelanime warp hooks keep running while combat is off and match
     // by actor pointer, so a limb displaced at the moment of deactivation would otherwise
     // stay warped forever (nothing solves or decays the offsets anymore).

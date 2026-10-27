@@ -136,8 +136,15 @@ them.
 - A hammer ground hit occurs when the head moves down fast and touches a floor
   near the feet of Link. `VrCombat_HammerGroundHit` in `z_player.c` then starts
   the effects of the vanilla game.
+- The charge pose replaces the held B button of the vanilla spin charge
+  (`Player_ActionHandler_8` in `z_player.c`). The vanilla charge, magic, and
+  `EnMThunder` do the spin attack. A slow exit from the pose cancels the charge.
+- In the vanilla game, the sword quads of Link turn around him in the spin
+  attack. `VrSwing.cpp` turns the same quads around Link in the hit frames.
+  The release swing does not also hit.
 
-The rules are in `VrMeleeWeapon.h`, `VrHammerSlam.h`, and `VrHammerTarget.h`.
+The rules are in `VrMeleeWeapon.h`, `VrHammerSlam.h`, `VrHammerTarget.h`, and
+`VrSpinGesture.h`.
 The host unit tests are in `port/soh/tests/vr/`.
 
 ## Physical shield
