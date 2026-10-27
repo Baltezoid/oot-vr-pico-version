@@ -122,9 +122,69 @@ static void FastSwingOutOfPoseReleases() {
 static void SlowExitFromPoseCancels() {
     Detector d;
     d.Update(kParams, InPose());
+    for (int i = 0; i < kParams.maxOutTicks; i++) {
+        d.Update(kParams, OutOfPose(VrMeleeWeapon::kIdle, 0.5f));
+    }
+    EXPECT(d.ChargeHeld());
     d.Update(kParams, OutOfPose(VrMeleeWeapon::kIdle, 0.5f));
     EXPECT(!d.ChargeHeld());
     EXPECT(d.Cancelled());
+}
+
+// The hold pose has wider limits than the start pose. A small change of the angle of the blade or
+// of the height of the hand does not cancel the charge.
+static void HoldPoseIsWiderThanChargePose() {
+    Sample s = InPose();
+    s.bladeForward = -0.3f;
+    s.handUpM = -0.30f;
+    s.handSideM = -0.10f;
+    EXPECT(!InChargePose(kParams, s));
+    EXPECT(InHoldPose(kParams, s));
+}
+
+static void ChargeStaysInHoldPose() {
+    Detector d;
+    d.Update(kParams, InPose());
+    Sample s = InPose();
+    s.bladeForward = -0.3f;
+    for (int i = 0; i < 3 * kParams.maxOutTicks; i++) {
+        d.Update(kParams, s);
+    }
+    EXPECT(d.ChargeHeld());
+}
+
+static void HoldPoseDoesNotStartACharge() {
+    Detector d;
+    Sample s = InPose();
+    s.bladeForward = -0.3f;
+    d.Update(kParams, s);
+    EXPECT(!d.ChargeHeld());
+}
+
+// The hand stops for a short time out of the pose, then swings fast: the spin attack.
+static void ShortStopOutOfPoseThenSwingReleases() {
+    Detector d;
+    d.Update(kParams, InPose());
+    d.Update(kParams, OutOfPose(VrMeleeWeapon::kIdle, 0.5f));
+    d.Update(kParams, OutOfPose(VrMeleeWeapon::kIdle, 0.5f));
+    EXPECT(d.ChargeHeld());
+    d.Update(kParams, OutOfPose(VrMeleeWeapon::kHot, 6.0f));
+    EXPECT(!d.ChargeHeld());
+    EXPECT(!d.Cancelled());
+}
+
+// After a short time out of the pose, a return to the pose keeps the charge.
+static void ReturnToPoseKeepsTheCharge() {
+    Detector d;
+    d.Update(kParams, InPose());
+    for (int i = 0; i < kParams.maxOutTicks; i++) {
+        d.Update(kParams, OutOfPose(VrMeleeWeapon::kIdle, 0.5f));
+    }
+    d.Update(kParams, InPose());
+    for (int i = 0; i < kParams.maxOutTicks; i++) {
+        d.Update(kParams, OutOfPose(VrMeleeWeapon::kIdle, 0.5f));
+    }
+    EXPECT(d.ChargeHeld());
 }
 
 // The swing speeds up after the hand leaves the pose. A few armed ticks wait for the hit speed.
@@ -141,7 +201,7 @@ static void ArmedExitThatGetsHotReleases() {
 static void ArmedExitThatStaysSlowCancels() {
     Detector d;
     d.Update(kParams, InPose());
-    for (int i = 0; i <= kParams.maxArmedTicks; i++) {
+    for (int i = 0; i <= kParams.maxOutTicks; i++) {
         d.Update(kParams, OutOfPose(VrMeleeWeapon::kArmed, 2.0f));
     }
     EXPECT(!d.ChargeHeld());
@@ -161,7 +221,10 @@ static void WeaponChangeWhileChargingCancels() {
 static void NewChargeClearsCancel() {
     Detector d;
     d.Update(kParams, InPose());
-    d.Update(kParams, OutOfPose(VrMeleeWeapon::kIdle, 0.5f));
+    for (int i = 0; i <= kParams.maxOutTicks; i++) {
+        d.Update(kParams, OutOfPose(VrMeleeWeapon::kIdle, 0.5f));
+    }
+    EXPECT(d.Cancelled());
     d.Update(kParams, InPose());
     EXPECT(d.ChargeHeld());
     EXPECT(!d.Cancelled());
@@ -207,7 +270,9 @@ static void CancelledChargeDoesNotOwnTheNextSwing() {
     Detector d;
     d.Update(kParams, Charged(0.0f));
     d.Update(kParams, Charged(0.9f));
-    d.Update(kParams, OutOfPose(VrMeleeWeapon::kIdle, 0.5f));
+    for (int i = 0; i <= kParams.maxOutTicks; i++) {
+        d.Update(kParams, OutOfPose(VrMeleeWeapon::kIdle, 0.5f));
+    }
     EXPECT(!d.SpinOwnsSwing());
 }
 
@@ -256,6 +321,11 @@ int main() {
     HandMayMoveInsidePoseWhileCharging();
     FastSwingOutOfPoseReleases();
     SlowExitFromPoseCancels();
+    HoldPoseIsWiderThanChargePose();
+    ChargeStaysInHoldPose();
+    HoldPoseDoesNotStartACharge();
+    ShortStopOutOfPoseThenSwingReleases();
+    ReturnToPoseKeepsTheCharge();
     ArmedExitThatGetsHotReleases();
     ArmedExitThatStaysSlowCancels();
     WeaponChangeWhileChargingCancels();

@@ -6,6 +6,9 @@
 // The player holds the charge pose: the sword hand below the chest, at the side of the hip, and
 // the blade points back. The vanilla spin charge then runs. A fast swing out of the pose releases
 // the spin attack. A slow exit from the pose cancels the charge.
+//
+// While the charge runs, the player can move the head: the caller keeps the yaw frame of the head
+// from the start of the charge, and the hold pose has wider limits than the start pose.
 
 #include "VrMeleeWeapon.h"
 
@@ -17,7 +20,12 @@ struct Params {
     float maxHandForwardM = 0.25f;     // the hand is not far in front of the head
     float maxBladeForward = -0.5f;     // the blade points back: 120 degrees or more from the view
     float maxStartHandSpeedMps = 1.0f; // a fast hand that moves through the pose does not charge
-    int maxArmedTicks = 6;             // ticks out of the pose at the arm speed before a cancel
+    // The hold pose: the limits while the charge runs.
+    float holdMaxHandUpM = -0.25f;
+    float holdMinHandSideM = -0.20f;
+    float holdMaxHandForwardM = 0.40f;
+    float holdMaxBladeForward = -0.1f; // the blade points back, or to the side
+    int maxOutTicks = 8;               // ticks out of the hold pose before a cancel
 };
 
 // One game tick. The positions are relative to the eyes, in the yaw frame of the head, in meters.
@@ -35,6 +43,11 @@ struct Sample {
 inline bool InChargePose(const Params& p, const Sample& s) {
     return s.handUpM <= p.maxHandUpM && s.handSideM >= p.minHandSideM && s.handForwardM <= p.maxHandForwardM &&
            s.bladeForward <= p.maxBladeForward;
+}
+
+inline bool InHoldPose(const Params& p, const Sample& s) {
+    return s.handUpM <= p.holdMaxHandUpM && s.handSideM >= p.holdMinHandSideM &&
+           s.handForwardM <= p.holdMaxHandForwardM && s.bladeForward <= p.holdMaxBladeForward;
 }
 
 // The vanilla rules (Player_ActionHandler_8, Player_CanSpinAttack): the swords can do a spin
@@ -62,8 +75,8 @@ inline bool ReachedFullCharge(float prevCharge, float charge) {
     return prevCharge < kFullCharge && charge >= kFullCharge;
 }
 
-// The virtual B button of the vanilla charge. ChargeHeld is true while the player holds the charge
-// pose. When the charge ends, Cancelled is true after a slow exit from the charge pose, and false
+// The virtual B button of the vanilla charge. ChargeHeld is true while the player holds the hold
+// pose. When the charge ends, Cancelled is true after a slow exit from the hold pose, and false
 // after a release swing.
 class Detector {
   public:
@@ -76,7 +89,7 @@ class Detector {
                 mCharging = true;
                 mCancelled = false;
                 mReleaseSwing = false;
-                mArmedTicks = 0;
+                mOutTicks = 0;
                 mCharge = s.charge;
             }
             return;
@@ -87,10 +100,11 @@ class Detector {
         } else if (s.tier == VrMeleeWeapon::kHot) {
             End(false);
             mReleaseSwing = true;
-        } else if (InChargePose(p, s)) {
-            mArmedTicks = 0;
+        } else if (InHoldPose(p, s)) {
+            mOutTicks = 0;
             mCharge = s.charge;
-        } else if (s.tier == VrMeleeWeapon::kArmed && ++mArmedTicks <= p.maxArmedTicks) {
+        } else if (++mOutTicks <= p.maxOutTicks) {
+            // A short time out of the pose: the release swing can get to the hit speed.
             mCharge = s.charge;
         } else {
             End(true);
@@ -124,7 +138,7 @@ class Detector {
     bool mCharging = false;
     bool mCancelled = false;
     bool mReleaseSwing = false;
-    int mArmedTicks = 0;
+    int mOutTicks = 0;
     float mCharge = 0.0f;
 };
 

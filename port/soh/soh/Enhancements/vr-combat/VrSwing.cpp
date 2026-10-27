@@ -3,6 +3,7 @@ extern "C" {
 #include "macros.h"
 #include "functions.h"
 #include "sfx.h"
+#include "variables.h"
 extern PlayState* gPlayState;
 MtxF* Matrix_GetCurrent(void);
 }
@@ -15,6 +16,7 @@ MtxF* Matrix_GetCurrent(void);
 
 #include "soh/cvar_prefixes.h"
 #include <libultraship/bridge/consolevariablebridge.h>
+#include <spdlog/spdlog.h>
 #include <vr_interface.h>
 #include <cmath>
 
@@ -78,12 +80,17 @@ VrSpinGesture::Sample sSpinPose;
 bool sSpinPoseValid = false;
 float sSpinPrevCharge = 0.0f;
 float sSpinSweepPrev = -1.0f; // spin attack progress at the last draw, -1 out of the hit frames
+// The yaw frame of the head at the start of the charge. The player can look around while charging.
+Vec3f sSpinRefFwd = { 0.0f, 0.0f, 1.0f };
+// TODO(#133): remove the gesture log after the headset test.
+bool sSpinLogCharging = false;
 
 void ResetSpin() {
     sSpin.Reset();
     sSpinPoseValid = false;
     sSpinPrevCharge = 0.0f;
     sSpinSweepPrev = -1.0f;
+    sSpinLogCharging = false;
 }
 
 // Mirror of the player melee quad init (D_80854650, z_player.c) with TOUCH_NEAREST from the
@@ -1062,10 +1069,33 @@ void RegisterQuad(PlayState* play, uint32_t dmgFlags, const Vec3f& newBase, cons
 // turn around Link. EnMThunder adds the hit of the magic spin. Each draw adds the part of the turn
 // since the last draw.
 void SpinSweep(PlayState* play, Player* player, float bladeLenUnits) {
+    constexpr float kArmUnits = 15.0f; // from the center of Link to the hilt
+    // In first person the body of Link is not visible. The trail of the turn shows the spin attack.
+    // A space at the start and at the end keeps the trail of the hand out of the turn.
+    EffectBlure* trail = CVarGetInteger(CVAR_ENHANCEMENT("DisableLinkSwordTrail"), 0)
+                             ? nullptr
+                             : (EffectBlure*)Effect_GetByIndex(player->meleeWeaponEffectIndex);
     const float progress = VrCombat_PlayerSpinProgress(player);
     if (progress < 0.0f) {
+        if (sSpinSweepPrev >= 0.0f && trail != nullptr) {
+            EffectBlure_AddSpace(trail);
+        }
         sSpinSweepPrev = -1.0f;
         return;
+    }
+    if (sSpinSweepPrev < 0.0f) {
+        if (trail != nullptr) {
+            EffectBlure_AddSpace(trail);
+        }
+        float nearest = -1.0f;
+        for (Actor* enemy = play->actorCtx.actorLists[ACTORCAT_ENEMY].head; enemy != nullptr; enemy = enemy->next) {
+            const float d = Actor_WorldDistXZToActor(&player->actor, enemy);
+            if (nearest < 0.0f || d < nearest) {
+                nearest = d;
+            }
+        }
+        SPDLOG_INFO("[VrSpin] spin attack: animation {}, magic {}, reach {:.0f}, nearest enemy {:.0f} units",
+                    player->meleeWeaponAnimation, gSaveContext.magic, kArmUnits + bladeLenUnits, nearest);
     }
     float from = sSpinSweepPrev;
     if (from < 0.0f || from >= progress) {
@@ -1075,7 +1105,6 @@ void SpinSweep(PlayState* play, Player* player, float bladeLenUnits) {
     sSpinSweepPrev = progress;
 
     constexpr float kTwoPi = 6.2831853f;
-    constexpr float kArmUnits = 15.0f; // from the center of Link to the hilt
     const float startRad = player->actor.shape.rot.y * (kTwoPi / 65536.0f);
     const Vec3f center = { player->actor.world.pos.x, player->bodyPartsPos[PLAYER_BODYPART_WAIST].y,
                            player->actor.world.pos.z };
@@ -1095,6 +1124,11 @@ void SpinSweep(PlayState* play, Player* player, float bladeLenUnits) {
         const Vec3f tip = vadd(center, vscale(dir, kArmUnits + bladeLenUnits));
         if (i > 0) {
             RegisterQuad(play, dmgFlags, base, tip, prevBase, prevTip);
+        }
+        if (trail != nullptr) {
+            Vec3f trailTip = tip;
+            Vec3f trailBase = base;
+            EffectBlure_AddVertex(trail, &trailTip, &trailBase);
         }
         prevBase = base;
         prevTip = tip;
@@ -1245,8 +1279,9 @@ extern "C" void VrCombat_FeedMelee(PlayState* play, Player* player) {
         }
     }
 
-    // Pose of the sword hand for the spin attack gesture: relative to the eyes, in the yaw frame
-    // of the head, in meters. Sword side is positive.
+    // Pose of the sword hand for the spin attack gesture: relative to the eyes, in meters. Sword
+    // side is positive. The frame is the yaw of the head, kept from the start of the charge: a turn
+    // of the head while charging does not move the pose.
     sSpinPoseValid = false;
     if (haveEff) {
         float eye[3];
@@ -1255,7 +1290,10 @@ extern "C" void VrCombat_FeedMelee(PlayState* play, Player* player) {
         VR_GetCameraPose(eye, fwd, up);
         const float fwdLen = sqrtf(fwd[0] * fwd[0] + fwd[2] * fwd[2]);
         if (fwdLen > 0.001f) {
-            const Vec3f headFwd = { fwd[0] / fwdLen, 0.0f, fwd[2] / fwdLen };
+            if (!sSpin.ChargeHeld()) {
+                sSpinRefFwd = { fwd[0] / fwdLen, 0.0f, fwd[2] / fwdLen };
+            }
+            const Vec3f headFwd = sSpinRefFwd;
             const Vec3f headRight = { -headFwd.z, 0.0f, headFwd.x };
             const float side = (hand == VR_HAND_RIGHT) ? 1.0f : -1.0f;
             const Vec3f rel = vscale(vsub(effPos, { eye[0], eye[1], eye[2] }), 1.0f / worldScale);
@@ -1412,7 +1450,8 @@ extern "C" void VrCombat_FeedMelee(PlayState* play, Player* player) {
     }
 
     // ---- 4. Sword trail ----
-    if (sTier != VrMeleeWeapon::kIdle) {
+    // During the spin attack, SpinSweep makes the trail around Link.
+    if (sTier != VrMeleeWeapon::kIdle && !spinAttacking) {
         if (func_80090480(play, NULL, &player->meleeWeaponInfo[0], &tip0, &base0) &&
             !(player->stateFlags1 & PLAYER_STATE1_SHIELDING) &&
             !CVarGetInteger(CVAR_ENHANCEMENT("DisableLinkSwordTrail"), 0)) {
@@ -1700,6 +1739,14 @@ void Swing_OnPlayerUpdate(PlayState* play, Player* player) {
         sample.tier = sTier;
         sample.charge = charge;
         sSpin.Update(VrSpinGesture::Params{}, sample);
+        if (sSpin.ChargeHeld() != sSpinLogCharging) {
+            sSpinLogCharging = sSpin.ChargeHeld();
+            SPDLOG_INFO("[VrSpin] {}: charge {:.2f}, hand side {:.2f} up {:.2f} fwd {:.2f} m, blade fwd {:.2f}, "
+                        "speed {:.1f} m/s, tier {}",
+                        sSpinLogCharging ? "charge start" : (sSpin.Cancelled() ? "cancel" : "release"), charge,
+                        sample.handSideM, sample.handUpM, sample.handForwardM, sample.bladeForward, sample.handSpeedMps,
+                        sample.tier);
+        }
 
         const float amplitude = VrSpinGesture::ChargeHapticAmplitude(charge);
         if (VrSpinGesture::ReachedFullCharge(sSpinPrevCharge, charge)) {
@@ -1779,6 +1826,10 @@ void Swing_OnPlayerUpdate(PlayState* play, Player* player) {
             continue;
         }
         hit = true;
+        if (VrCombat_PlayerSpinAttacking(player)) {
+            Actor* spinVictim = sQuads[i].base.at;
+            SPDLOG_INFO("[VrSpin] spin hit: actor {:#x}", spinVictim != nullptr ? spinVictim->id : -1);
+        }
         // M3 hit feel. Vanilla colChkInfo.mass MOSTLY doesn't mean weight: it encodes "Link
         // can't shove me by walking into me" (a tiny Stalchild carries MASS_HEAVY), so sword
         // impacts scale by category instead — full effect on enemies/NPCs, none on bosses.
