@@ -13,11 +13,17 @@ GitHub makes. Replace these notes with the template below.
   documentation or to CI.
 - In "Known problems", link only open issues.
 - Set the title to `oot-vr vX.Y.Z-beta`.
+- To show a clip of a new feature, put an animated WebP in `docs/media/` on
+  `main` first. Link it with the `raw.githubusercontent.com` URL of `main`.
+  GitHub does not show a WebP from a release asset as an image. You can also
+  attach the MP4 to the release, and link it.
 
 ```md
 # oot-vr vX.Y.Z-beta
 
 <One or two sentences: the main changes.>
+
+![<Clip description>](https://raw.githubusercontent.com/gibranfelix/oot-vr/main/docs/media/<clip>.webp)
 
 **This is a beta release.** Some problems are known. Save frequently.
 

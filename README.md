@@ -25,6 +25,8 @@ The game does not contain mods.
 | Boss Rush: Ganondorf.                                                                        | EXPLORE: all the items from the start.                                                       |
 | ![Link blocks the attacks of a Tektite with the shield](docs/media/shield.webp)             | ![The laser pointer selects options in VR Settings](docs/media/vr-settings.webp)             |
 | Hold the shield in front of you to block.                                                    | Quick Setup in VR Settings.                                                                  |
+| ![Link charges the sword, then does the spin attack](docs/media/spin-attack.webp)             |                                                                                              |
+| Charge the sword, then swing to do the spin attack.                                          |                                                                                              |
 
 > [!IMPORTANT]
 > You must own a legal copy of _The Legend of Zelda: Ocarina of Time_. Make a
@@ -59,6 +61,7 @@ The game does not contain mods.
 | Weapon | How |
 | --- | --- |
 | Sword, Deku stick, Megaton Hammer | Swing your hand. |
+| Spin attack | Put the sword hand at the side of your hip, with the tip of the blade to the back. When the controller vibrates, swing fast. |
 | Shield | Hold it in front of you to block. The Mirror Shield reflects the Twinrova beams. |
 | Bow, slingshot, hookshot | Aim with your hand. The shot goes along the weapon. |
 | Boomerang | Throw it with your arm. |
@@ -233,6 +236,7 @@ holds the shield, the bow, the slingshot, the hookshot, and the ocarina.
 | Item                                                         | Use                                                        |
 | ------------------------------------------------------------ | ---------------------------------------------------------- |
 | Sword, Deku stick, Megaton Hammer                            | Swing your hand.                                           |
+| Spin attack                                                  | Put the sword hand at the side of your hip, with the tip of the blade to the back. The charge starts, and the controller vibrates. Move the charged sword as you want, then swing fast. With magic, you do the magic spin. |
 | Bow, slingshot, hookshot                                     | Point the weapon. The aim mark shows where the shot hits.  |
 | Boomerang                                                    | Hold the right grip, throw with the arm, release the grip. |
 | Bombs                                                        | Push a grip at the belt, throw with the arm, release the grip. A slow release drops the bomb. The left trigger also throws. |
