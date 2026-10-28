@@ -19,6 +19,7 @@ We tested these on a Quest 3S. We did not test on a Quest 3.
   with the body and the HUD is on the wrist.
 - The physical sword and shield with the Touch controllers. The shield blocks
   with its full size, and the Mirror Shield reflects the Twinrova beams.
+- The spin attack and the magic spin with a sword gesture.
 - Menus and the pause screen on a floating panel.
 - The SoH menu with the Touch controllers and a laser pointer.
 - The wrist HUD. Hearts, magic, and rupees show on the off-hand wrist when you
