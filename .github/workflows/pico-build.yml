@@ -22,12 +22,15 @@ jobs:
 
       - name: Use the same source as the PICO changes
         run: |
-          if git cat-file -e "$BASE_COMMIT^{commit}" 2>/dev/null; then
-            git checkout "$BASE_COMMIT" -- port
-            echo "Source: commit $BASE_COMMIT"
-          else
-            echo "::warning::Commit $BASE_COMMIT not found. The build uses the source of the branch."
+          if ! git cat-file -e "$BASE_COMMIT^{commit}" 2>/dev/null; then
+            echo "::error::Commit $BASE_COMMIT not found in this fork."
+            exit 1
           fi
+          # Delete port first. git checkout does not delete the files that are new in the branch,
+          # and a new file with old headers does not compile.
+          rm -rf port
+          git checkout "$BASE_COMMIT" -- port
+          echo "Source: commit $BASE_COMMIT"
 
       - name: Apply the PICO changes
         run: |
