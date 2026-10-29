@@ -18,7 +18,7 @@ extern PlayState* gPlayState;
 // vanilla bow path nocks the arrow, holds it, and shoots it at the release. The off-hand trigger
 // also shoots. While the hand holds the string, the string goes to the hand
 // (VrCombat_BowPullString), and the shot goes from the hand through the arrow rest
-// (VrCombat_BowPullShot). The pull has a limit (kMaxPullM).
+// (VrCombat_BowPullShot). The pull stops at the vanilla full draw (MaxPull).
 
 namespace {
 
@@ -31,6 +31,7 @@ VrBowPull::Result sResult;
 // From the last draw of the string (world): the center of the string at rest, and the arrow rest.
 VrBowPull::Vec3 sStringRest;
 VrBowPull::Vec3 sArrowRest;
+float sMaxPull = 0.0f;
 uint32_t sStringRestFrame = 0;
 bool sStringRestSet = false;
 // The shot of the last tick of the pull. It stays after the release (Result::keepShot).
@@ -68,7 +69,7 @@ bool Nock(VrBowPull::Vec3* out) {
     if (!sStringRestSet || !VR_GetHandPose(StringHand(), pos, quat)) {
         return false;
     }
-    *out = VrBowPull::NockPos(sArrowRest, { pos[0], pos[1], pos[2] }, VrBowPull::kMaxPullM * VrBelt::UnitsPerMeter());
+    *out = VrBowPull::NockPos(sArrowRest, { pos[0], pos[1], pos[2] }, sMaxPull);
     return true;
 }
 
@@ -118,6 +119,7 @@ extern "C" bool VrCombat_BowPullString(const float* stringMf16, bool slingshot, 
     sArrowRest = { rest.x * mf[0][0] + rest.y * mf[1][0] + rest.z * mf[2][0] + mf[3][0],
                    rest.x * mf[0][1] + rest.y * mf[1][1] + rest.z * mf[2][1] + mf[3][1],
                    rest.x * mf[0][2] + rest.y * mf[1][2] + rest.z * mf[2][2] + mf[3][2] };
+    sMaxPull = VrBowPull::MaxPull(pulledVertex, mf[1]);
     sStringRestFrame = gPlayState->state.frames;
     sStringRestSet = true;
     VrBowPull::Vec3 nock;

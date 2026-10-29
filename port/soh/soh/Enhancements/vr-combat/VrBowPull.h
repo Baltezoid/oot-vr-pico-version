@@ -17,8 +17,6 @@ constexpr float kGrabRadiusM = 0.25f;
 // After the grab, the hand must move this distance away from the string at rest. Then the arrow
 // is on the string. A smaller pull does not shoot.
 constexpr float kMinPullM = 0.10f;
-// The longest pull, from the arrow rest. A hand that goes farther does not pull the string more.
-constexpr float kMaxPullM = 0.6f;
 // After the release, the shot keeps the aim of the pull for this number of ticks (0.5 s). The
 // vanilla bow path shoots one or more ticks after the release.
 constexpr int kKeepShotTicks = 10;
@@ -75,6 +73,13 @@ constexpr Vec3 kSlingshotPulledVertex = VrBowAim::kPouchFullDraw;
 // vanilla arrow (the X and Z of the pulled vertex), at the ends of the string (y = 0).
 inline Vec3 ArrowRest(const Vec3& pulledVertex) {
     return { pulledVertex.x, 0.0f, pulledVertex.z };
+}
+
+// The longest pull in world units: the vanilla full draw (the pulled vertex), with the scale of
+// the string matrix. A longer pull puts all the arrow behind the bow. stringYAxis: mf[1].
+inline float MaxPull(const Vec3& pulledVertex, const float stringYAxis[3]) {
+    return std::fabs(pulledVertex.y) * std::sqrt(stringYAxis[0] * stringYAxis[0] + stringYAxis[1] * stringYAxis[1] +
+                                                 stringYAxis[2] * stringYAxis[2]);
 }
 
 // The nock: the hand, but not farther than maxLen from the arrow rest.

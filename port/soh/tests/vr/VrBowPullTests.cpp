@@ -224,6 +224,12 @@ static void TestThePullHasALimit() {
     EXPECT(NearVec(NockPos(rest, { 0.0f, 80.0f, -60.0f }, 60.0f), { 0.0f, 48.0f, -36.0f }));
 }
 
+static void TestTheLongestPullIsTheVanillaFullDraw() {
+    // Adult Link: the model scale is 0.01.
+    const float yAxis[3] = { 0.0f, 0.006f, -0.008f };
+    EXPECT(Near(MaxPull(kBowPulledVertex, yAxis), -kBowPulledVertex.y * 0.01f));
+}
+
 static void TestTheArrowRestIsOnTheLineOfTheArrow() {
     // The arrow rest is on the line of the vanilla arrow: the X and Z of the pulled vertex, at the
     // ends of the string (y = 0).
@@ -261,6 +267,7 @@ int main() {
     TestTheStringGoesToTheHand();
     TestTheShotGoesFromTheHandThroughTheString();
     TestThePullHasALimit();
+    TestTheLongestPullIsTheVanillaFullDraw();
     TestTheArrowRestIsOnTheLineOfTheArrow();
     TestTheShotKeepsItsAimAfterTheRelease();
     if (sFailures == 0) {

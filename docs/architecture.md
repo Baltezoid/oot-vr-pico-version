@@ -294,8 +294,8 @@ works only in selector mode.
 
 While the hand holds the string, `VrCombat_BowPullString` changes the Y axis
 of the string matrix. Thus the pulled point of the string is on the hand. The
-pull stops at 60 cm from the arrow rest. The arrow rest is on the line of the
-vanilla arrow. The shot goes from the hand through the arrow rest
+pull stops at the vanilla full draw. Thus the arrow always goes through the
+bow. The arrow rest is on the line of the vanilla arrow. The shot goes from the hand through the arrow rest
 (`VrCombat_BowPullShot`). Thus both hands aim.
 
 The vanilla bow path shoots one or more ticks after the release. For 10 ticks
