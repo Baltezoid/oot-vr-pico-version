@@ -257,8 +257,8 @@ them when the player shoots.
 | Weapon | Direction |
 |---|---|
 | Hookshot, longshot | The barrel. With motion hands, the hand limb has the controller pose. |
-| Bow | The arrow on the bow model (`Player_VrAimHeldShot`). The math is in `VrBowAim.h`. |
-| Slingshot | The seed in the pouch of the slingshot model (`Player_VrAimHeldShot`). The math is in `VrBowAim.h`. |
+| Bow | The arrow on the bow model (`Player_VrAimHeldShot`). The math is in `VrBowAim.h`. With the string pull, from the string hand through the string. |
+| Slingshot | The seed in the pouch of the slingshot model (`Player_VrAimHeldShot`). The math is in `VrBowAim.h`. With the string pull, from the string hand through the string. |
 | Boomerang, left trigger | The controller aim ray (`Player_VrThrowBoomerang` in `z_player.c`). |
 | Boomerang, right grip | The hand velocity at the release. The math is in `VrBoomerangThrow.h`. |
 
@@ -287,10 +287,15 @@ works only in selector mode.
 
 | Step | Result |
 |---|---|
-| The sword-hand grip closes 20 cm or nearer to the bow hand | The hand takes the string. |
-| The hand moves 10 cm farther from the bow hand | padmgr holds the button of the held item (`VrCombat_BowPullItemMask`). The vanilla bow path nocks the arrow. |
+| The sword-hand grip closes 25 cm or nearer to the center of the string | The hand takes the string. |
+| The hand moves 10 cm farther from the center of the string | padmgr holds the button of the held item (`VrCombat_BowPullItemMask`). The vanilla bow path nocks the arrow. |
 | The grip opens | padmgr releases the button. The vanilla bow path shoots. |
 | The grip opens before the 10 cm pull | No shot. |
+
+While the hand holds the string, `VrCombat_BowPullString` changes the Y axis
+of the string matrix. Thus the pulled point of the string is on the hand. The
+shot goes from the hand through the center of the string at rest
+(`VrCombat_BowPullShot`). Thus both hands aim.
 
 The off-hand trigger also shoots. Near the bow, the
 sword-hand grip has no binding, and it is not part of the two-grip sword

@@ -4,19 +4,21 @@
 // weapon. The sword-hand grip takes the string near the weapon, the hand pulls it back, and the
 // release of the grip shoots. No game types. Tests: port/soh/tests/vr/VrBowPullTests.cpp.
 
+#include "VrBowAim.h"
+
 #include <cmath>
 
 namespace VrBowPull {
 
-struct Vec3 {
-    float x, y, z;
-};
+using Vec3 = VrBowAim::Vec3;
 
-// The string hand takes the string at this distance from the bow hand.
-constexpr float kGrabRadiusM = 0.20f;
-// After the grab, the hand must move this distance away from the bow hand. Then the arrow is on
-// the string. A smaller pull does not shoot.
+// The string hand takes the string at this distance from the center of the string at rest.
+constexpr float kGrabRadiusM = 0.25f;
+// After the grab, the hand must move this distance away from the string at rest. Then the arrow
+// is on the string. A smaller pull does not shoot.
 constexpr float kMinPullM = 0.10f;
+// A hand nearer to the string at rest than this distance gives no shot direction.
+constexpr float kMinAimM = 0.03f;
 // A grip that is pushed this number of ticks (0.3 s) before the hand gets to the bow takes the
 // string.
 constexpr int kGripGraceTicks = 6;
@@ -26,7 +28,8 @@ struct Input {
     bool canPull = false;
     // The grip of the string hand.
     bool gripHeld = false;
-    Vec3 bowHand = {};
+    // The center of the string at rest. Without a drawn string, the bow hand.
+    Vec3 stringRest = {};
     Vec3 stringHand = {};
     float unitsPerMeter = 1.0f;
 };
@@ -56,6 +59,49 @@ inline float Distance(const Vec3& a, const Vec3& b) {
     return std::sqrt(dx * dx + dy * dy + dz * dz);
 }
 
+// The vertex of the string model that the hand pulls, in string space, at a full draw. The
+// vanilla draw scales its Y (VrBowAim.h).
+constexpr Vec3 kBowPulledVertex = { VrBowAim::kNockAtRest.x, VrBowAim::kNockFullDrawY, VrBowAim::kNockAtRest.z };
+constexpr Vec3 kSlingshotPulledVertex = VrBowAim::kPouchFullDraw;
+
+// Returns p (world) in the space of mf (game MtxF layout, an affine matrix). False when mf has no
+// inverse.
+inline bool WorldToLocal(const float mf[4][4], const Vec3& p, Vec3* out) {
+    const float a = mf[0][0], b = mf[0][1], c = mf[0][2];
+    const float d = mf[1][0], e = mf[1][1], f = mf[1][2];
+    const float g = mf[2][0], h = mf[2][1], i = mf[2][2];
+    const float det = a * (e * i - f * h) - b * (d * i - f * g) + c * (d * h - e * g);
+    if (std::fabs(det) < 1.0e-12f) {
+        return false;
+    }
+    const float x = p.x - mf[3][0];
+    const float y = p.y - mf[3][1];
+    const float z = p.z - mf[3][2];
+    // p - t = local.x * row0 + local.y * row1 + local.z * row2 (Cramer's rule).
+    out->x = (x * (e * i - f * h) - y * (d * i - f * g) + z * (d * h - e * g)) / det;
+    out->y = (a * (y * i - z * h) - b * (x * i - z * g) + c * (x * h - y * g)) / det;
+    out->z = (a * (e * z - f * y) - b * (d * z - f * x) + c * (d * y - e * x)) / det;
+    return true;
+}
+
+// The new Y axis of the string matrix (string space). With it, the pulled vertex is on the hand,
+// and the ends of the string (y = 0) do not move.
+inline Vec3 StringPullAxis(const Vec3& pulledVertex, const Vec3& handLocal) {
+    return { (handLocal.x - pulledVertex.x) / pulledVertex.y, handLocal.y / pulledVertex.y,
+             (handLocal.z - pulledVertex.z) / pulledVertex.y };
+}
+
+// The shot goes from the hand through the string at rest. False when the hand is nearer than
+// minDist.
+inline bool AimFromHand(const Vec3& stringRest, const Vec3& hand, float minDist, Vec3* dir) {
+    const float len = Distance(stringRest, hand);
+    if (len < minDist) {
+        return false;
+    }
+    *dir = { (stringRest.x - hand.x) / len, (stringRest.y - hand.y) / len, (stringRest.z - hand.z) / len };
+    return true;
+}
+
 class Pull {
   public:
     Result Update(const Input& in) {
@@ -72,7 +118,7 @@ class Pull {
             return r;
         }
 
-        const float dist = Distance(in.bowHand, in.stringHand);
+        const float dist = Distance(in.stringRest, in.stringHand);
         const bool near = dist <= kGrabRadiusM * in.unitsPerMeter;
 
         switch (mState) {

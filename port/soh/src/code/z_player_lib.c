@@ -1978,7 +1978,9 @@ static void Player_VrAimHeldShot(PlayState* play, Player* this, s32 slingshotMod
         return;
     }
     Matrix_Get(&handMf);
-    if (slingshotModel) {
+    if (VrCombat_BowPullShot(&pos.x, &dir.x)) {
+        // The hand pulls the string (#150): the shot goes from the hand through the string.
+    } else if (slingshotModel) {
         VrCombat_SeedOnSlingshot(&handMf.mf[0][0], this->unk_858, !LINK_IS_ADULT, &pos.x, &dir.x);
     } else {
         VrCombat_ArrowOnBow(&handMf.mf[0][0], this->unk_858, &pos.x, &dir.x);
@@ -2151,6 +2153,15 @@ void Player_PostLimbDrawGameplay(PlayState* play, s32 limbIndex, Gfx** dList, Ve
             Matrix_Push();
             Matrix_Translate(stringData->pos.x, stringData->pos.y, stringData->pos.z, MTXMODE_APPLY);
 
+            // SOH [VR] String pull (#150): while the hand holds the string, the string goes to the hand.
+            MtxF vrStringMf;
+            Vec3f vrPullAxis;
+            s32 vrStringPulled = false;
+            if (VR_IsInitialized()) {
+                Matrix_Get(&vrStringMf);
+                vrStringPulled = VrCombat_BowPullString(&vrStringMf.mf[0][0], stringModelToUse, &vrPullAxis.x);
+            }
+
             if ((this->stateFlags1 & PLAYER_STATE1_READY_TO_FIRE) && (this->unk_860 >= 0) && (this->unk_834 <= 10)) {
                 Vec3f sp90;
                 f32 distXYZ;
@@ -2171,10 +2182,19 @@ void Player_PostLimbDrawGameplay(PlayState* play, s32 limbIndex, Gfx** dList, Ve
                 this->unk_85C = -0.5f;
             }
 
-            Matrix_Scale(1.0f, this->unk_858, 1.0f, MTXMODE_APPLY);
+            if (vrStringPulled) { // SOH [VR]
+                MtxF vrShear;
+                SkinMatrix_Clear(&vrShear);
+                vrShear.mf[1][0] = vrPullAxis.x;
+                vrShear.mf[1][1] = vrPullAxis.y;
+                vrShear.mf[1][2] = vrPullAxis.z;
+                Matrix_Mult(&vrShear, MTXMODE_APPLY);
+            } else {
+                Matrix_Scale(1.0f, this->unk_858, 1.0f, MTXMODE_APPLY);
 
-            if (!LINK_IS_ADULT) {
-                Matrix_RotateZ(this->unk_858 * -0.2f, MTXMODE_APPLY);
+                if (!LINK_IS_ADULT) {
+                    Matrix_RotateZ(this->unk_858 * -0.2f, MTXMODE_APPLY);
+                }
             }
 
             {

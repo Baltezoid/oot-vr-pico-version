@@ -6,7 +6,9 @@
 
 #include "VrBowPull.h"
 
+#include <cmath>
 #include <cstdio>
+#include <initializer_list>
 
 using namespace VrBowPull;
 
@@ -23,12 +25,12 @@ static int sFailures = 0;
 // 1 unit is 1 cm: the distances in the tests are easy to read.
 constexpr float kUpm = 100.0f;
 
-// The bow hand is at the origin. stringCm: the distance of the string hand from the bow hand.
+// The string at rest is at the origin. stringCm: the distance of the string hand from it.
 static Input At(float stringCm, bool grip, bool canPull = true) {
     Input in;
     in.canPull = canPull;
     in.gripHeld = grip;
-    in.bowHand = { 0.0f, 0.0f, 0.0f };
+    in.stringRest = { 0.0f, 0.0f, 0.0f };
     in.stringHand = { stringCm, 0.0f, 0.0f };
     in.unitsPerMeter = kUpm;
     return in;
@@ -45,7 +47,7 @@ static void TestTheGripNearTheBowTakesTheString() {
 
 static void TestTheGripFarFromTheBowDoesNotTakeTheString() {
     Pull p;
-    EXPECT(!p.Update(At(60.0f, false)).inReach);
+    EXPECT(!p.Update(At(kGrabRadiusM * kUpm + 5.0f, false)).inReach);
     for (int i = 0; i < 20; i++) {
         const Result r = p.Update(At(60.0f, true));
         EXPECT(r.event == Event::None);
@@ -147,6 +149,73 @@ static void TestTheHandStaysInReachWhileItHoldsTheString() {
     EXPECT(p.Update(At(70.0f, true)).inReach);
 }
 
+static bool Near(float a, float b, float eps = 0.01f) {
+    return std::fabs(a - b) <= eps;
+}
+
+static bool NearVec(const Vec3& a, const Vec3& b, float eps = 0.01f) {
+    return Near(a.x, b.x, eps) && Near(a.y, b.y, eps) && Near(a.z, b.z, eps);
+}
+
+// Game MtxF layout: a point p goes to p.x * mf[0] + p.y * mf[1] + p.z * mf[2] + mf[3].
+static Vec3 Apply(const float mf[4][4], const Vec3& p) {
+    return { p.x * mf[0][0] + p.y * mf[1][0] + p.z * mf[2][0] + mf[3][0],
+             p.x * mf[0][1] + p.y * mf[1][1] + p.z * mf[2][1] + mf[3][1],
+             p.x * mf[0][2] + p.y * mf[1][2] + p.z * mf[2][2] + mf[3][2] };
+}
+
+static void TestWorldToLocalUndoesTheStringMatrix() {
+    // A turn of 90 degrees around Z, the model scale of Link, a mirror on X, and a translation.
+    const float s = 0.01f;
+    const float mf[4][4] = { { 0.0f, -s, 0.0f, 0.0f },
+                             { -s, 0.0f, 0.0f, 0.0f },
+                             { 0.0f, 0.0f, s, 0.0f },
+                             { 50.0f, -20.0f, 7.0f, 1.0f } };
+    const Vec3 local = { 120.0f, -900.0f, 40.0f };
+    Vec3 back;
+    EXPECT(WorldToLocal(mf, Apply(mf, local), &back));
+    EXPECT(NearVec(back, local, 0.1f));
+}
+
+static void TestTheStringGoesToTheHand() {
+    const float s = 0.01f;
+    const float mf[4][4] = { { s, 0.0f, 0.0f, 0.0f },
+                             { 0.0f, 0.0f, s, 0.0f },
+                             { 0.0f, -s, 0.0f, 0.0f },
+                             { 10.0f, 20.0f, 30.0f, 1.0f } };
+    const Vec3 handWorld = { 12.0f, 25.0f, 18.0f };
+    for (const Vec3& vertex : { kBowPulledVertex, kSlingshotPulledVertex }) {
+        Vec3 handLocal;
+        EXPECT(WorldToLocal(mf, handWorld, &handLocal));
+        const Vec3 axis = StringPullAxis(vertex, handLocal);
+        // The string matrix with the new Y axis: the pulled vertex is on the hand.
+        float pulled[4][4];
+        for (int r = 0; r < 4; r++) {
+            for (int c = 0; c < 4; c++) {
+                pulled[r][c] = mf[r][c];
+            }
+        }
+        for (int c = 0; c < 3; c++) {
+            pulled[1][c] = axis.x * mf[0][c] + axis.y * mf[1][c] + axis.z * mf[2][c];
+        }
+        EXPECT(NearVec(Apply(pulled, vertex), handWorld, 0.01f));
+        // The ends of the string (y = 0) do not move.
+        const Vec3 end = { 300.0f, 0.0f, -40.0f };
+        EXPECT(NearVec(Apply(pulled, end), Apply(mf, end), 0.001f));
+    }
+}
+
+static void TestTheShotGoesFromTheHandThroughTheString() {
+    Vec3 dir;
+    EXPECT(AimFromHand({ 0.0f, 10.0f, 0.0f }, { 0.0f, 10.0f, -30.0f }, 1.0f, &dir));
+    EXPECT(NearVec(dir, { 0.0f, 0.0f, 1.0f }));
+    // A move of the hand down turns the shot up.
+    EXPECT(AimFromHand({ 0.0f, 10.0f, 0.0f }, { 0.0f, 0.0f, -10.0f }, 1.0f, &dir));
+    EXPECT(dir.y > 0.7f && dir.z > 0.7f);
+    // A hand on the string gives no direction.
+    EXPECT(!AimFromHand({ 0.0f, 10.0f, 0.0f }, { 0.0f, 10.0f, 0.5f }, 1.0f, &dir));
+}
+
 int main() {
     TestTheGripNearTheBowTakesTheString();
     TestTheGripFarFromTheBowDoesNotTakeTheString();
@@ -158,6 +227,9 @@ int main() {
     TestNoPullWhenTheBowIsNotReady();
     TestTheStringGoesWhenTheBowIsPutAway();
     TestTheHandStaysInReachWhileItHoldsTheString();
+    TestWorldToLocalUndoesTheStringMatrix();
+    TestTheStringGoesToTheHand();
+    TestTheShotGoesFromTheHandThroughTheString();
     if (sFailures == 0) {
         std::printf("VrBowPull: all tests passed\n");
         return 0;
