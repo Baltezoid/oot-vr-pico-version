@@ -444,13 +444,15 @@ void PadMgr_HandleRetraceMsg(PadMgr* padMgr) {
                     // projectile (classic mode), the aim hand's trigger is the FIRE control and
                     // its binding is likewise suspended. The grip of the boomerang hand throws it.
                     // SOH [VR] The grip takes the bomb or the Deku nut from the belt and throws it.
+                    // SOH [VR] The sword-hand grip pulls the bow string.
                     if (VrItemSelect_ConsumesInput(vrHandIdx, sVrBtnMasks[vrBtnIdx]) ||
                         VrItemSelect_TriggerConsumed(vrHandIdx, sVrBtnMasks[vrBtnIdx]) ||
                         VrItemSelect_SwapConsumed(vrHandIdx, sVrBtnMasks[vrBtnIdx]) ||
                         VrCombat_AimTriggerConsumed(vrHandIdx, sVrBtnMasks[vrBtnIdx]) ||
                         VrCombat_BoomerangGripConsumed(vrHandIdx, sVrBtnMasks[vrBtnIdx]) ||
                         VrCombat_BombGripConsumed(vrHandIdx, sVrBtnMasks[vrBtnIdx]) ||
-                        VrCombat_NutGripConsumed(vrHandIdx, sVrBtnMasks[vrBtnIdx])) {
+                        VrCombat_NutGripConsumed(vrHandIdx, sVrBtnMasks[vrBtnIdx]) ||
+                        VrCombat_BowPullGripConsumed(vrHandIdx, sVrBtnMasks[vrBtnIdx])) {
                         continue;
                     }
                     if (vrState & sVrBtnMasks[vrBtnIdx]) {
@@ -477,6 +479,8 @@ void PadMgr_HandleRetraceMsg(PadMgr* padMgr) {
                     vrPad->button |= VrItemSelect_TriggerItemMask(vrHandIdx);
                 }
             }
+            // SOH [VR] Bow string pull (#150): item button held while pulled.
+            vrPad->button |= VrCombat_BowPullItemMask();
 
             // SOH [VR] Ocarina stick-direction bindings (sVrBindOcaStickCvars above): fire the
             // bound mask while the dominant axis holds past the threshold — raw button STATE,

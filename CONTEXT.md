@@ -65,6 +65,11 @@ waits. The item selector puts the item on the belt. The player takes it from the
 belt with either hand. The fuse of a bomb or a bombchu starts when the item
 leaves the belt. A bombchu does not fly: it starts on the floor below the hand.
 
+## String pull
+
+The sword hand holds the string of the bow or the slingshot with the grip, and
+pulls it back. The release of the grip shoots.
+
 ## Aim mark
 
 A point on the surface where a shot will hit. It shows while the player aims.

@@ -150,6 +150,8 @@ bool VrItemSelect_TriggerConsumed(int32_t vrHand, uint16_t vrBtnMask);
 // their bindings untouched.
 bool VrItemSelect_SwapConsumed(int32_t vrHand, uint16_t vrBtnMask);
 
+// The N64 button of the held item, or 0.
+uint16_t VrItemSelect_HeldItemButton(struct Player* player);
 // True while the selector press must not use the held item (rule 3 in VrItemSelect.cpp).
 bool VrItemSelect_BlocksUse(struct Player* player);
 // The two inputs that draw the sword are held (VrItemSelect.cpp QuickSwapTick).
@@ -230,6 +232,15 @@ int32_t VrCombat_NutHand(void);
 // The EnArrow timer of a nut from the hand.
 uint8_t VrCombat_NutFlightTicks(void);
 bool VrCombat_NutGripConsumed(int32_t vrHand, uint16_t vrBtnMask);
+// String pull (VrBowPull.cpp, #150).
+// String: give the string matrix (MtxF at the string origin). True while pulled, with the new Y axis.
+// Shot: start and direction of the pulled shot. ItemMask: item button while pulled, else 0.
+// OwnsGrip: the sword-hand grip is for the string. GripConsumed: padmgr skips the grip binding.
+bool VrCombat_BowPullString(const float* stringMf16, bool slingshot, float* outAxisXyz);
+bool VrCombat_BowPullShot(float* outPosXyz, float* outDirXyz);
+uint16_t VrCombat_BowPullItemMask(void);
+bool VrCombat_BowPullOwnsGrip(void);
+bool VrCombat_BowPullGripConsumed(int32_t vrHand, uint16_t vrBtnMask);
 // The physical shield's block collider in R_HAND limb model space (outXyz4 = 4 vertices x xyz,
 // vanilla zigzag order) — replaces the vanilla stance quad, whose size/offset never matched a
 // controller-held shield. Its size and position come from the mesh of the shield in the hand
@@ -268,6 +279,8 @@ void Boomerang_OnPlayerUpdate(Player* player);
 void Bomb_OnPlayerUpdate(Player* player);
 // Call after the hand paths of the tick are read.
 void Nut_OnPlayerUpdate(Player* player);
+// String pull (VrBowPull.cpp).
+void BowPull_OnPlayerUpdate(Player* player);
 
 // Per-tick swing bookkeeping (VrSwing.cpp), driven from VrCombat's OnPlayerUpdate hook:
 // reads back last tick's quad results (hit haptics, one-hit-per-swing demotion), then resets
