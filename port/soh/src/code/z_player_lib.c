@@ -2154,10 +2154,12 @@ void Player_PostLimbDrawGameplay(PlayState* play, s32 limbIndex, Gfx** dList, Ve
             Matrix_Translate(stringData->pos.x, stringData->pos.y, stringData->pos.z, MTXMODE_APPLY);
 
             // SOH [VR] String pull (#150): while the hand holds the string, the string goes to the hand.
+            // Not when the string model is not the model of the weapon (child Link with the bow draws
+            // the slingshot string): its pouch would go into the hand.
             MtxF vrStringMf;
             Vec3f vrPullAxis;
             s32 vrStringPulled = false;
-            if (VR_IsInitialized()) {
+            if (VR_IsInitialized() && (stringModelToUse == Player_HoldsSlingshot(this))) {
                 Matrix_Get(&vrStringMf);
                 vrStringPulled = VrCombat_BowPullString(&vrStringMf.mf[0][0], stringModelToUse, &vrPullAxis.x);
             }

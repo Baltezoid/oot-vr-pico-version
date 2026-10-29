@@ -62,11 +62,16 @@ VrBowPull::Vec3 HandPos(int hand) {
                                            : VrBowPull::Vec3{ 1.0e6f, 1.0e6f, 1.0e6f };
 }
 
+// The string was drawn in the last two frames.
+bool StringRestFresh() {
+    return sStringRestSet && (gPlayState != NULL) && (gPlayState->state.frames - sStringRestFrame <= 2);
+}
+
 // The nock: the string hand, with the limit of the pull. False when the hand is not tracked.
 bool Nock(VrBowPull::Vec3* out) {
     float pos[3];
     float quat[4];
-    if (!sStringRestSet || !VR_GetHandPose(StringHand(), pos, quat)) {
+    if (!StringRestFresh() || !VR_GetHandPose(StringHand(), pos, quat)) {
         return false;
     }
     *out = VrBowPull::NockPos(sArrowRest, { pos[0], pos[1], pos[2] }, sMaxPull);
@@ -85,8 +90,7 @@ void VrCombat::BowPull_OnPlayerUpdate(Player* player) {
     in.canPull = CanPull(player);
     in.gripHeld = (VR_GetControllerButton(stringHand) & VR_BTN_GRIP) != 0;
     // The string of the last two frames. Else the bow hand.
-    const bool restFresh = sStringRestSet && (gPlayState->state.frames - sStringRestFrame <= 2);
-    in.stringRest = restFresh ? sStringRest : HandPos(stringHand ^ 1);
+    in.stringRest = StringRestFresh() ? sStringRest : HandPos(stringHand ^ 1);
     in.stringHand = HandPos(stringHand);
     in.unitsPerMeter = VrBelt::UnitsPerMeter();
     const bool wasInReach = sResult.inReach && !sResult.holding;
