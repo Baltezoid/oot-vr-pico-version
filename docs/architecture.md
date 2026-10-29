@@ -48,7 +48,7 @@ The VR code that is new has its own files:
 | `port/libultraship/include/vr_interface.h` | The declarations of the `VR_*` functions, with comments |
 | `port/libultraship/src/fast/vr_physics.cpp` | The collision mesh for the physical hands |
 | `port/libultraship/src/fast/vr_menu_input.cpp` | The SoH menu with the Touch controllers: the Y toggle, the menu navigation, and the input filter for the game |
-| `port/soh/soh/Enhancements/vr-combat/` | Sword and hammer swing, shield, bow and boomerang aim, belt, and item selection |
+| `port/soh/soh/Enhancements/vr-combat/` | Sword and hammer swing, shield, bow and boomerang aim, string pull, belt, and item selection |
 | `port/soh/soh/SohGui/SohMenuVRSettings.cpp` | The VR settings menu. The Developer tab shows only with Dev Tools > Debug Mode on |
 
 ## Render path
@@ -279,8 +279,26 @@ is two times faster, has the same range, and has a catch distance of 60 units
 only if the throw is in a cone of 30 degrees. Only the trigger throw has an aim
 mark.
 
+### String pull
+
+`VrBowPull.cpp` lets the sword hand pull the string of the bow and the
+slingshot. The off hand holds the weapon. The setting is `gVrBowPull`, and it
+works only in selector mode.
+
+| Step | Result |
+|---|---|
+| The sword-hand grip closes 20 cm or nearer to the bow hand | The hand takes the string. |
+| The hand moves 10 cm farther from the bow hand | padmgr holds the button of the held item (`VrCombat_BowPullItemMask`). The vanilla bow path nocks the arrow. |
+| The grip opens | padmgr releases the button. The vanilla bow path shoots. |
+| The grip opens before the 10 cm pull | No shot. |
+
+The off-hand trigger also stays the button of the held item. Near the bow, the
+sword-hand grip has no binding, and it is not part of the two-grip sword
+chord. The rules are in `VrBowPull.h`.
+
 The host unit tests are in `port/soh/tests/vr/VrAimMarkTests.cpp`,
-`port/soh/tests/vr/VrBowAimTests.cpp`, and
+`port/soh/tests/vr/VrBowAimTests.cpp`,
+`port/soh/tests/vr/VrBowPullTests.cpp`, and
 `port/soh/tests/vr/VrBoomerangThrowTests.cpp`.
 
 ## Camera and movement

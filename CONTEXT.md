@@ -65,6 +65,12 @@ waits. The item selector puts the item on the belt. The player takes it from the
 belt with either hand. The fuse of a bomb or a bombchu starts when the item
 leaves the belt. A bombchu does not fly: it starts on the floor below the hand.
 
+## String pull
+
+The control of the bow and the slingshot in VR first person. The sword hand
+takes the string near the weapon with the grip and pulls it back. The release
+of the grip shoots. The off-hand trigger is a second way.
+
 ## Aim mark
 
 A point on the surface where a shot will hit. It shows while the player aims.

@@ -92,6 +92,7 @@ void OnPlayerUpdateVrCombat() {
     VrCombat::Boomerang_OnPlayerUpdate(player);
     VrCombat::Bomb_OnPlayerUpdate(player);
     VrCombat::Nut_OnPlayerUpdate(player);
+    VrCombat::BowPull_OnPlayerUpdate(player);
 }
 
 } // namespace

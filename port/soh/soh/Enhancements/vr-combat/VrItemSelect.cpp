@@ -142,8 +142,12 @@ uint16_t SwapMask() {
     return (uint16_t)CVarGetInteger("gVrItemSelSwapInput", VR_BTN_GRIP);
 }
 
+// A grip that takes the string of the bow is not part of the chord (VrBowPull.cpp).
 bool SwapChordHeld() {
     const uint16_t mask = SwapMask();
+    if ((mask & VR_BTN_GRIP) && VrCombat_BowPullOwnsGrip()) {
+        return false;
+    }
     return mask != 0 && (VR_GetControllerButton(VR_HAND_LEFT) & mask) != 0 &&
            (VR_GetControllerButton(VR_HAND_RIGHT) & mask) != 0;
 }
@@ -615,6 +619,10 @@ extern "C" bool VrItemSelect_SwapConsumed(int32_t vrHand, uint16_t vrBtnMask) {
 
 extern "C" bool VrItemSelect_ModeActive(void) {
     return SelectorModeInPlay();
+}
+
+extern "C" uint16_t VrItemSelect_HeldItemButton(Player* player) {
+    return (player != NULL) ? HeldItemButtonMask(player) : 0;
 }
 
 extern "C" bool VrItemSelect_BlocksUse(Player* player) {

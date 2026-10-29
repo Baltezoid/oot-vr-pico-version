@@ -63,7 +63,8 @@ The game does not contain mods.
 | Sword, Deku stick, Megaton Hammer | Swing your hand. |
 | Spin attack | Put the sword hand at the side of your hip, with the tip of the blade to the back. When the controller vibrates, swing fast. |
 | Shield | Hold it in front of you to block. The Mirror Shield reflects the Twinrova beams. |
-| Bow, slingshot, hookshot | Aim with your hand. The shot goes along the weapon. |
+| Bow, slingshot | Pull the string with your right hand. Aim with your left hand. The shot goes along the weapon. |
+| Hookshot | Aim with your hand. The shot goes along the hookshot. |
 | Boomerang | Throw it with your arm. |
 | Bombs, Deku nuts, bombchus | Take them from your belt, and throw them with your arm. |
 
@@ -223,7 +224,7 @@ holds the shield, the bow, the slingshot, the hookshot, and the ocarina.
 | Right thumbstick click (hold) | Open the item selector. Move your hand to an item, then release.        |
 | Left trigger                  | Use the item. For the bow, hold to pull the string, release to shoot.   |
 | Right trigger                 | Z-target.                                                               |
-| Right grip                    | Boomerang: hold, move the arm to throw, then release.                   |
+| Right grip                    | Boomerang: hold, move the arm to throw, then release. Bow and slingshot: hold near the string, pull back, then release to shoot. |
 | Both grips (hold)             | Hold the sword and the shield.                                          |
 | A button                      | N64 A: action, talk, roll.                                              |
 | B button                      | N64 B.                                                                  |
@@ -237,7 +238,8 @@ holds the shield, the bow, the slingshot, the hookshot, and the ocarina.
 | ------------------------------------------------------------ | ---------------------------------------------------------- |
 | Sword, Deku stick, Megaton Hammer                            | Swing your hand.                                           |
 | Spin attack                                                  | Put the sword hand at the side of your hip, with the tip of the blade to the back. The charge starts, and the controller vibrates. Move the charged sword as you want, then swing fast. With magic, you do the magic spin. |
-| Bow, slingshot, hookshot                                     | Point the weapon. The aim mark shows where the shot hits.  |
+| Bow, slingshot                                               | Put the right hand near the string. Hold the right grip, pull the hand back, and release the grip to shoot. The left trigger also shoots. The aim mark shows where the shot hits. To use only the trigger, turn off VR Settings > Controls > Pull the String. |
+| Hookshot                                                     | Point the hookshot. The aim mark shows where the shot hits. |
 | Boomerang                                                    | Hold the right grip, throw with the arm, release the grip. |
 | Bombs                                                        | Push a grip at the belt, throw with the arm, release the grip. A slow release drops the bomb. The left trigger also throws. |
 | Deku nuts                                                    | The same as the bombs. The nut flashes when it touches a wall or the floor. |

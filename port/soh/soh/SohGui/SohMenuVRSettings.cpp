@@ -1015,6 +1015,17 @@ void SohMenu::AddMenuVRSettings() {
         .Options(FloatSliderOptions().Min(3.0f).Max(30.0f).DefaultValue(5.0f).Step(1.0f).Format("%.0f").Tooltip(
             "How far your hand must move to select an item."));
 
+    AddWidget(controlsPath, "Bow and Slingshot", WIDGET_SEPARATOR_TEXT).PreFunc([](WidgetInfo& info) {
+        info.isHidden = !CVarGetInteger("gVrItemSelect", 1);
+    });
+    AddWidget(controlsPath, "Pull the String", WIDGET_CVAR_CHECKBOX)
+        .CVar("gVrBowPull")
+        .PreFunc([](WidgetInfo& info) { info.isHidden = !CVarGetInteger("gVrItemSelect", 1); })
+        .Options(CheckboxOptions().DefaultValue(true).Tooltip(
+            "On: put your sword hand near the bow or the slingshot. Hold the grip and pull the string back. "
+            "Release the grip to shoot. The trigger of the other hand also shoots. Off: only the trigger "
+            "shoots."));
+
     AddWidget(controlsPath, "Buttons", WIDGET_SEPARATOR_TEXT);
     AddWidget(controlsPath, "VrInputBindings", WIDGET_CUSTOM).CustomFunction(VrInputBindings).HideInSearch(true);
     AddWidget(controlsPath, "Select a button to remove it. Select + to add one.", WIDGET_TEXT);
