@@ -232,13 +232,10 @@ int32_t VrCombat_NutHand(void);
 // The EnArrow timer of a nut from the hand.
 uint8_t VrCombat_NutFlightTicks(void);
 bool VrCombat_NutGripConsumed(int32_t vrHand, uint16_t vrBtnMask);
-// The string pull of the bow and the slingshot (VrBowPull.cpp, #150). ItemMask: the button of the
-// held item while the hand pulls the string, else 0. padmgr ORs it into the pad. OwnsGrip: the
-// sword-hand grip takes or holds the string. GripConsumed: padmgr skips the grip binding.
-// String: call it with the string matrix (MtxF, after the translation to the string origin). It
-// keeps the string position for the grab. While the hand holds the string, it returns true and
-// the new Y axis of the string matrix. Shot: while the hand holds the string, the shot start
-// (the hand) and the direction (through the string at rest).
+// String pull (VrBowPull.cpp, #150).
+// String: give the string matrix (MtxF at the string origin). True while pulled, with the new Y axis.
+// Shot: start and direction of the pulled shot. ItemMask: item button while pulled, else 0.
+// OwnsGrip: the sword-hand grip is for the string. GripConsumed: padmgr skips the grip binding.
 bool VrCombat_BowPullString(const float* stringMf16, bool slingshot, float* outAxisXyz);
 bool VrCombat_BowPullShot(float* outPosXyz, float* outDirXyz);
 uint16_t VrCombat_BowPullItemMask(void);
@@ -282,7 +279,7 @@ void Boomerang_OnPlayerUpdate(Player* player);
 void Bomb_OnPlayerUpdate(Player* player);
 // Call after the hand paths of the tick are read.
 void Nut_OnPlayerUpdate(Player* player);
-// The string pull of the bow and the slingshot (VrBowPull.cpp).
+// String pull (VrBowPull.cpp).
 void BowPull_OnPlayerUpdate(Player* player);
 
 // Per-tick swing bookkeeping (VrSwing.cpp), driven from VrCombat's OnPlayerUpdate hook:

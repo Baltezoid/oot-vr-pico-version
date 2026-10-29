@@ -12,12 +12,8 @@ extern PlayState* gPlayState;
 
 #include <vr_interface.h>
 
-// The string pull of the bow and the slingshot (#150). The math is in VrBowPull.h. While the hand
-// pulls the string, padmgr holds the button of the held item (VrCombat_BowPullItemMask). Thus the
-// vanilla bow path nocks the arrow, holds it, and shoots it at the release. The off-hand trigger
-// also shoots. While the hand holds the string, the string goes to the hand
-// (VrCombat_BowPullString), and the shot goes from the hand through the arrow rest
-// (VrCombat_BowPullShot). The pull stops at the vanilla full draw (MaxPull).
+// String pull (#150). Rules in VrBowPull.h. While the string is pulled, padmgr holds the item
+// button, so the vanilla bow path nocks and shoots.
 
 namespace {
 
@@ -27,20 +23,19 @@ constexpr uint32_t kBlockedFlags = PLAYER_STATE1_LOADING | PLAYER_STATE1_INPUT_D
 
 VrBowPull::Pull sPull;
 VrBowPull::Result sResult;
-// From the last draw of the string (world): the center of the string at rest, and the arrow rest.
+// From the last string draw, in world units.
 VrBowPull::Vec3 sStringRest;
 VrBowPull::Vec3 sArrowRest;
 float sMaxPull = 0.0f;
 uint32_t sStringRestFrame = 0;
 bool sStringRestSet = false;
-// The shot of the last tick of the pull. It stays after the release (Result::keepShot).
+// Last pull aim. Kept after the release (Result::keepShot).
 VrBowPull::Vec3 sShotPos;
 VrBowPull::Vec3 sShotDir;
 bool sShotSet = false;
 
 bool PullOn() {
-    return VrCombat::WeaponAimOn() && VrItemSelect_ModeActive() &&
-           VrCombat_InPlay();
+    return VrCombat::WeaponAimOn() && VrItemSelect_ModeActive() && VrCombat_InPlay();
 }
 
 bool CanPull(Player* player) {
@@ -48,8 +43,8 @@ bool CanPull(Player* player) {
            !(player->stateFlags1 & kBlockedFlags) && !VrOcarina_InPlay();
 }
 
+// The off hand holds the bow (HeldItemVrHand in VrItemSelect.cpp).
 int StringHand() {
-    // The off hand holds the bow and the slingshot (HeldItemVrHand in VrItemSelect.cpp).
     return VrBelt::SwordHand();
 }
 
@@ -61,12 +56,11 @@ VrBowPull::Vec3 HandPos(int hand) {
                                            : VrBowPull::Vec3{ 1.0e6f, 1.0e6f, 1.0e6f };
 }
 
-// The string was drawn in the last two frames.
+// Drawn in the last 2 frames.
 bool StringRestFresh() {
     return sStringRestSet && (gPlayState != NULL) && (gPlayState->state.frames - sStringRestFrame <= 2);
 }
 
-// The nock: the string hand, with the limit of the pull. False when the hand is not tracked.
 bool Nock(VrBowPull::Vec3* out) {
     float pos[3];
     float quat[4];
@@ -88,7 +82,6 @@ void VrCombat::BowPull_OnPlayerUpdate(Player* player) {
     VrBowPull::Input in;
     in.canPull = CanPull(player);
     in.gripHeld = (VR_GetControllerButton(stringHand) & VR_BTN_GRIP) != 0;
-    // The string of the last two frames. Else the bow hand.
     in.stringRest = StringRestFresh() ? sStringRest : HandPos(stringHand ^ 1);
     in.stringHand = HandPos(stringHand);
     in.unitsPerMeter = VrBelt::UnitsPerMeter();
@@ -117,11 +110,8 @@ extern "C" bool VrCombat_BowPullString(const float* stringMf16, bool slingshot, 
         return false;
     }
     const VrBowPull::Vec3& pulledVertex = slingshot ? VrBowPull::kSlingshotPulledVertex : VrBowPull::kBowPulledVertex;
-    const VrBowPull::Vec3 rest = VrBowPull::ArrowRest(pulledVertex);
     sStringRest = { mf[3][0], mf[3][1], mf[3][2] };
-    sArrowRest = { rest.x * mf[0][0] + rest.y * mf[1][0] + rest.z * mf[2][0] + mf[3][0],
-                   rest.x * mf[0][1] + rest.y * mf[1][1] + rest.z * mf[2][1] + mf[3][1],
-                   rest.x * mf[0][2] + rest.y * mf[1][2] + rest.z * mf[2][2] + mf[3][2] };
+    sArrowRest = VrBowPull::LocalToWorld(mf, VrBowPull::ArrowRest(pulledVertex));
     sMaxPull = VrBowPull::MaxPull(pulledVertex, mf[1]);
     sStringRestFrame = gPlayState->state.frames;
     sStringRestSet = true;

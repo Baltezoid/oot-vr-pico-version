@@ -257,8 +257,8 @@ them when the player shoots.
 | Weapon | Direction |
 |---|---|
 | Hookshot, longshot | The barrel. With motion hands, the hand limb has the controller pose. |
-| Bow | The arrow on the bow model (`Player_VrAimHeldShot`). The math is in `VrBowAim.h`. With the string pull, from the string hand through the string. |
-| Slingshot | The seed in the pouch of the slingshot model (`Player_VrAimHeldShot`). The math is in `VrBowAim.h`. With the string pull, from the string hand through the string. |
+| Bow | The arrow on the bow model (`Player_VrAimHeldShot`). The math is in `VrBowAim.h`. With the string pull: from the hand through the bow. |
+| Slingshot | The seed in the pouch of the slingshot model (`Player_VrAimHeldShot`). The math is in `VrBowAim.h`. With the string pull: from the hand through the slingshot. |
 | Boomerang, left trigger | The controller aim ray (`Player_VrThrowBoomerang` in `z_player.c`). |
 | Boomerang, right grip | The hand velocity at the release. The math is in `VrBoomerangThrow.h`. |
 
@@ -281,30 +281,25 @@ mark.
 
 ### String pull
 
-`VrBowPull.cpp` lets the sword hand pull the string of the bow and the
-slingshot. The off hand holds the weapon. It is always on in selector mode.
-No setting turns it off.
+`VrBowPull.cpp`. The sword hand pulls the string. The off hand holds the bow or
+the slingshot. It works only with the item selector. The rules are in
+`VrBowPull.h`.
 
-| Step | Result |
+| Input | Result |
 |---|---|
-| The sword-hand grip closes 25 cm or nearer to the center of the string | The hand takes the string. |
-| The hand moves 10 cm farther from the center of the string | padmgr holds the button of the held item (`VrCombat_BowPullItemMask`). The vanilla bow path nocks the arrow. |
-| The grip opens | padmgr releases the button. The vanilla bow path shoots. |
-| The grip opens before the 10 cm pull | No shot. |
+| Grip at 25 cm or less from the string | The hand holds the string. |
+| Pull of 10 cm | padmgr holds the item button. The game nocks the arrow. |
+| Grip release | padmgr releases the button. The game shoots. |
+| Grip release before 10 cm | No shot. |
 
-While the hand holds the string, `VrCombat_BowPullString` changes the Y axis
-of the string matrix. Thus the pulled point of the string is on the hand. The
-pull stops at the vanilla full draw. Thus the arrow always goes through the
-bow. The arrow rest is on the line of the vanilla arrow. The shot goes from the hand through the arrow rest
-(`VrCombat_BowPullShot`). Thus both hands aim.
-
-The vanilla bow path shoots one or more ticks after the release. For 10 ticks
-after the release, `VrCombat_BowPullShot` keeps the aim of the last tick of the
-pull.
-
-The off-hand trigger also shoots. Near the bow, the
-sword-hand grip has no binding, and it is not part of the two-grip sword
-chord. The rules are in `VrBowPull.h`.
+- The string goes to the hand (`VrCombat_BowPullString`). The pull stops at
+  the vanilla full draw.
+- The shot goes from the hand through the arrow rest (`VrCombat_BowPullShot`).
+- The game shoots 1 or more ticks after the release. The shot keeps the pull
+  aim for 10 ticks.
+- Near the bow, the sword-hand grip has no binding and is not part of the sword
+  chord.
+- The off-hand trigger also shoots, along the weapon.
 
 The host unit tests are in `port/soh/tests/vr/VrAimMarkTests.cpp`,
 `port/soh/tests/vr/VrBowAimTests.cpp`,

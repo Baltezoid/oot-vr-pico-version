@@ -67,9 +67,8 @@ leaves the belt. A bombchu does not fly: it starts on the floor below the hand.
 
 ## String pull
 
-The control of the bow and the slingshot in VR first person. The sword hand
-takes the string near the weapon with the grip and pulls it back. The release
-of the grip shoots. The off-hand trigger is a second way.
+The sword hand holds the string of the bow or the slingshot with the grip, and
+pulls it back. The release of the grip shoots.
 
 ## Aim mark
 

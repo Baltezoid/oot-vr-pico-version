@@ -142,7 +142,7 @@ uint16_t SwapMask() {
     return (uint16_t)CVarGetInteger("gVrItemSelSwapInput", VR_BTN_GRIP);
 }
 
-// A grip that takes the string of the bow is not part of the chord (VrBowPull.cpp).
+// A grip on the bow string is not part of the chord.
 bool SwapChordHeld() {
     const uint16_t mask = SwapMask();
     if ((mask & VR_BTN_GRIP) && VrCombat_BowPullOwnsGrip()) {
