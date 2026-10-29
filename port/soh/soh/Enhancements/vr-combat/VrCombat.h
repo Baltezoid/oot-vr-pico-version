@@ -237,7 +237,7 @@ bool VrCombat_NutGripConsumed(int32_t vrHand, uint16_t vrBtnMask);
 // sword-hand grip takes or holds the string. GripConsumed: padmgr skips the grip binding.
 uint16_t VrCombat_BowPullItemMask(void);
 bool VrCombat_BowPullOwnsGrip(void);
-bool VrCombat_BowGripConsumed(int32_t vrHand, uint16_t vrBtnMask);
+bool VrCombat_BowPullGripConsumed(int32_t vrHand, uint16_t vrBtnMask);
 // The physical shield's block collider in R_HAND limb model space (outXyz4 = 4 vertices x xyz,
 // vanilla zigzag order) — replaces the vanilla stance quad, whose size/offset never matched a
 // controller-held shield. Its size and position come from the mesh of the shield in the hand

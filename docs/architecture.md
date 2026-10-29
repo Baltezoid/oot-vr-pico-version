@@ -292,7 +292,7 @@ works only in selector mode.
 | The grip opens | padmgr releases the button. The vanilla bow path shoots. |
 | The grip opens before the 10 cm pull | No shot. |
 
-The off-hand trigger also stays the button of the held item. Near the bow, the
+The off-hand trigger also shoots. Near the bow, the
 sword-hand grip has no binding, and it is not part of the two-grip sword
 chord. The rules are in `VrBowPull.h`.
 

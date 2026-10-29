@@ -16,7 +16,7 @@ extern PlayState* gPlayState;
 // The string pull of the bow and the slingshot (#150). The math is in VrBowPull.h. While the hand
 // pulls the string, padmgr holds the button of the held item (VrCombat_BowPullItemMask). Thus the
 // vanilla bow path nocks the arrow, holds it, and shoots it at the release. The off-hand trigger
-// also stays the button of the held item.
+// also shoots.
 
 namespace {
 
@@ -90,6 +90,6 @@ extern "C" bool VrCombat_BowPullOwnsGrip(void) {
     return sResult.inReach && PullOn();
 }
 
-extern "C" bool VrCombat_BowGripConsumed(int32_t vrHand, uint16_t vrBtnMask) {
+extern "C" bool VrCombat_BowPullGripConsumed(int32_t vrHand, uint16_t vrBtnMask) {
     return (vrBtnMask & VR_BTN_GRIP) && (vrHand == VrBelt::SwordHand()) && VrCombat_BowPullOwnsGrip();
 }

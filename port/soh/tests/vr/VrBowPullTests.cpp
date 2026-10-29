@@ -72,10 +72,10 @@ static void TestThePullHoldsTheItemButton() {
     p.Update(At(10.0f, false));
     p.Update(At(10.0f, true));
     // Less than the minimum pull: the arrow is not on the string.
-    Result r = p.Update(At(10.0f + kMinPullM * 100.0f - 1.0f, true));
+    Result r = p.Update(At(10.0f + kMinPullM * kUpm - 1.0f, true));
     EXPECT(r.event == Event::None);
     EXPECT(!r.itemButtonHeld);
-    r = p.Update(At(10.0f + kMinPullM * 100.0f + 1.0f, true));
+    r = p.Update(At(10.0f + kMinPullM * kUpm + 1.0f, true));
     EXPECT(r.event == Event::Drawn);
     EXPECT(r.itemButtonHeld);
     // The hand goes forward again: the string stays pulled until the release.

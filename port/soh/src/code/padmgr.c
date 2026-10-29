@@ -452,7 +452,7 @@ void PadMgr_HandleRetraceMsg(PadMgr* padMgr) {
                         VrCombat_BoomerangGripConsumed(vrHandIdx, sVrBtnMasks[vrBtnIdx]) ||
                         VrCombat_BombGripConsumed(vrHandIdx, sVrBtnMasks[vrBtnIdx]) ||
                         VrCombat_NutGripConsumed(vrHandIdx, sVrBtnMasks[vrBtnIdx]) ||
-                        VrCombat_BowGripConsumed(vrHandIdx, sVrBtnMasks[vrBtnIdx])) {
+                        VrCombat_BowPullGripConsumed(vrHandIdx, sVrBtnMasks[vrBtnIdx])) {
                         continue;
                     }
                     if (vrState & sVrBtnMasks[vrBtnIdx]) {
