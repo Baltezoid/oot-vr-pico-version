@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    android:versionCode="1"
+    android:versionName="0.1-pico"
+    android:installLocation="auto">
+
+    <!-- SOH [Pico] OpenGL ES 3.0: the renderer is GLES3 and the OpenXR graphics binding is GLES.
+         The Neo 3 (Adreno 650) supports 3.2. -->
+    <uses-feature android:glEsVersion="0x00030000" android:required="true"/>
+
+    <!-- SOH [Pico] required="false" so the APK also installs on PICO OS, which may not declare
+         these features. Same as the Perfect Dark port that runs on firmware 5.7.5.0. -->
+    <uses-feature android:name="android.hardware.vr.headtracking"
+        android:required="false"
+        android:version="1"/>
+    <uses-feature android:name="android.hardware.vr.highperformance" android:required="false"/>
+
+    <uses-feature android:name="android.hardware.touchscreen" android:required="false"/>
+    <uses-feature android:name="android.hardware.gamepad" android:required="false"/>
+
+    <uses-permission android:name="android.permission.VIBRATE"/>
+    <!-- Mod list download (VR Settings > Mods). The in-game updater is off on PICO OS. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+
+    <!-- SOH [Pico] OpenXR permissions. The loader needs them to find the runtime. -->
+    <uses-permission android:name="org.khronos.openxr.permission.OPENXR"/>
+    <uses-permission android:name="org.khronos.openxr.permission.OPENXR_SYSTEM"/>
+
+    <!-- SOH [Pico] The OpenXR runtime broker. Without this block, package visibility can hide the
+         runtime from the loader. -->
+    <queries>
+        <provider android:authorities="org.khronos.openxr.runtime_broker;org.khronos.openxr.system_runtime_broker"/>
+        <intent>
+            <action android:name="org.khronos.openxr.OpenXRRuntimeService"/>
+        </intent>
+        <intent>
+            <action android:name="org.khronos.openxr.OpenXRApiLayerService"/>
+        </intent>
+    </queries>
+
+    <application android:label="@string/app_name"
+        android:icon="@mipmap/ic_launcher"
+        android:allowBackup="false"
+        android:theme="@android:style/Theme.NoTitleBar.Fullscreen"
+        android:hardwareAccelerated="true"
+        android:appCategory="game">
+
+        <!-- SOH [Pico] Marks the app as a VR app. PICO OS needs it to start the app from the icon. -->
+        <meta-data android:name="pvr.app.type" android:value="vr"/>
+
+        <!-- SOH [Quest] SDL blocks its main thread whenever Android says the activity is paused or
+             unfocused. An immersive app loses the focus of its flat window, so SDL would stop the
+             game loop. SDL reads SDL_ENV.* meta-data at startup (SDLActivity.java). -->
+        <meta-data android:name="SDL_ENV.SDL_ANDROID_BLOCK_ON_PAUSE" android:value="0"/>
+        <meta-data android:name="SDL_ENV.SDL_ANDROID_BLOCK_ON_PAUSE_PAUSEAUDIO" android:value="0"/>
+
+        <!-- configChanges lists all the changes that the activity can get. A change that is not in
+             the list creates the activity again in the same process, and SDL_main cannot run two
+             times in one process (read GameProcess.java). -->
+        <activity android:name="org.oot.vr.MainActivity"
+            android:label="@string/app_name"
+            android:alwaysRetainTaskState="true"
+            android:launchMode="singleTask"
+            android:configChanges="colorMode|density|fontScale|keyboard|keyboardHidden|layoutDirection|locale|mcc|mnc|navigation|orientation|screenLayout|screenSize|smallestScreenSize|touchscreen|uiMode"
+            android:excludeFromRecents="false"
+            android:resizeableActivity="false"
+            android:exported="true"
+            android:screenOrientation="landscape">
+
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+                <category android:name="org.khronos.openxr.intent.category.IMMERSIVE_HMD"/>
+                <category android:name="com.picovr.intent.category.VR"/>
+            </intent-filter>
+        </activity>
+
+        <!-- SOH [Pico] The 2D setup panel of Horizon OS does not exist on PICO OS. The activity stays
+             declared so the code compiles. It has no intent filter and nothing starts it. Make
+             oot.o2r on the PC and push it with adb. -->
+        <activity android:name="org.oot.vr.SetupActivity"
+            android:label="@string/app_name"
+            android:theme="@android:style/Theme.DeviceDefault.NoActionBar"
+            android:taskAffinity="org.oot.vr.setup"
+            android:launchMode="singleTask"
+            android:configChanges="density|keyboard|keyboardHidden|navigation|orientation|screenLayout|screenSize|uiMode"
+            android:exported="false"
+            android:screenOrientation="landscape"/>
+
+        <provider android:name="androidx.core.content.FileProvider"
+            android:authorities="org.oot.vr.update"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/update_paths"/>
+        </provider>
+    </application>
+</manifest>

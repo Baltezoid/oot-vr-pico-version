@@ -1,0 +1,156 @@
+diff --git a/port/Android/build-apk.sh b/port/Android/build-apk.sh
+--- a/port/Android/build-apk.sh	2026-10-29 11:42:13.728578201 +0000
++++ b/port/Android/build-apk.sh	2026-10-29 11:42:13.779823441 +0000
+@@ -58,7 +58,15 @@
+ "$STRIP" --strip-unneeded -o "$LIBS/libsoh.so" "$PORT/build-quest/soh/libsoh.so"
+ "$STRIP" --strip-unneeded -o "$LIBS/libSDL2.so" "$PORT/build-quest/_deps/sdl2-build/libSDL2.so"
+ OPENXR_SO="$(sed -n 's/^OPENXR_LOADER_SO:FILEPATH=//p' "$PORT/build-quest/CMakeCache.txt")"
+-cp "$OPENXR_SO" "$LIBS/libopenxr_loader.so"
++# SOH [Pico] The PICO runtime needs the PICO loader (PICO OpenXR SDK, libs/android.arm64-v8a). Put
++# it in port/Android/pico/, or set PICO_OPENXR_LOADER. The Khronos loader from the AAR stays for the
++# headers and for the link. Only the file in the APK changes: both have the name libopenxr_loader.so.
++PICO_LOADER="${PICO_OPENXR_LOADER:-$ANDROID_DIR/pico/libopenxr_loader.so}"
++if [ -f "$PICO_LOADER" ]; then
++    echo "==> OpenXR loader: PICO ($PICO_LOADER)"
++    OPENXR_SO="$PICO_LOADER"
++fi
++"$STRIP" --strip-unneeded -o "$LIBS/libopenxr_loader.so" "$OPENXR_SO"
+ 
+ mkdir -p "$ANDROID_DIR/app/src/main/assets"
+ cp "$PORT/soh.o2r" "$ANDROID_DIR/app/src/main/assets/soh.o2r"
+diff --git a/port/libultraship/src/fast/vr_openxr.cpp b/port/libultraship/src/fast/vr_openxr.cpp
+--- a/port/libultraship/src/fast/vr_openxr.cpp	2026-10-29 11:42:13.726258292 +0000
++++ b/port/libultraship/src/fast/vr_openxr.cpp	2026-10-29 11:42:13.779413389 +0000
+@@ -1066,12 +1066,38 @@
+     return xr.flat_screen || xr.menu_panel;
+ }
+ 
++// SOH [Pico] XR_BD_controller_interaction: the extension that adds the PICO controller profiles to
++// the OpenXR registry. The PICO runtime lists it when it supports the profiles. The header of the
++// PICO SDK 2.1.0 does not define the name, thus the string is here.
++static const char kXrBdControllerInteraction[] = "XR_BD_controller_interaction";
++static bool g_bd_controller_supported = false;
++
++// SOH [Pico] Writes the interaction profile that the runtime selected for each hand. If the
++// controllers do not work on the headset, this line in `adb logcat -s soh:V` tells which profile
++// the runtime used.
++static void vr_log_interaction_profiles() {
++    for (int h = 0; h < 2; h++) {
++        XrInteractionProfileState state = { XR_TYPE_INTERACTION_PROFILE_STATE };
++        if (!XR_SUCCEEDED(xrGetCurrentInteractionProfile(xr.session, xr.hand_path[h], &state))) {
++            continue;
++        }
++        char text[XR_MAX_PATH_LENGTH] = "(none)";
++        uint32_t len = 0;
++        if (state.interactionProfile != XR_NULL_PATH) {
++            xrPathToString(xr.instance, state.interactionProfile, XR_MAX_PATH_LENGTH, &len, text);
++        }
++        spdlog::info("[VR] Interaction profile, {} hand: {}", h == 0 ? "left" : "right", text);
++    }
++}
++
+ static void poll_events() {
+     XrEventDataBuffer event = { XR_TYPE_EVENT_DATA_BUFFER };
+     while (xrPollEvent(xr.instance, &event) == XR_SUCCESS) {
+         if (event.type == XR_TYPE_EVENT_DATA_SESSION_STATE_CHANGED) {
+             auto* state_event = reinterpret_cast<XrEventDataSessionStateChanged*>(&event);
+             handle_session_state_change(state_event->state);
++        } else if (event.type == XR_TYPE_EVENT_DATA_INTERACTION_PROFILE_CHANGED) {
++            vr_log_interaction_profiles(); // SOH [Pico]
+         } else if (event.type == XR_TYPE_EVENT_DATA_USER_PRESENCE_CHANGED_EXT) {
+             // Proximity sensor: headset donned/doffed. The runtime also posts the initial state
+             // right after the session starts.
+@@ -1196,6 +1222,58 @@
+               { xr.haptic_action, path("/user/hand/left/output/haptic") },
+               { xr.haptic_action, path("/user/hand/right/output/haptic") } });
+ 
++    // SOH [Pico] PICO Neo 3 controllers. Same layout as Touch: X/Y on the left, A/B on the right,
++    // and the menu button on the left. The right system button is for the runtime. The registry
++    // name needs XR_BD_controller_interaction. The older PICO name is a second try. A profile that
++    // the runtime does not know makes the call fail. The code logs it and goes on.
++    const std::vector<XrActionSuggestedBinding> pico_full = {
++        { xr.grip_pose_action, path("/user/hand/left/input/grip/pose") },
++        { xr.grip_pose_action, path("/user/hand/right/input/grip/pose") },
++        { xr.aim_pose_action, path("/user/hand/left/input/aim/pose") },
++        { xr.aim_pose_action, path("/user/hand/right/input/aim/pose") },
++        { xr.trigger_action, path("/user/hand/left/input/trigger/value") },
++        { xr.trigger_action, path("/user/hand/right/input/trigger/value") },
++        { xr.squeeze_action, path("/user/hand/left/input/squeeze/value") },
++        { xr.squeeze_action, path("/user/hand/right/input/squeeze/value") },
++        { xr.thumbstick_action, path("/user/hand/left/input/thumbstick") },
++        { xr.thumbstick_action, path("/user/hand/right/input/thumbstick") },
++        { xr.thumbstick_click_action, path("/user/hand/left/input/thumbstick/click") },
++        { xr.thumbstick_click_action, path("/user/hand/right/input/thumbstick/click") },
++        { xr.primary_action, path("/user/hand/left/input/x/click") },
++        { xr.primary_action, path("/user/hand/right/input/a/click") },
++        { xr.secondary_action, path("/user/hand/left/input/y/click") },
++        { xr.secondary_action, path("/user/hand/right/input/b/click") },
++        { xr.menu_action, path("/user/hand/left/input/menu/click") },
++        { xr.haptic_action, path("/user/hand/left/output/haptic") },
++        { xr.haptic_action, path("/user/hand/right/output/haptic") }
++    };
++    // Poses, trigger, grip, thumbstick and haptics only. Used if the runtime refuses a button path.
++    const std::vector<XrActionSuggestedBinding> pico_core = {
++        pico_full[0], pico_full[1], pico_full[2], pico_full[3], pico_full[4], pico_full[5],
++        pico_full[6], pico_full[7], pico_full[8], pico_full[9], pico_full[10], pico_full[11],
++        pico_full[17], pico_full[18]
++    };
++    auto suggest_pico = [&](const char* profile) {
++        for (const auto* binds : { &pico_full, &pico_core }) {
++            XrInteractionProfileSuggestedBinding sb = { XR_TYPE_INTERACTION_PROFILE_SUGGESTED_BINDING };
++            sb.interactionProfile = path(profile);
++            sb.suggestedBindings = binds->data();
++            sb.countSuggestedBindings = static_cast<uint32_t>(binds->size());
++            const XrResult r = xrSuggestInteractionProfileBindings(xr.instance, &sb);
++            if (XR_SUCCEEDED(r)) {
++                spdlog::info("[VR] PICO profile {}: bindings accepted ({})", profile,
++                             binds == &pico_full ? "full" : "core");
++                return;
++            }
++            spdlog::warn("[VR] PICO profile {}: bindings refused (XrResult {}, {})", profile, (int)r,
++                         binds == &pico_full ? "full" : "core");
++        }
++    };
++    if (g_bd_controller_supported) {
++        suggest_pico("/interaction_profiles/bytedance/pico_neo3_controller");
++    }
++    suggest_pico("/interaction_profiles/pico/neo3_controller");
++
+     // KHR simple controller — universal fallback (pose + select + menu only).
+     suggest("/interaction_profiles/khr/simple_controller",
+             { { xr.grip_pose_action, path("/user/hand/left/input/grip/pose") },
+@@ -1468,6 +1546,7 @@
+     xr.user_present = true; // assume worn until the runtime says otherwise
+     xr.color_scale_supported = false;
+     xr.refresh_rate_supported = false;
++    g_bd_controller_supported = false; // SOH [Pico]
+     xr.refresh_rate_requested = 0;
+     xr.view_fade_target = xr.view_fade_current = 0.0f;
+     {
+@@ -1485,10 +1564,13 @@
+             if (strcmp(p.extensionName, XR_FB_DISPLAY_REFRESH_RATE_EXTENSION_NAME) == 0) {
+                 xr.refresh_rate_supported = true;
+             }
++            if (strcmp(p.extensionName, kXrBdControllerInteraction) == 0) { // SOH [Pico]
++                g_bd_controller_supported = true;
++            }
+         }
+     }
+ 
+-    const char* extensions[5] = { vr_gfx_graphics_extension() };
++    const char* extensions[6] = { vr_gfx_graphics_extension() }; // SOH [Pico] 6: room for XR_BD_controller_interaction
+     uint32_t extension_count = 1;
+ #if VR_GFX_GLES
+     // Mandatory on Android: it is what carries the VM and activity into xrCreateInstance.
+@@ -1503,7 +1585,11 @@
+     if (xr.refresh_rate_supported) {
+         extensions[extension_count++] = XR_FB_DISPLAY_REFRESH_RATE_EXTENSION_NAME;
+     }
++    if (g_bd_controller_supported) { // SOH [Pico]
++        extensions[extension_count++] = kXrBdControllerInteraction;
++    }
+     spdlog::info("[VR] XR_FB_display_refresh_rate: {}", xr.refresh_rate_supported ? "available" : "not available");
++    spdlog::info("[VR] XR_BD_controller_interaction: {}", g_bd_controller_supported ? "available" : "not available");
+ 
+     XrInstanceCreateInfo instance_ci = { XR_TYPE_INSTANCE_CREATE_INFO };
+     instance_ci.next = vr_gfx_instance_next();
