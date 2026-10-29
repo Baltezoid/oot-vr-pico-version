@@ -1,0 +1,64 @@
+name: Build APK for PICO
+
+# Run by hand: Actions > "Build APK for PICO" > Run workflow.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  apk:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+    env:
+      APK: port/Android/app/build/outputs/apk/debug/app-debug.apk
+      # The commit of the oot-vr source that the PICO changes were made for.
+      BASE_COMMIT: 9e6152adf4fb29052a00afc97237eba94aca8fdb
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Use the same source as the PICO changes
+        run: |
+          if git cat-file -e "$BASE_COMMIT^{commit}" 2>/dev/null; then
+            git checkout "$BASE_COMMIT" -- port
+            echo "Source: commit $BASE_COMMIT"
+          else
+            echo "::warning::Commit $BASE_COMMIT not found. The build uses the source of the branch."
+          fi
+
+      - name: Apply the PICO changes
+        run: |
+          patch -p1 < pico/oot-vr-pico.patch
+          cp pico/AndroidManifest.xml port/Android/app/src/main/AndroidManifest.xml
+          mkdir -p port/Android/pico
+          cp pico/libopenxr_loader.so port/Android/pico/libopenxr_loader.so
+
+      - name: Install host dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y $(cat port/linux-build-deps/apt.txt)
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Install the Android NDK
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "ndk;26.3.11579264" "platforms;android-34" > /dev/null
+
+      - name: Build the debug APK
+        run: ANDROID_NDK_HOME="$ANDROID_HOME/ndk/26.3.11579264" bash port/Android/build-apk.sh
+
+      - name: Make sure that the APK has no game assets
+        run: bash .github/scripts/check-no-game-assets.sh "$APK"
+
+      - name: Upload the APK
+        uses: actions/upload-artifact@v7
+        with:
+          name: oot-vr-pico-apk
+          path: ${{ env.APK }}
+          retention-days: 14
+          if-no-files-found: error
