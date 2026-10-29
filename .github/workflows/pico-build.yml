@@ -38,8 +38,13 @@ jobs:
           cp pico/AndroidManifest.xml port/Android/app/src/main/AndroidManifest.xml
           mkdir -p port/Android/pico
           cp pico/libopenxr_loader.so port/Android/pico/libopenxr_loader.so
-          # Ícones customizados cp -r pico/icons/mipmap-* port/Android/app/src/main/res/
+
+          # Ícones customizados
+          cp -r pico/icons/mipmap-* port/Android/app/src/main/res/
           cp pico/icons/ic_launcher_background.xml port/Android/app/src/main/res/drawable/
+
+          # Nome do app
+          cp pico/icons/strings.xml port/Android/app/src/main/res/values/strings.xml
 
       - name: Install host dependencies
         run: |
