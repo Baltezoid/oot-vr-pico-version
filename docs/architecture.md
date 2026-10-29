@@ -282,8 +282,8 @@ mark.
 ### String pull
 
 `VrBowPull.cpp` lets the sword hand pull the string of the bow and the
-slingshot. The off hand holds the weapon. The setting is `gVrBowPull`, and it
-works only in selector mode.
+slingshot. The off hand holds the weapon. It is always on in selector mode.
+No setting turns it off.
 
 | Step | Result |
 |---|---|

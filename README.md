@@ -238,7 +238,7 @@ holds the shield, the bow, the slingshot, the hookshot, and the ocarina.
 | ------------------------------------------------------------ | ---------------------------------------------------------- |
 | Sword, Deku stick, Megaton Hammer                            | Swing your hand.                                           |
 | Spin attack                                                  | Put the sword hand at the side of your hip, with the tip of the blade to the back. The charge starts, and the controller vibrates. Move the charged sword as you want, then swing fast. With magic, you do the magic spin. |
-| Bow, slingshot                                               | Put the right hand near the string. Hold the right grip, pull the hand back, and release the grip to shoot. Aim with the two hands. The left trigger also shoots, along the weapon. The aim mark shows where the shot hits. To use only the trigger, turn off VR Settings > Controls > Pull the String. |
+| Bow, slingshot                                               | Put the right hand near the string. Hold the right grip, pull the hand back, and release the grip to shoot. Aim with the two hands. The left trigger also shoots, along the weapon. The aim mark shows where the shot hits. |
 | Hookshot                                                     | Point the hookshot. The aim mark shows where the shot hits. |
 | Boomerang                                                    | Hold the right grip, throw with the arm, release the grip. |
 | Bombs                                                        | Push a grip at the belt, throw with the arm, release the grip. A slow release drops the bomb. The left trigger also throws. |

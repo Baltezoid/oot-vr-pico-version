@@ -10,7 +10,6 @@ extern PlayState* gPlayState;
 #include "VrBowPull.h"
 #include "VrCombat.h"
 
-#include <libultraship/bridge/consolevariablebridge.h>
 #include <vr_interface.h>
 
 // The string pull of the bow and the slingshot (#150). The math is in VrBowPull.h. While the hand
@@ -40,7 +39,7 @@ VrBowPull::Vec3 sShotDir;
 bool sShotSet = false;
 
 bool PullOn() {
-    return CVarGetInteger("gVrBowPull", 1) && VrCombat::WeaponAimOn() && VrItemSelect_ModeActive() &&
+    return VrCombat::WeaponAimOn() && VrItemSelect_ModeActive() &&
            VrCombat_InPlay();
 }
 
