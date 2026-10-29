@@ -216,6 +216,36 @@ static void TestTheShotGoesFromTheHandThroughTheString() {
     EXPECT(!AimFromHand({ 0.0f, 10.0f, 0.0f }, { 0.0f, 10.0f, 0.5f }, 1.0f, &dir));
 }
 
+static void TestThePullHasALimit() {
+    const Vec3 rest = { 0.0f, 0.0f, 0.0f };
+    // A short pull: the nock is on the hand.
+    EXPECT(NearVec(NockPos(rest, { 0.0f, 0.0f, -30.0f }, 60.0f), { 0.0f, 0.0f, -30.0f }));
+    // A long pull: the nock stops at the limit, on the line to the hand.
+    EXPECT(NearVec(NockPos(rest, { 0.0f, 80.0f, -60.0f }, 60.0f), { 0.0f, 48.0f, -36.0f }));
+}
+
+static void TestTheArrowRestIsOnTheLineOfTheArrow() {
+    // The arrow rest is on the line of the vanilla arrow: the X and Z of the pulled vertex, at the
+    // ends of the string (y = 0).
+    EXPECT(NearVec(ArrowRest(kBowPulledVertex), { kBowPulledVertex.x, 0.0f, kBowPulledVertex.z }));
+    EXPECT(NearVec(ArrowRest(kSlingshotPulledVertex), { kSlingshotPulledVertex.x, 0.0f, kSlingshotPulledVertex.z }));
+}
+
+static void TestTheShotKeepsItsAimAfterTheRelease() {
+    Pull p;
+    p.Update(At(10.0f, false));
+    p.Update(At(10.0f, true));
+    p.Update(At(40.0f, true));
+    EXPECT(p.Update(At(40.0f, false)).keepShot);
+    for (int i = 1; i < kKeepShotTicks; i++) {
+        EXPECT(p.Update(At(40.0f, false)).keepShot);
+    }
+    EXPECT(!p.Update(At(40.0f, false)).keepShot);
+    // A release without a pull keeps nothing.
+    p.Update(At(10.0f, true));
+    EXPECT(!p.Update(At(12.0f, false)).keepShot);
+}
+
 int main() {
     TestTheGripNearTheBowTakesTheString();
     TestTheGripFarFromTheBowDoesNotTakeTheString();
@@ -230,6 +260,9 @@ int main() {
     TestWorldToLocalUndoesTheStringMatrix();
     TestTheStringGoesToTheHand();
     TestTheShotGoesFromTheHandThroughTheString();
+    TestThePullHasALimit();
+    TestTheArrowRestIsOnTheLineOfTheArrow();
+    TestTheShotKeepsItsAimAfterTheRelease();
     if (sFailures == 0) {
         std::printf("VrBowPull: all tests passed\n");
         return 0;

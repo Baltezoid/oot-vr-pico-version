@@ -294,8 +294,13 @@ works only in selector mode.
 
 While the hand holds the string, `VrCombat_BowPullString` changes the Y axis
 of the string matrix. Thus the pulled point of the string is on the hand. The
-shot goes from the hand through the center of the string at rest
+pull stops at 60 cm from the arrow rest. The arrow rest is on the line of the
+vanilla arrow. The shot goes from the hand through the arrow rest
 (`VrCombat_BowPullShot`). Thus both hands aim.
+
+The vanilla bow path shoots one or more ticks after the release. For 10 ticks
+after the release, `VrCombat_BowPullShot` keeps the aim of the last tick of the
+pull.
 
 The off-hand trigger also shoots. Near the bow, the
 sword-hand grip has no binding, and it is not part of the two-grip sword

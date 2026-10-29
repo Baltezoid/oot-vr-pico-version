@@ -17,8 +17,8 @@ extern PlayState* gPlayState;
 // pulls the string, padmgr holds the button of the held item (VrCombat_BowPullItemMask). Thus the
 // vanilla bow path nocks the arrow, holds it, and shoots it at the release. The off-hand trigger
 // also shoots. While the hand holds the string, the string goes to the hand
-// (VrCombat_BowPullString), and the shot goes from the hand through the string at rest
-// (VrCombat_BowPullShot).
+// (VrCombat_BowPullString), and the shot goes from the hand through the arrow rest
+// (VrCombat_BowPullShot). The pull has a limit (kMaxPullM).
 
 namespace {
 
@@ -28,10 +28,15 @@ constexpr uint32_t kBlockedFlags = PLAYER_STATE1_LOADING | PLAYER_STATE1_INPUT_D
 
 VrBowPull::Pull sPull;
 VrBowPull::Result sResult;
-// The center of the string at rest (world), from the last draw of the string.
+// From the last draw of the string (world): the center of the string at rest, and the arrow rest.
 VrBowPull::Vec3 sStringRest;
+VrBowPull::Vec3 sArrowRest;
 uint32_t sStringRestFrame = 0;
 bool sStringRestSet = false;
+// The shot of the last tick of the pull. It stays after the release (Result::keepShot).
+VrBowPull::Vec3 sShotPos;
+VrBowPull::Vec3 sShotDir;
+bool sShotSet = false;
 
 bool PullOn() {
     return CVarGetInteger("gVrBowPull", 1) && VrCombat::WeaponAimOn() && VrItemSelect_ModeActive() &&
@@ -54,6 +59,17 @@ VrBowPull::Vec3 HandPos(int hand) {
     float quat[4];
     return VR_GetHandPose(hand, pos, quat) ? VrBowPull::Vec3{ pos[0], pos[1], pos[2] }
                                            : VrBowPull::Vec3{ 1.0e6f, 1.0e6f, 1.0e6f };
+}
+
+// The nock: the string hand, with the limit of the pull. False when the hand is not tracked.
+bool Nock(VrBowPull::Vec3* out) {
+    float pos[3];
+    float quat[4];
+    if (!sStringRestSet || !VR_GetHandPose(StringHand(), pos, quat)) {
+        return false;
+    }
+    *out = VrBowPull::NockPos(sArrowRest, { pos[0], pos[1], pos[2] }, VrBowPull::kMaxPullM * VrBelt::UnitsPerMeter());
+    return true;
 }
 
 } // namespace
@@ -96,18 +112,20 @@ extern "C" bool VrCombat_BowPullString(const float* stringMf16, bool slingshot, 
     if (gPlayState == NULL) {
         return false;
     }
+    const VrBowPull::Vec3& pulledVertex = slingshot ? VrBowPull::kSlingshotPulledVertex : VrBowPull::kBowPulledVertex;
+    const VrBowPull::Vec3 rest = VrBowPull::ArrowRest(pulledVertex);
     sStringRest = { mf[3][0], mf[3][1], mf[3][2] };
+    sArrowRest = { rest.x * mf[0][0] + rest.y * mf[1][0] + rest.z * mf[2][0] + mf[3][0],
+                   rest.x * mf[0][1] + rest.y * mf[1][1] + rest.z * mf[2][1] + mf[3][1],
+                   rest.x * mf[0][2] + rest.y * mf[1][2] + rest.z * mf[2][2] + mf[3][2] };
     sStringRestFrame = gPlayState->state.frames;
     sStringRestSet = true;
-    float pos[3];
-    float quat[4];
-    VrBowPull::Vec3 handLocal;
-    if (!sResult.holding || !PullOn() || !VR_GetHandPose(StringHand(), pos, quat) ||
-        !VrBowPull::WorldToLocal(mf, { pos[0], pos[1], pos[2] }, &handLocal)) {
+    VrBowPull::Vec3 nock;
+    VrBowPull::Vec3 nockLocal;
+    if (!sResult.holding || !PullOn() || !Nock(&nock) || !VrBowPull::WorldToLocal(mf, nock, &nockLocal)) {
         return false;
     }
-    const VrBowPull::Vec3 axis = VrBowPull::StringPullAxis(
-        slingshot ? VrBowPull::kSlingshotPulledVertex : VrBowPull::kBowPulledVertex, handLocal);
+    const VrBowPull::Vec3 axis = VrBowPull::StringPullAxis(pulledVertex, nockLocal);
     outAxisXyz[0] = axis.x;
     outAxisXyz[1] = axis.y;
     outAxisXyz[2] = axis.z;
@@ -115,20 +133,30 @@ extern "C" bool VrCombat_BowPullString(const float* stringMf16, bool slingshot, 
 }
 
 extern "C" bool VrCombat_BowPullShot(float* outPosXyz, float* outDirXyz) {
-    float pos[3];
-    float quat[4];
-    VrBowPull::Vec3 dir;
-    if (!sResult.holding || !sStringRestSet || !PullOn() || !VR_GetHandPose(StringHand(), pos, quat) ||
-        !VrBowPull::AimFromHand(sStringRest, { pos[0], pos[1], pos[2] },
-                                VrBowPull::kMinAimM * VrBelt::UnitsPerMeter(), &dir)) {
+    if (!PullOn()) {
         return false;
     }
-    for (int i = 0; i < 3; i++) {
-        outPosXyz[i] = pos[i];
+    VrBowPull::Vec3 nock;
+    VrBowPull::Vec3 dir;
+    if (sResult.holding) {
+        sShotSet = Nock(&nock) && VrBowPull::AimFromHand(sArrowRest, nock,
+                                                         VrBowPull::kMinAimM * VrBelt::UnitsPerMeter(), &dir);
+        if (sShotSet) {
+            sShotPos = nock;
+            sShotDir = dir;
+        }
+    } else if (!sResult.keepShot) {
+        sShotSet = false;
     }
-    outDirXyz[0] = dir.x;
-    outDirXyz[1] = dir.y;
-    outDirXyz[2] = dir.z;
+    if (!sShotSet) {
+        return false;
+    }
+    outPosXyz[0] = sShotPos.x;
+    outPosXyz[1] = sShotPos.y;
+    outPosXyz[2] = sShotPos.z;
+    outDirXyz[0] = sShotDir.x;
+    outDirXyz[1] = sShotDir.y;
+    outDirXyz[2] = sShotDir.z;
     return true;
 }
 

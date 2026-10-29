@@ -17,6 +17,11 @@ constexpr float kGrabRadiusM = 0.25f;
 // After the grab, the hand must move this distance away from the string at rest. Then the arrow
 // is on the string. A smaller pull does not shoot.
 constexpr float kMinPullM = 0.10f;
+// The longest pull, from the arrow rest. A hand that goes farther does not pull the string more.
+constexpr float kMaxPullM = 0.6f;
+// After the release, the shot keeps the aim of the pull for this number of ticks (0.5 s). The
+// vanilla bow path shoots one or more ticks after the release.
+constexpr int kKeepShotTicks = 10;
 // A hand nearer to the string at rest than this distance gives no shot direction.
 constexpr float kMinAimM = 0.03f;
 // A grip that is pushed this number of ticks (0.3 s) before the hand gets to the bow takes the
@@ -50,6 +55,8 @@ struct Result {
     bool holding = false;
     // The button of the held item is held. The vanilla bow path shoots when it is released.
     bool itemButtonHeld = false;
+    // The string was released after a pull. The shot keeps the aim of the pull.
+    bool keepShot = false;
 };
 
 inline float Distance(const Vec3& a, const Vec3& b) {
@@ -63,6 +70,23 @@ inline float Distance(const Vec3& a, const Vec3& b) {
 // vanilla draw scales its Y (VrBowAim.h).
 constexpr Vec3 kBowPulledVertex = { VrBowAim::kNockAtRest.x, VrBowAim::kNockFullDrawY, VrBowAim::kNockAtRest.z };
 constexpr Vec3 kSlingshotPulledVertex = VrBowAim::kPouchFullDraw;
+
+// The point of the weapon where the shot goes through, in string space: on the line of the
+// vanilla arrow (the X and Z of the pulled vertex), at the ends of the string (y = 0).
+inline Vec3 ArrowRest(const Vec3& pulledVertex) {
+    return { pulledVertex.x, 0.0f, pulledVertex.z };
+}
+
+// The nock: the hand, but not farther than maxLen from the arrow rest.
+inline Vec3 NockPos(const Vec3& arrowRest, const Vec3& hand, float maxLen) {
+    const float len = Distance(arrowRest, hand);
+    if (len <= maxLen) {
+        return hand;
+    }
+    const float k = maxLen / len;
+    return { arrowRest.x + (hand.x - arrowRest.x) * k, arrowRest.y + (hand.y - arrowRest.y) * k,
+             arrowRest.z + (hand.z - arrowRest.z) * k };
+}
 
 // Returns p (world) in the space of mf (game MtxF layout, an affine matrix). False when mf has no
 // inverse.
@@ -91,8 +115,7 @@ inline Vec3 StringPullAxis(const Vec3& pulledVertex, const Vec3& handLocal) {
              (handLocal.z - pulledVertex.z) / pulledVertex.y };
 }
 
-// The shot goes from the hand through the string at rest. False when the hand is nearer than
-// minDist.
+// The shot goes from the nock through the arrow rest. False when the nock is nearer than minDist.
 inline bool AimFromHand(const Vec3& stringRest, const Vec3& hand, float minDist, Vec3* dir) {
     const float len = Distance(stringRest, hand);
     if (len < minDist) {
@@ -115,6 +138,7 @@ class Pull {
             }
             // A grip that is held now cannot take the string later.
             mState = in.gripHeld ? State::Blocked : State::Idle;
+            mKeepTicks = 0;
             return r;
         }
 
@@ -145,6 +169,7 @@ class Pull {
             } else if (near) {
                 mState = State::Holding;
                 mGrabDist = dist;
+                mKeepTicks = 0;
                 r.event = Event::Grab;
             } else if (--mGraceTicks <= 0) {
                 mState = State::Blocked;
@@ -160,6 +185,7 @@ class Pull {
         } else if (mState == State::Drawn) {
             if (!in.gripHeld) {
                 mState = State::Idle;
+                mKeepTicks = kKeepShotTicks;
                 r.event = Event::Shoot;
             }
         }
@@ -167,6 +193,10 @@ class Pull {
         r.holding = (mState == State::Holding) || (mState == State::Drawn);
         r.itemButtonHeld = (mState == State::Drawn);
         r.inReach = r.holding || near;
+        r.keepShot = mKeepTicks > 0;
+        if (mKeepTicks > 0) {
+            mKeepTicks--;
+        }
         return r;
     }
 
@@ -182,6 +212,7 @@ class Pull {
     State mState = State::Idle;
     bool mGripPrev = false;
     int mGraceTicks = 0;
+    int mKeepTicks = 0;
     float mGrabDist = 0.0f;
 };
 
